@@ -213,6 +213,8 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
   const [drivers, setDrivers] = useState([]);
 
   useEffect(() => {
+    console.log("Vechicle", vehicle);
+
     if (vehicle) {
       // Check if vehicle is nested in tvehiclesVO.data
       let vehicleData = vehicle;
@@ -270,7 +272,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
           OTHER: "other",
         };
 
-        vehicleData.documents.forEach((doc) => {
+        vehicleData.documentObjects.forEach((doc) => {
           const fileType = documentTypeMapping[doc.documentType];
           if (fileType) {
             transformedFiles[fileType].push({
@@ -347,50 +349,50 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-const handleFileUpload = async (fileType, file) => {
-  const validTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "application/pdf",
-  ];
-  const maxSize = 5 * 1024 * 1024; // 5MB
+  const handleFileUpload = async (fileType, file) => {
+    const validTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+      "application/pdf",
+    ];
+    const maxSize = 5 * 1024 * 1024; // 5MB
 
-  if (!validTypes.includes(file.type)) {
-    alert("Please upload only JPG, PNG, or PDF files");
-    return;
-  }
+    if (!validTypes.includes(file.type)) {
+      alert("Please upload only JPG, PNG, or PDF files");
+      return;
+    }
 
-  if (file.size > maxSize) {
-    alert("File size should be less than 5MB");
-    return;
-  }
+    if (file.size > maxSize) {
+      alert("File size should be less than 5MB");
+      return;
+    }
 
-  setUploading(true);
+    setUploading(true);
 
-  try {
-    const newFile = {
-      id: Date.now(), // Temporary ID for new files
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      url: URL.createObjectURL(file),
-      uploadedAt: new Date().toISOString(),
-      originalFile: file, // Store original File object for upload
-      isNew: true, // Flag to identify new files
-    };
+    try {
+      const newFile = {
+        id: Date.now(), // Temporary ID for new files
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        url: URL.createObjectURL(file),
+        uploadedAt: new Date().toISOString(),
+        originalFile: file, // Store original File object for upload
+        isNew: true, // Flag to identify new files
+      };
 
-    setFiles((prev) => ({
-      ...prev,
-      [fileType]: [...prev[fileType], newFile],
-    }));
-  } catch (error) {
-    alert("Error uploading file. Please try again.");
-    console.error("Upload error:", error);
-  } finally {
-    setUploading(false);
-  }
-};
+      setFiles((prev) => ({
+        ...prev,
+        [fileType]: [...prev[fileType], newFile],
+      }));
+    } catch (error) {
+      alert("Error uploading file. Please try again.");
+      console.error("Upload error:", error);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     loadDrivers();
@@ -415,142 +417,133 @@ const handleFileUpload = async (fileType, file) => {
     event.target.value = ""; // Reset file input
   };
 
- const [filesToDelete, setFilesToDelete] = useState([]);
+  const [filesToDelete, setFilesToDelete] = useState([]);
 
-const removeFile = (fileType, fileId) => {
-  const file = files[fileType].find(f => f.id === fileId);
-  
-  // Check if it's an existing file from server (has server ID and no originalFile)
-  if (file && file.id > 1000000000 && !file.originalFile) {
-    // Mark for deletion on server
-    setFilesToDelete(prev => [...prev, { fileType, fileId, serverId: file.id }]);
-  }
-  
-  // Remove from local state
-  setFiles(prev => ({
-    ...prev,
-    [fileType]: prev[fileType].filter((file) => file.id !== fileId),
-  }));
-};
+  const removeFile = (fileType, fileId) => {
+    const file = files[fileType].find((f) => f.id === fileId);
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  if (validateForm()) {
-    setSaving(true);
-    try {
-      // Prepare the vehicle data object with correct date formatting
-      const formatDateForAPI = (dateString) => {
-        if (!dateString) return null;
-        try {
-          const date = new Date(dateString);
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-          return `${year}-${month}-${day}`;
-        } catch (e) {
-          return null;
-        }
-      };
-
-      const vehicleData = {
-        vehicleNumber: formData.vehicleNumber,
-        type: formData.type,
-        model: formData.model,
-        capacity: formData.capacity,
-        active: formData.status === "active",
-        insuranceExpiry: formatDateForAPI(formData.insuranceExpiry),
-        fitnessExpiry: formatDateForAPI(formData.fitnessExpiry),
-        lastService: formatDateForAPI(formData.lastService),
-        nextService: formatDateForAPI(formData.nextService),
-        driver: formData.driver || "",
-        driverPhone: formData.driverPhone || "",
-        currentLocation: formData.currentLocation || "",
-        fuelEfficiency: formData.fuelEfficiency || "",
-        maintenanceRequired: formData.maintenanceRequired || false,
-        year: parseInt(formData.year) || new Date().getFullYear(),
-        chassisNumber: formData.chassisNumber || "",
-        engineNumber: formData.engineNumber || "",
-        permitType: formData.permitType || "National",
-        ownerName: formData.ownerName || "Self",
-        userId: userId,
-        orgId: 1001,
-        branchCode: "CHE001",
-        branchName: "Chennai",
-        createdBy: "Admin",
-      };
-
-      // Add ID if editing
-      if (vehicle?.id) {
-        vehicleData.id = vehicle.id;
-      }
-
-      // Create FormData
-      const formDataToSend = new FormData();
-
-      // Add vehicle data as tvehicleDTO binary blob
-      const vehicleDataJSON = JSON.stringify(vehicleData);
-      const vehicleDataBlob = new Blob([vehicleDataJSON], {
-        type: "application/json",
-      });
-      
-      formDataToSend.append("tvehicleDTO", vehicleDataBlob, "tvehicleDTO.json");
-
-      // Add files to delete if any
-      if (filesToDelete.length > 0) {
-        formDataToSend.append("filesToDelete", JSON.stringify(filesToDelete));
-      }
-
-      // Add files according to API parameter names
-      const apiFileMappings = {
-        rc: "RC",
-        insurance: "INSURANCE",
-        fitness: "FC",
-        permit: "PERMIT",
-        puc: "PUC",
-        other: "OTHER",
-      };
-
-      // Append each file to the correct API parameter
-      Object.keys(files).forEach((fileType) => {
-        const apiParamName = apiFileMappings[fileType];
-
-        if (apiParamName && files[fileType].length > 0) {
-          files[fileType].forEach((file) => {
-            // Only upload new files (with originalFile)
-            if (file.originalFile) {
-              formDataToSend.append(
-                apiParamName,
-                file.originalFile,
-                file.name
-              );
-            }
-          });
-        }
-      });
-
-      // Debug: Log FormData contents
-      console.log("=== FormData Contents ===");
-      for (let [key, value] of formDataToSend.entries()) {
-        if (key === "tvehicleDTO") {
-          console.log(`${key}: Blob (application/json, ${value.size} bytes)`);
-        } else if (key === "filesToDelete") {
-          console.log(`${key}: ${value}`);
-        } else if (value instanceof File) {
-          console.log(`${key}: File - ${value.name} (${value.type}, ${value.size} bytes)`);
-        } else {
-          console.log(`${key}: ${value}`);
-        }
-      }
-      console.log("=========================");
-      console.log("tvehicleDTO payload:", vehicleData);
-
-      await onSave(formDataToSend);
-    } finally {
-      setSaving(false);
+    // Check if it's an existing file from server (has server ID and no originalFile)
+    if (file && file.id > 1000000000 && !file.originalFile) {
+      // Mark for deletion on server
+      setFilesToDelete((prev) => [
+        ...prev,
+        { fileType, fileId, serverId: file.id },
+      ]);
     }
-  }
-};
+
+    // Remove from local state
+    setFiles((prev) => ({
+      ...prev,
+      [fileType]: prev[fileType].filter((file) => file.id !== fileId),
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (validateForm()) {
+      setSaving(true);
+      try {
+        // Prepare the vehicle data object with correct date formatting
+        const formatDateForAPI = (dateString) => {
+          if (!dateString) return null;
+          try {
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
+          } catch (e) {
+            return null;
+          }
+        };
+
+        const vehicleData = {
+          vehicleNumber: formData.vehicleNumber,
+          type: formData.type,
+          model: formData.model,
+          capacity: formData.capacity,
+          active: formData.status === "active",
+          insuranceExpiry: formatDateForAPI(formData.insuranceExpiry),
+          fitnessExpiry: formatDateForAPI(formData.fitnessExpiry),
+          lastService: formatDateForAPI(formData.lastService),
+          nextService: formatDateForAPI(formData.nextService),
+          driver: formData.driver || "",
+          driverPhone: formData.driverPhone || "",
+          currentLocation: formData.currentLocation || "",
+          fuelEfficiency: formData.fuelEfficiency || "",
+          maintenanceRequired: formData.maintenanceRequired || false,
+          year: parseInt(formData.year) || new Date().getFullYear(),
+          chassisNumber: formData.chassisNumber || "",
+          engineNumber: formData.engineNumber || "",
+          permitType: formData.permitType || "National",
+          ownerName: formData.ownerName || "Self",
+          userId: userId,
+          orgId: 1001,
+          branchCode: "CHE001",
+          branchName: "Chennai",
+          createdBy: "Admin",
+        };
+
+        // Add ID if editing
+        if (vehicle?.id) {
+          vehicleData.id = vehicle.id;
+        }
+
+        // Create FormData
+        const formDataToSend = new FormData();
+
+        // Add vehicle data as tvehicleDTO binary blob
+        const vehicleDataJSON = JSON.stringify(vehicleData);
+        const vehicleDataBlob = new Blob([vehicleDataJSON], {
+          type: "application/json",
+        });
+
+        formDataToSend.append(
+          "tvehicleDTO",
+          vehicleDataBlob,
+          "tvehicleDTO.json"
+        );
+
+        // Add files to delete if any
+        if (filesToDelete.length > 0) {
+          formDataToSend.append("filesToDelete", JSON.stringify(filesToDelete));
+        }
+
+        // Add files according to API parameter names
+        const apiFileMappings = {
+          rc: "RC",
+          insurance: "INSURANCE",
+          fitness: "FC",
+          permit: "PERMIT",
+          puc: "PUC",
+          other: "OTHER",
+        };
+
+        // Append each file to the correct API parameter
+        Object.keys(files).forEach((fileType) => {
+          const apiParamName = apiFileMappings[fileType];
+
+          if (apiParamName && files[fileType].length > 0) {
+            files[fileType].forEach((file) => {
+              // Only upload new files (with originalFile)
+              if (file.originalFile) {
+                formDataToSend.append(
+                  apiParamName,
+                  file.originalFile,
+                  file.name
+                );
+              }
+            });
+          }
+        });
+
+        await onSave(formDataToSend);
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

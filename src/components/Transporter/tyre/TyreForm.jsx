@@ -1,21 +1,16 @@
-import { 
-  X, 
-  Save, 
-  Settings, 
-  Calendar,
-  MapPin,
-  IndianRupee,
+import {
+  AlertCircle,
   Gauge,
-  AlertCircle
+  IndianRupee,
+  MapPin,
+  Save,
+  Settings,
+  X,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import vehicleAPI from "../../../api/TvehicleAPI";
 
-export const TyreForm = ({ 
-  tyre = null, 
-  vehicles = [], 
-  onSave, 
-  onCancel 
-}) => {
+export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     serialNumber: "",
     brand: "",
@@ -34,8 +29,16 @@ export const TyreForm = ({
   });
 
   const [errors, setErrors] = useState({});
+  const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
+  const [vehiclesList, setVehiclesList] = useState([]);
 
   useEffect(() => {
+    loadVehicles();
+  }, []);
+
+  useEffect(() => {
+
+    console.log("tyreID==>", tyre)
     if (tyre) {
       setFormData({
         serialNumber: tyre.serialNumber || "",
@@ -45,7 +48,8 @@ export const TyreForm = ({
         vehicleId: tyre.vehicleId || "",
         position: tyre.position || "Front Left",
         status: tyre.status || "active",
-        purchaseDate: tyre.purchaseDate || new Date().toISOString().split("T")[0],
+        purchaseDate:
+          tyre.purchaseDate || new Date().toISOString().split("T")[0],
         purchaseCost: tyre.purchaseCost || "",
         odometerReading: tyre.odometerReading || "",
         treadDepth: tyre.treadDepth || "",
@@ -56,14 +60,28 @@ export const TyreForm = ({
     }
   }, [tyre]);
 
+  const loadVehicles = async () => {
+    try {
+      const response = await vehicleAPI.getVehicles(1, 10, userId);
+      setVehiclesList(response.vehicles);
+      console.log("Tyre===>", response);
+      console.log("Test===>", vehiclesList);
+    } catch (error) {
+      console.error("Error loading drivers:", error);
+    } finally {
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.serialNumber) newErrors.serialNumber = "Serial number is required";
+    if (!formData.serialNumber)
+      newErrors.serialNumber = "Serial number is required";
     if (!formData.brand) newErrors.brand = "Brand is required";
     if (!formData.size) newErrors.size = "Tyre size is required";
     if (!formData.vehicleId) newErrors.vehicleId = "Vehicle is required";
-    if (!formData.purchaseDate) newErrors.purchaseDate = "Purchase date is required";
+    if (!formData.purchaseDate)
+      newErrors.purchaseDate = "Purchase date is required";
     if (!formData.purchaseCost || parseFloat(formData.purchaseCost) <= 0)
       newErrors.purchaseCost = "Valid purchase cost is required";
     if (!formData.treadDepth || parseFloat(formData.treadDepth) <= 0)
@@ -75,7 +93,7 @@ export const TyreForm = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     onSave({
@@ -86,25 +104,27 @@ export const TyreForm = ({
       recommendedPressure: parseFloat(formData.recommendedPressure),
       pressure: parseFloat(formData.pressure),
       id: tyre?.id || `TYRE-${Date.now()}`,
-      vehicleName: vehicles.find(v => v.id === formData.vehicleId)?.registrationNumber || "",
+      vehicleName:
+        vehicles.find((v) => v.id === formData.vehicleId)?.registrationNumber ||
+        "",
     });
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
   const positions = [
     "Front Left",
-    "Front Right", 
+    "Front Right",
     "Rear Left",
     "Rear Right",
-    "Spare"
+    "Spare",
   ];
 
   const statuses = [
@@ -162,7 +182,9 @@ export const TyreForm = ({
                   value={formData.serialNumber}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.serialNumber ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    errors.serialNumber
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
                   }`}
                   placeholder="TYRE-001234"
                 />
@@ -184,7 +206,9 @@ export const TyreForm = ({
                   value={formData.brand}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.brand ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    errors.brand
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
                   }`}
                   placeholder="MRF, Apollo, CEAT"
                 />
@@ -214,7 +238,9 @@ export const TyreForm = ({
                   value={formData.size}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.size ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    errors.size
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
                   }`}
                   placeholder="205/55 R16"
                 />
@@ -238,13 +264,21 @@ export const TyreForm = ({
                   value={formData.vehicleId}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.vehicleId ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    errors.vehicleId
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
                   }`}
                 >
-                  <option value="" className="text-gray-500 dark:text-gray-400">Select Vehicle</option>
-                  {vehicles.map(vehicle => (
-                    <option key={vehicle.id} value={vehicle.id} className="text-gray-900 dark:text-gray-100">
-                      {vehicle.registrationNumber} - {vehicle.make} {vehicle.model}
+                  <option value="" className="text-gray-500 dark:text-gray-400">
+                    Select Vehicle
+                  </option>
+                  {vehiclesList.map((vehicle) => (
+                    <option
+                      key={vehicle.id}
+                      value={vehicle.id}
+                      className="text-gray-900 dark:text-gray-100"
+                    >
+                      {vehicle.vehicleNumber} - {vehicle.year} {vehicle.model}
                     </option>
                   ))}
                 </select>
@@ -260,8 +294,12 @@ export const TyreForm = ({
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {positions.map(pos => (
-                    <option key={pos} value={pos} className="text-gray-900 dark:text-gray-100">
+                  {positions.map((pos) => (
+                    <option
+                      key={pos}
+                      value={pos}
+                      className="text-gray-900 dark:text-gray-100"
+                    >
                       {pos}
                     </option>
                   ))}
@@ -287,7 +325,9 @@ export const TyreForm = ({
                   value={formData.purchaseDate}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.purchaseDate ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    errors.purchaseDate
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
                   }`}
                 />
               </div>
@@ -304,7 +344,9 @@ export const TyreForm = ({
                     value={formData.purchaseCost}
                     onChange={handleChange}
                     className={`w-full px-4 py-3 pl-10 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.purchaseCost ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                      errors.purchaseCost
+                        ? "border-red-500"
+                        : "border-gray-300 dark:border-gray-700"
                     }`}
                     placeholder="8500"
                     step="0.01"
@@ -332,7 +374,9 @@ export const TyreForm = ({
                   onChange={handleChange}
                   step="0.1"
                   className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.treadDepth ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    errors.treadDepth
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
                   }`}
                   placeholder="6.5"
                 />
@@ -374,11 +418,13 @@ export const TyreForm = ({
               Status
             </label>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {statuses.map(status => (
+              {statuses.map((status) => (
                 <button
                   key={status.id}
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, status: status.id }))}
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, status: status.id }))
+                  }
                   className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
                     formData.status === status.id
                       ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
@@ -388,13 +434,19 @@ export const TyreForm = ({
                   <div className={`text-sm font-medium ${status.color} mb-1`}>
                     {status.name}
                   </div>
-                  <div className={`w-3 h-3 rounded-full ${
-                    status.id === 'active' ? 'bg-emerald-500' :
-                    status.id === 'warning' ? 'bg-amber-500' :
-                    status.id === 'critical' ? 'bg-red-500' :
-                    status.id === 'repair' ? 'bg-blue-500' :
-                    'bg-gray-500'
-                  }`} />
+                  <div
+                    className={`w-3 h-3 rounded-full ${
+                      status.id === "active"
+                        ? "bg-emerald-500"
+                        : status.id === "warning"
+                        ? "bg-amber-500"
+                        : status.id === "critical"
+                        ? "bg-red-500"
+                        : status.id === "repair"
+                        ? "bg-blue-500"
+                        : "bg-gray-500"
+                    }`}
+                  />
                 </button>
               ))}
             </div>

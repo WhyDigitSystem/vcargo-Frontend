@@ -15,12 +15,13 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import driverAPI from "../../../api/TdriverAPI";
+import vehicleAPI from "../../../api/TvehicleAPI";
 
 export const FuelForm = ({
   entry = null,
-  vehicles = [],
-  drivers = [],
   onSave,
+
   onCancel,
   isEditing = false,
 }) => {
@@ -38,10 +39,13 @@ export const FuelForm = ({
     receiptNumber: "",
     notes: "",
   });
-
+  const [drivers, setDrivers] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [expandedSection, setExpandedSection] = useState("basic");
+
+  const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
 
   const fuelTypes = [
     {
@@ -93,15 +97,20 @@ export const FuelForm = ({
     formData.previousOdometer,
   ]);
 
+  console.log("Driver", drivers);
+
   // Initialize form if editing
   useEffect(() => {
+    console.log("entry==>", entry);
+
     if (entry) {
       setFormData({
         vehicleId: entry.vehicleId || "",
         driverId: entry.driverId || "",
         fuelType: entry.fuelType || "diesel",
         quantity: entry.quantity || "",
-        cost: entry.cost?.replace("₹", "") || entry.cost || "",
+        cost: entry.cost || "",
+       
         odometerReading: entry.odometerReading || "",
         previousOdometer: entry.previousOdometer || "",
         station: entry.station || "",
@@ -147,6 +156,35 @@ export const FuelForm = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  useEffect(() => {
+    loadDrivers();
+    loadVehicles();
+  }, []);
+
+  const loadDrivers = async () => {
+    try {
+      const response = await driverAPI.getDrivers(1, 10, userId);
+      setDrivers(response.drivers);
+      console.log("Test===>", response.drivers);
+      console.log("Test===>", drivers);
+    } catch (error) {
+      console.error("Error loading drivers:", error);
+    } finally {
+    }
+  };
+
+  const loadVehicles = async () => {
+    try {
+      const response = await vehicleAPI.getVehicles(1, 10, userId);
+      setVehicles(response.vehicles);
+      console.log("Test===>", response);
+      console.log("Test===>", vehicles);
+    } catch (error) {
+      console.error("Error loading drivers:", error);
+    } finally {
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -169,7 +207,7 @@ export const FuelForm = ({
         vehicleName: selectedVehicle
           ? `${selectedVehicle.make} ${selectedVehicle.model}`
           : "",
-        driverName: drivers.find((d) => d.id === formData.driverId)?.name || "",
+        driver: drivers.find((d) => d.id === formData.driverId)?.name || "",
       };
 
       await onSave(submissionData);
@@ -200,42 +238,6 @@ export const FuelForm = ({
       previousOdometer: selectedVehicle?.lastOdometer || "",
     }));
   };
-
-  // Quick fill actions
-  // const quickFillActions = [
-  //   {
-  //     label: "Full Tank",
-  //     action: () => {
-  //       if (selectedVehicle?.tankCapacity) {
-  //         setFormData((prev) => ({
-  //           ...prev,
-  //           quantity: selectedVehicle.tankCapacity,
-  //         }));
-  //       }
-  //     },
-  //     icon: <Fuel className="h-3.5 w-3.5" />,
-  //   },
-  //   {
-  //     label: "Today",
-  //     action: () => {
-  //       setFormData((prev) => ({
-  //         ...prev,
-  //         date: new Date().toISOString().split("T")[0],
-  //       }));
-  //     },
-  //     icon: <Calendar className="h-3.5 w-3.5" />,
-  //   },
-  //   {
-  //     label: "Now",
-  //     action: () => {
-  //       setFormData((prev) => ({
-  //         ...prev,
-  //         time: new Date().toTimeString().slice(0, 5),
-  //       }));
-  //     },
-  //     icon: <Clock className="h-3.5 w-3.5" />,
-  //   },
-  // ];
 
   const sections = [
     { id: "basic", label: "Basic Info", icon: <Car className="h-4 w-4" /> },
@@ -368,7 +370,7 @@ export const FuelForm = ({
                             value={vehicle.id}
                             className="text-gray-900 dark:text-gray-100"
                           >
-                            {vehicle.registrationNumber} - {vehicle.make}{" "}
+                            {vehicle.vehicleNumber} - {vehicle.year}{" "}
                             {vehicle.model}
                           </option>
                         ))}
@@ -410,7 +412,7 @@ export const FuelForm = ({
                             value={driver.id}
                             className="text-gray-900 dark:text-gray-100"
                           >
-                            {driver.name} ({driver.license})
+                            {driver.name} ({driver.licenseNumber})
                           </option>
                         ))}
                       </select>
@@ -478,29 +480,6 @@ export const FuelForm = ({
               {/* Fuel Details Section */}
               {expandedSection === "details" && (
                 <div className="space-y-6">
-                  {/* Quick Actions */}
-                  {/* <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Quick Fill
-                      </span>
-                      <Navigation className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <div className="flex gap-2">
-                      {quickFillActions.map((action, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={action.action}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-sm"
-                        >
-                          {action.icon}
-                          {action.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div> */}
-
                   {/* Quantity & Cost */}
                   <div className="grid grid-cols-2 gap-6">
                     <div>

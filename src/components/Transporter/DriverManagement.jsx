@@ -49,34 +49,110 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
   });
 
   const [activeTab, setActiveTab] = useState("personal");
-
+  const [filesToDelete, setFilesToDelete] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!isOpen) return;
+    // DRIVER LOGIC
+    const documentTypeMapping = {
+      DL: "driverLicense",
+      AADHAR: "aadharCard",
+      PAN: "panCard",
+      PHOTO: "passportPhoto",
+      EXP: "experienceCertificate",
+      MEDICAL: "medicalCertificate",
+    };
+
     if (driver) {
+      let driverData = driver;
+
+      console.log("Raw driver data structure:", driver);
+
+      // Handle different driver data structures
+      if (driver.tdriverVO?.data?.length > 0) {
+        driverData = driver.tdriverVO.data[0];
+      } else if (driver.tdriversVO?.data?.length > 0) {
+        driverData = driver.tdriversVO.data[0];
+      }
+
+      console.log("Extracted driver data for form:", driverData);
+
       setFormData({
-        name: driver.name || "",
-        phone: driver.phone || "",
-        email: driver.email || "",
-        licenseNumber: driver.licenseNumber || "",
-        licenseExpiry: driver.licenseExpiry || "",
-        aadharNumber: driver.aadharNumber || "",
-        address: driver.address || "",
-        status: driver.status || "active",
-        experience: driver.experience || "",
-        salary: driver.salary || "",
-        assignedVehicle: driver.assignedVehicle || "",
-        bloodGroup: driver.bloodGroup || "",
-        emergencyContact: driver.emergencyContact || "",
-        joinedDate: driver.joinedDate || new Date().toISOString().split("T")[0],
-        performance: driver.performance || "4.5/5",
-        branchCode: driver.branchCode || "MAIN",
-        branchName: driver.branchName || "Main Branch",
-        id: driver.id || 0,
+        name: driverData.name || "",
+        phone: driverData.phone || "",
+        email: driverData.email || "",
+        licenseNumber: driverData.licenseNumber || "",
+        licenseExpiry: driverData.licenseExpiry || "",
+        aadharNumber: driverData.aadharNumber || "",
+        address: driverData.address || "",
+        status: driverData.status || "active",
+        experience: driverData.experience || "",
+        salary: driverData.salary || "",
+        assignedVehicle: driverData.assignedVehicle || "",
+        currentLocation: driverData.currentLocation || "",
+        bloodGroup: driverData.bloodGroup || "",
+        emergencyContact: driverData.emergencyContact || "",
+        joinedDate:
+          driverData.joinedDate || new Date().toISOString().split("T")[0],
+        performance: driverData.performance || "4.5/5",
+        branchCode: driverData.branchCode || "MAIN",
+        branchName: driverData.branchName || "Main Branch",
+        id: driverData.id || 0,
+        lastTrip: driverData.lastTrip || "",
+        orgId: driverData.orgId || 1001,
+        userId: driverData.userId || "",
+        createdBy: driverData.createdBy || "",
+        userName: driverData.userName || "",
+        active: driverData.active || driverData.status === "active",
       });
+
+      setFilesToDelete([]);
+
+      if (driverData.documents?.length > 0) {
+        console.log("Loading driver documents:", driverData.documents);
+
+        const transformedFiles = {
+          driverLicense: [],
+          aadharCard: [],
+          panCard: [],
+          passportPhoto: [],
+          experienceCertificate: [],
+          medicalCertificate: [],
+        };
+
+        driverData.documents.forEach((doc) => {
+          const fileType = documentTypeMapping[doc.documentType];
+          if (fileType) {
+            transformedFiles[fileType].push({
+              id: doc.id || Date.now() + Math.random(),
+              name: doc.fileName || `document-${doc.id}`,
+              type: doc.fileType || "application/octet-stream",
+              size: doc.fileSize || 0,
+              url: doc.filePath,
+              uploadedAt: doc.uploadedOn || new Date().toISOString(),
+              serverId: doc.id,
+              serverPath: doc.filePath,
+              documentType: doc.documentType,
+              fileName: doc.fileName,
+            });
+          }
+        });
+
+        setFiles(transformedFiles);
+      } else {
+        setFiles({
+          driverLicense: [],
+          aadharCard: [],
+          panCard: [],
+          passportPhoto: [],
+          experienceCertificate: [],
+          medicalCertificate: [],
+        });
+      }
     } else {
-      // Reset form for new driver
+      // Reset for new driver
       setFormData({
         name: "",
         phone: "",
@@ -95,9 +171,38 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
         performance: "4.5/5",
         branchCode: "MAIN",
         branchName: "Main Branch",
+        currentLocation: "",
+        lastTrip: "",
+        orgId: localStorage.getItem("orgId") || 1001,
+        userId: JSON.parse(localStorage.getItem("user"))?.usersId || "",
       });
+      setFiles({
+        driverLicense: [],
+        aadharCard: [],
+        panCard: [],
+        passportPhoto: [],
+        experienceCertificate: [],
+        medicalCertificate: [],
+      });
+      setFilesToDelete([]);
+      setErrors({});
     }
+
+    setActiveTab("personal");
   }, [driver, isOpen]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup all blob URLs when component unmounts
+      Object.values(files)
+        .flat()
+        .forEach((file) => {
+          if (file && file.url && file.url.startsWith("blob:")) {
+            URL.revokeObjectURL(file.url);
+          }
+        });
+    };
+  }, []);
 
   const [uploading, setUploading] = useState(false);
   const [files, setFiles] = useState({
@@ -125,7 +230,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
     },
     {
       key: "panCard",
-      label: "PAN Card",
+      label: "panCard Card",
       icon: "💳",
       required: false,
     },
@@ -189,12 +294,41 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
     }
   };
 
-  // Remove file
   const removeFile = (fileType, fileId) => {
+    const fileToRemove = files[fileType].find((file) => file.id === fileId);
+
+    // If file has a server path (already uploaded to server), add to delete list
+    if (fileToRemove && fileToRemove.serverId) {
+      setFilesToDelete((prev) => [
+        ...prev,
+        {
+          id: fileToRemove.serverId,
+          filePath: fileToRemove.serverPath,
+          category: fileType,
+          documentType:
+            fileTypes.find((f) => f.key === fileType)?.label || fileType,
+        },
+      ]);
+      console.log("Added file to delete list:", fileToRemove);
+    }
+
+    // Revoke object URL to prevent memory leaks
+    if (
+      fileToRemove &&
+      fileToRemove.url &&
+      fileToRemove.url.startsWith("blob:")
+    ) {
+      URL.revokeObjectURL(fileToRemove.url);
+    }
+
+    // Remove from local state
     setFiles((prev) => ({
       ...prev,
       [fileType]: prev[fileType].filter((file) => file.id !== fileId),
     }));
+
+    console.log("Removed file:", fileType, fileId);
+    console.log("Files to delete:", filesToDelete);
   };
 
   // Phone formatter function
@@ -234,18 +368,131 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
 
     setIsSubmitting(true);
     try {
-      // Prepare the data for API
-      const driverData = {
-        ...formData,
-        // Ensure phone is in correct format
-        phone: formData.phone.replace(/\D/g, "").slice(0, 10),
-        // Remove id if it's 0 (new driver)
-        ...(formData.id === 0 && { id: undefined }),
+      // Format date for API
+      const formatDateForAPI = (dateString) => {
+        if (!dateString) return null;
+        try {
+          const date = new Date(dateString);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          return `${year}-${month}-${day}`;
+        } catch (e) {
+          return null;
+        }
       };
 
-      await onSave(driverData);
+      // Get user info
+      const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
+      const orgId = localStorage.getItem("orgId") || 1001;
+      const userName = localStorage.getItem("userName") || "Admin User";
+
+      // Prepare the driver data object
+      const driverData = {
+        name: formData.name,
+        phone: formData.phone.replace(/\D/g, "").slice(0, 10),
+        email: formData.email || "",
+        licenseNumber: formData.licenseNumber,
+        licenseExpiry: formatDateForAPI(formData.licenseExpiry),
+        aadharNumber: formData.aadharNumber,
+        address: formData.address || "",
+        status: formData.status || "active",
+        experience: formData.experience || "",
+        salary: formData.salary || "",
+        assignedVehicle: formData.assignedVehicle || "",
+        currentLocation: formData.currentLocation || "",
+        bloodGroup: formData.bloodGroup || "",
+        emergencyContact: formData.emergencyContact || "",
+        performance: formData.performance || "4.5/5",
+        joinedDate: formatDateForAPI(formData.joinedDate),
+        lastTrip: formatDateForAPI(formData.lastTrip),
+        userId: userId,
+        orgId: orgId,
+        branchCode: formData.branchCode || "MAIN",
+        branchName: formData.branchName || "Main Branch",
+        active: formData.status === "active",
+        createdBy: userId,
+        userName: userName,
+      };
+
+      // Add ID if editing
+      if (driver?.id) {
+        driverData.id = driver.id;
+        driverData.updatedBy = userId;
+      }
+
+      // Create FormData
+      const formDataToSend = new FormData();
+
+      // Add driver data as tdriverDTO binary blob
+      const driverDataJSON = JSON.stringify(driverData);
+      const driverDataBlob = new Blob([driverDataJSON], {
+        type: "application/json",
+      });
+
+      formDataToSend.append("tdriverDTO", driverDataBlob, "tdriverDTO.json");
+
+      if (filesToDelete.length > 0) {
+        console.log("Adding files to delete:", filesToDelete);
+        formDataToSend.append("filesToDelete", JSON.stringify(filesToDelete));
+      }
+
+      // Add files to delete if any (for edit mode)
+      if (filesToDelete && filesToDelete.length > 0) {
+        formDataToSend.append("filesToDelete", JSON.stringify(filesToDelete));
+      }
+
+      // Define API parameter mappings for driver documents
+      const apiFileMappings = {
+        driverLicense: "DL",
+        aadharCard: "AADHAR",
+        panCard: "PAN",
+        passportPhoto: "PHOTO",
+        experienceCertificate: "EXP",
+        medicalCertificate: "MEDICAL",
+      };
+      // Append each file to the correct API parameter
+      let hasFiles = false;
+      Object.keys(files).forEach((fileType) => {
+        const apiParamName = apiFileMappings[fileType];
+
+        if (apiParamName && files[fileType].length > 0) {
+          hasFiles = true;
+          files[fileType].forEach((file) => {
+            // Only upload new files (with file object)
+            if (file.file) {
+              formDataToSend.append(apiParamName, file.file, file.name);
+
+              // Also add metadata if needed
+              formDataToSend.append(
+                `metadata_${apiParamName}`,
+                JSON.stringify({
+                  fileName: file.name,
+                  fileType: file.type,
+                  fileSize: file.size,
+                  uploadedAt: file.uploadedAt,
+                  category: fileType,
+                })
+              );
+            }
+          });
+        }
+      });
+
+      // If no files, add empty flag
+      if (!hasFiles) {
+        formDataToSend.append("noFiles", "true");
+      }
+
+      // Call onSave with FormData
+      await onSave(formDataToSend);
     } catch (error) {
       console.error("Form submission error:", error);
+      // Show error to user
+      setErrors((prev) => ({
+        ...prev,
+        submit: error.message || "Failed to save driver. Please try again.",
+      }));
     } finally {
       setIsSubmitting(false);
     }
@@ -683,557 +930,561 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
           )}
 
           {/* Documents Tab */}
-        {activeTab === "documents" && (
-  <div className="space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
-    <div className="mb-4">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-        Upload Driver Documents
-      </h3>
-      <p className="text-xs text-gray-500 dark:text-gray-400">
-        Max 5MB per file (JPG, PNG, PDF). Required documents are
-        marked with *
-      </p>
-    </div>
-
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* Driver License */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
-        <div className="flex flex-col h-full">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📋</span>
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Driver License *
-                  <span className="text-red-500 ml-1">*</span>
-                </h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {files.driverLicense?.length || 0} file(s)
+          {activeTab === "documents" && (
+            <div className="space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Upload Driver Documents
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Max 5MB per file (JPG, PNG, PDF). Required documents are
+                  marked with *
                 </p>
               </div>
-            </div>
-          </div>
 
-          <div className="flex-1">
-            {files.driverLicense && files.driverLicense.length > 0 ? (
-              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                {files.driverLicense.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                          {file.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatFileSize(file.size)}
-                        </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Driver License */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">📋</span>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Driver License *
+                            <span className="text-red-500 ml-1">*</span>
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {files.driverLicense?.length || 0} file(s)
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                        title="Preview"
-                      >
-                        <Eye className="h-4 w-4 text-gray-500" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeFile("driverLicense", file.id)
-                        }
-                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
-                        disabled={isSubmitting}
-                        title="Remove"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+
+                    <div className="flex-1">
+                      {files.driverLicense && files.driverLicense.length > 0 ? (
+                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                          {files.driverLicense.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                                    {file.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatFileSize(file.size)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4 text-gray-500" />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeFile("driverLicense", file.id)
+                                  }
+                                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
+                                  disabled={isSubmitting}
+                                  title="Remove"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
+                          <File className="h-10 w-10 text-gray-400 mb-3" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                            No files uploaded
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            Click below to upload
+                          </p>
+                        </div>
+                      )}
                     </div>
+
+                    <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
+                      <Plus className="h-4 w-4 inline mr-2" />
+                      Add File
+                      <input
+                        type="file"
+                        multiple
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => handleFileChange("driverLicense", e)}
+                        className="hidden"
+                        disabled={uploading || isSubmitting}
+                      />
+                    </label>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
-                <File className="h-10 w-10 text-gray-400 mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  No files uploaded
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Click below to upload
-                </p>
-              </div>
-            )}
-          </div>
+                </div>
 
-          <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
-            <Plus className="h-4 w-4 inline mr-2" />
-            Add File
-            <input
-              type="file"
-              multiple
-              accept=".jpg,.jpeg,.png,.pdf"
-              onChange={(e) => handleFileChange("driverLicense", e)}
-              className="hidden"
-              disabled={uploading || isSubmitting}
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Aadhar Card */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
-        <div className="flex flex-col h-full">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🆔</span>
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Aadhar Card *
-                  <span className="text-red-500 ml-1">*</span>
-                </h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {files.aadharCard?.length || 0} file(s)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1">
-            {files.aadharCard && files.aadharCard.length > 0 ? (
-              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                {files.aadharCard.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                          {file.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatFileSize(file.size)}
-                        </p>
+                {/* Aadhar Card */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">🆔</span>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Aadhar Card *
+                            <span className="text-red-500 ml-1">*</span>
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {files.aadharCard?.length || 0} file(s)
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                        title="Preview"
-                      >
-                        <Eye className="h-4 w-4 text-gray-500" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeFile("aadharCard", file.id)
-                        }
-                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
-                        disabled={isSubmitting}
-                        title="Remove"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+
+                    <div className="flex-1">
+                      {files.aadharCard && files.aadharCard.length > 0 ? (
+                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                          {files.aadharCard.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                                    {file.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatFileSize(file.size)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4 text-gray-500" />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeFile("aadharCard", file.id)
+                                  }
+                                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
+                                  disabled={isSubmitting}
+                                  title="Remove"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
+                          <File className="h-10 w-10 text-gray-400 mb-3" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                            No files uploaded
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            Click below to upload
+                          </p>
+                        </div>
+                      )}
                     </div>
+
+                    <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
+                      <Plus className="h-4 w-4 inline mr-2" />
+                      Add File
+                      <input
+                        type="file"
+                        multiple
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => handleFileChange("aadharCard", e)}
+                        className="hidden"
+                        disabled={uploading || isSubmitting}
+                      />
+                    </label>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
-                <File className="h-10 w-10 text-gray-400 mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  No files uploaded
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Click below to upload
-                </p>
-              </div>
-            )}
-          </div>
+                </div>
 
-          <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
-            <Plus className="h-4 w-4 inline mr-2" />
-            Add File
-            <input
-              type="file"
-              multiple
-              accept=".jpg,.jpeg,.png,.pdf"
-              onChange={(e) => handleFileChange("aadharCard", e)}
-              className="hidden"
-              disabled={uploading || isSubmitting}
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* PAN Card */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
-        <div className="flex flex-col h-full">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">💳</span>
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  PAN Card
-                </h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {files.panCard?.length || 0} file(s)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1">
-            {files.panCard && files.panCard.length > 0 ? (
-              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                {files.panCard.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                          {file.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatFileSize(file.size)}
-                        </p>
+                {/* panCard Card */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">💳</span>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            panCard Card
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {files.panCard?.length || 0} file(s)
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                        title="Preview"
-                      >
-                        <Eye className="h-4 w-4 text-gray-500" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeFile("panCard", file.id)
-                        }
-                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
-                        disabled={isSubmitting}
-                        title="Remove"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+
+                    <div className="flex-1">
+                      {files.panCard && files.panCard.length > 0 ? (
+                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                          {files.panCard.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                                    {file.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatFileSize(file.size)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4 text-gray-500" />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => removeFile("panCard", file.id)}
+                                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
+                                  disabled={isSubmitting}
+                                  title="Remove"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
+                          <File className="h-10 w-10 text-gray-400 mb-3" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                            No files uploaded
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            Click below to upload
+                          </p>
+                        </div>
+                      )}
                     </div>
+
+                    <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
+                      <Plus className="h-4 w-4 inline mr-2" />
+                      Add File
+                      <input
+                        type="file"
+                        multiple
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => handleFileChange("panCard", e)}
+                        className="hidden"
+                        disabled={uploading || isSubmitting}
+                      />
+                    </label>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
-                <File className="h-10 w-10 text-gray-400 mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  No files uploaded
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Click below to upload
-                </p>
-              </div>
-            )}
-          </div>
+                </div>
 
-          <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
-            <Plus className="h-4 w-4 inline mr-2" />
-            Add File
-            <input
-              type="file"
-              multiple
-              accept=".jpg,.jpeg,.png,.pdf"
-              onChange={(e) => handleFileChange("panCard", e)}
-              className="hidden"
-              disabled={uploading || isSubmitting}
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Passport Photo */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
-        <div className="flex flex-col h-full">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📸</span>
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Passport Photo *
-                  <span className="text-red-500 ml-1">*</span>
-                </h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {files.passportPhoto?.length || 0} file(s)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1">
-            {files.passportPhoto && files.passportPhoto.length > 0 ? (
-              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                {files.passportPhoto.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                          {file.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatFileSize(file.size)}
-                        </p>
+                {/* Passport Photo */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">📸</span>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Passport Photo *
+                            <span className="text-red-500 ml-1">*</span>
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {files.passportPhoto?.length || 0} file(s)
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                        title="Preview"
-                      >
-                        <Eye className="h-4 w-4 text-gray-500" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeFile("passportPhoto", file.id)
-                        }
-                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
-                        disabled={isSubmitting}
-                        title="Remove"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+
+                    <div className="flex-1">
+                      {files.passportPhoto && files.passportPhoto.length > 0 ? (
+                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                          {files.passportPhoto.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                                    {file.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatFileSize(file.size)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4 text-gray-500" />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeFile("passportPhoto", file.id)
+                                  }
+                                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
+                                  disabled={isSubmitting}
+                                  title="Remove"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
+                          <File className="h-10 w-10 text-gray-400 mb-3" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                            No files uploaded
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            Click below to upload
+                          </p>
+                        </div>
+                      )}
                     </div>
+
+                    <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
+                      <Plus className="h-4 w-4 inline mr-2" />
+                      Add File
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png"
+                        onChange={(e) => handleFileChange("passportPhoto", e)}
+                        className="hidden"
+                        disabled={uploading || isSubmitting}
+                      />
+                    </label>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
-                <File className="h-10 w-10 text-gray-400 mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  No files uploaded
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Click below to upload
-                </p>
-              </div>
-            )}
-          </div>
+                </div>
 
-          <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
-            <Plus className="h-4 w-4 inline mr-2" />
-            Add File
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png"
-              onChange={(e) => handleFileChange("passportPhoto", e)}
-              className="hidden"
-              disabled={uploading || isSubmitting}
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Experience Certificate */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
-        <div className="flex flex-col h-full">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📜</span>
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Experience Certificate
-                </h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {files.experienceCertificate?.length || 0} file(s)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1">
-            {files.experienceCertificate && files.experienceCertificate.length > 0 ? (
-              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                {files.experienceCertificate.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                          {file.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatFileSize(file.size)}
-                        </p>
+                {/* Experience Certificate */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">📜</span>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Experience Certificate
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {files.experienceCertificate?.length || 0} file(s)
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                        title="Preview"
-                      >
-                        <Eye className="h-4 w-4 text-gray-500" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeFile("experienceCertificate", file.id)
-                        }
-                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
-                        disabled={isSubmitting}
-                        title="Remove"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+
+                    <div className="flex-1">
+                      {files.experienceCertificate &&
+                      files.experienceCertificate.length > 0 ? (
+                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                          {files.experienceCertificate.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                                    {file.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatFileSize(file.size)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4 text-gray-500" />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeFile("experienceCertificate", file.id)
+                                  }
+                                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
+                                  disabled={isSubmitting}
+                                  title="Remove"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
+                          <File className="h-10 w-10 text-gray-400 mb-3" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                            No files uploaded
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            Click below to upload
+                          </p>
+                        </div>
+                      )}
                     </div>
+
+                    <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
+                      <Plus className="h-4 w-4 inline mr-2" />
+                      Add File
+                      <input
+                        type="file"
+                        multiple
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) =>
+                          handleFileChange("experienceCertificate", e)
+                        }
+                        className="hidden"
+                        disabled={uploading || isSubmitting}
+                      />
+                    </label>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
-                <File className="h-10 w-10 text-gray-400 mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  No files uploaded
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Click below to upload
-                </p>
-              </div>
-            )}
-          </div>
+                </div>
 
-          <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
-            <Plus className="h-4 w-4 inline mr-2" />
-            Add File
-            <input
-              type="file"
-              multiple
-              accept=".jpg,.jpeg,.png,.pdf"
-              onChange={(e) => handleFileChange("experienceCertificate", e)}
-              className="hidden"
-              disabled={uploading || isSubmitting}
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Medical Certificate */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
-        <div className="flex flex-col h-full">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🏥</span>
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Medical Certificate
-                </h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {files.medicalCertificate?.length || 0} file(s)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1">
-            {files.medicalCertificate && files.medicalCertificate.length > 0 ? (
-              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                {files.medicalCertificate.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                          {file.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatFileSize(file.size)}
-                        </p>
+                {/* Medical Certificate */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">🏥</span>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Medical Certificate
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {files.medicalCertificate?.length || 0} file(s)
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                        title="Preview"
-                      >
-                        <Eye className="h-4 w-4 text-gray-500" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeFile("medicalCertificate", file.id)
-                        }
-                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
-                        disabled={isSubmitting}
-                        title="Remove"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
-                <File className="h-10 w-10 text-gray-400 mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  No files uploaded
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Click below to upload
-                </p>
-              </div>
-            )}
-          </div>
 
-          <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
-            <Plus className="h-4 w-4 inline mr-2" />
-            Add File
-            <input
-              type="file"
-              multiple
-              accept=".jpg,.jpeg,.png,.pdf"
-              onChange={(e) => handleFileChange("medicalCertificate", e)}
-              className="hidden"
-              disabled={uploading || isSubmitting}
-            />
-          </label>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+                    <div className="flex-1">
+                      {files.medicalCertificate &&
+                      files.medicalCertificate.length > 0 ? (
+                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                          {files.medicalCertificate.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                                    {file.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatFileSize(file.size)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4 text-gray-500" />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeFile("medicalCertificate", file.id)
+                                  }
+                                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
+                                  disabled={isSubmitting}
+                                  title="Remove"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
+                          <File className="h-10 w-10 text-gray-400 mb-3" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                            No files uploaded
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            Click below to upload
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
+                      <Plus className="h-4 w-4 inline mr-2" />
+                      Add File
+                      <input
+                        type="file"
+                        multiple
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) =>
+                          handleFileChange("medicalCertificate", e)
+                        }
+                        className="hidden"
+                        disabled={uploading || isSubmitting}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Form Actions */}
           <div className="flex justify-between items-center pt-4 mt-6 border-t border-gray-200 dark:border-gray-700">
@@ -1412,6 +1663,7 @@ const DriverManagement = () => {
   };
 
   const handleFormSave = (driverData) => {
+    console.log("Test==>", driverData);
     if (editingDriver) {
       handleUpdateDriver(driverData);
     } else {

@@ -117,83 +117,19 @@ const driverAPI = {
   },
 
   // Create or Update driver using the real API
-  createUpdateDriver: async (driverData) => {
-    // Helper function to create payload
-    const createPayload = (driverData) => {
-      const formatDate = (dateString) => {
-        if (!dateString) return null;
-        try {
-          const date = new Date(dateString);
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-          return `${year}-${month}-${day}`;
-        } catch (e) {
-          console.error("Error formatting date:", dateString, e);
-          return null;
-        }
-      };
-
-      // Get user info from localStorage or context
-      const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
-      const orgId = localStorage.getItem("orgId") || 1001;
-      const userName = localStorage.getItem("userName") || "Admin User";
-
-      // Start with base payload
-      const payload = {
-        name: driverData.name,
-        phone: driverData.phone,
-        email: driverData.email || "",
-        licenseNumber: driverData.licenseNumber,
-        licenseExpiry: formatDate(driverData.licenseExpiry),
-        aadharNumber: driverData.aadharNumber,
-        address: driverData.address || "",
-        status: driverData.status || "active",
-        experience: driverData.experience || "",
-        salary: driverData.salary || "",
-        assignedVehicle: driverData.assignedVehicle || "",
-        currentLocation: driverData.currentLocation || "",
-        bloodGroup: driverData.bloodGroup || "",
-        emergencyContact: driverData.emergencyContact || "",
-        performance: driverData.performance || "4.5/5",
-        joinedDate:
-          formatDate(driverData.joinedDate) ||
-          formatDate(new Date().toISOString().split("T")[0]),
-        lastTrip: formatDate(driverData.lastTrip),
-        userId: userId,
-        orgId: orgId,
-        branchCode: driverData.branchCode || "MAIN",
-        branchName: driverData.branchName || "Main Branch",
-        active: driverData.status === "active" ? true : false,
-        createdBy: userId,
-        userName: userName,
-      };
-
-      // Only add id if it exists and is not 0 (for updates)
-      if (driverData.id && driverData.id !== 0) {
-        payload.id = driverData.id;
-      }
-
-      // Add updatedBy for updates
-      if (driverData.id && driverData.id !== 0) {
-        payload.updatedBy = userId;
-      }
-
-      return payload;
-    };
+  createUpdateDriver: async (driverFormData) => {
+    console.log("driverFormData", driverFormData);
 
     try {
-      const payload = createPayload(driverData);
+      console.log("Saving driver with FormData...");
 
-      console.log("Sending driver payload:", JSON.stringify(payload, null, 2));
-
-      // Try with Content-Type: application/json first
+      // Try the FormData approach directly
       const response = await apiClient.put(
         "/api/transaction/createUpdateTdriver",
-        payload,
+        driverFormData,
         {
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "multipart/form-data",
           },
         }
       );
@@ -216,53 +152,48 @@ const driverAPI = {
         console.error("Response status:", error.response.status);
       }
 
-      // If 415 error, try with FormData
-      if (error.response?.status === 415) {
-        console.log("JSON failed with 415, trying multipart/form-data...");
+      // Fallback to JSON approach if FormData fails
+      if (error.response?.status === 400 || error.response?.status === 415) {
+        console.log("FormData failed, trying JSON...");
 
         try {
-          const payload = createPayload(driverData);
+          // Extract driver data from FormData
+          const driverDataBlob = driverFormData.get("tdriverDTO");
+          if (driverDataBlob) {
+            const driverDataText = await driverDataBlob.text();
+            const driverData = JSON.parse(driverDataText);
 
-          // Create FormData as fallback
-          const formData = new FormData();
-          Object.keys(payload).forEach((key) => {
-            if (payload[key] !== null && payload[key] !== undefined) {
-              // Convert dates to string format for FormData
-              const value =
-                typeof payload[key] === "object"
-                  ? JSON.stringify(payload[key])
-                  : String(payload[key]);
-              formData.append(key, value);
-            }
-          });
-
-          const formDataResponse = await apiClient.put(
-            "/api/transaction/createUpdateTdriver",
-            formData,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-            }
-          );
-
-          if (formDataResponse && formDataResponse.statusFlag === "Ok") {
-            return formDataResponse;
-          } else {
-            throw new Error(
-              formDataResponse?.paramObjectsMap?.message ||
-                "FormData save failed"
+            // Call the original JSON endpoint
+            const jsonResponse = await apiClient.put(
+              "/api/transaction/createUpdateTdriver",
+              driverData,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
             );
+
+            if (jsonResponse && jsonResponse.statusFlag === "Ok") {
+              return jsonResponse;
+            }
           }
-        } catch (formDataError) {
-          console.error("FormData also failed:", formDataError);
-          throw formDataError;
+        } catch (jsonError) {
+          console.error("JSON approach also failed:", jsonError);
         }
       }
 
       // Fallback to localStorage if API fails
       try {
         console.warn("API failed, falling back to localStorage");
+
+        // Extract driver data from FormData for localStorage
+        const driverDataBlob = driverFormData.get("tdriverDTO");
+        let driverData = {};
+        if (driverDataBlob) {
+          const driverDataText = await driverDataBlob.text();
+          driverData = JSON.parse(driverDataText);
+        }
 
         const { drivers } = await driverAPI.getDrivers(1, 1000);
         let newDriver;

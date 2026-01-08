@@ -47,19 +47,19 @@ import QuortsListView from "./components/QuortsView/quortsListView";
 import Documents from "./components/Transporter/Documents";
 import DriverManagement from "./components/Transporter/DriverManagement";
 import FuelManagement from "./components/Transporter/FuelManagement";
-import InvoiceManagement from "./components/Transporter/InvoiceManagement";
+import { InvoicePage } from "./components/Transporter/invoice/InvoicePage";
+import { MaintenancePage } from "./components/Transporter/maintenance/MaintenancePage";
 import PaymentSetup from "./components/Transporter/PaymentSetup";
 import RoutesAndZones from "./components/Transporter/RoutesAndZones";
 import SettingsScreen from "./components/Transporter/Settings";
 import TripScheduling from "./components/Transporter/TripScheduling";
 import { TyreManagementPage } from "./components/Transporter/tyre/TyreManagementPage";
-import VehicleMaintenance from "./components/Transporter/VehicleMaintenance";
 import VehicleManagement from "./components/Transporter/VehicleManagement";
 import ChargeType from "./pages/ChargeType";
 import ListOfValues from "./pages/ListOfValues";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import NetworkStatusNotifier from "./utils/NetworkStatusNotifier";
-import { MaintenancePage } from "./components/Transporter/maintenance/MaintenancePage";
+import { TripPage } from "./components/Transporter/trip/TripPage";
 
 // Theme initializer component
 const ThemeInitializer = () => {
@@ -240,12 +240,9 @@ const AppContent = () => {
                           <Route path="/routes" element={<RoutesAndZones />} />
                           <Route
                             path="/scheduling"
-                            element={<TripScheduling />}
+                            element={<TripPage />}
                           />
-                          <Route
-                            path="/invoice"
-                            element={<InvoiceManagement />}
-                          />
+                          <Route path="/invoice" element={<InvoicePage />} />
 
                           <Route
                             path="/maintenance"
