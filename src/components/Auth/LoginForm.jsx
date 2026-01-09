@@ -41,7 +41,7 @@ const AuthForm = () => {
     email: "",
     phone: "",
     password: "",
-    type: "",
+    type: "Transporter",
     industry: "",
     branch: "",
     branchCode: "",
@@ -143,7 +143,7 @@ const AuthForm = () => {
             email: prev.email,
             phone: "",
             password: "",
-            type: "",
+            type: "Transporter",
             industry: "",
             branch: "",
             branchCode: "",
@@ -327,7 +327,7 @@ const AuthForm = () => {
         email: prev.email, // Keep email for convenience
         phone: "",
         password: "",
-        type: "",
+        type: "Transporter",
         industry: "",
         branch: "",
         branchCode: "",
@@ -339,7 +339,7 @@ const AuthForm = () => {
         email: "",
         phone: "",
         password: "",
-        type: "",
+        type: "Transporter",
         industry: "",
         branch: "",
         branchCode: "",
@@ -619,7 +619,7 @@ const AuthForm = () => {
               {isSignup && (
                 <>
                   {/* Type */}
-                  <div className="relative">
+                  {/* <div className="relative">
                     <Building2 className="absolute left-3 top-3.5 text-gray-400 h-5 w-5" />
                     <select
                       name="type"
@@ -632,7 +632,7 @@ const AuthForm = () => {
                       <option value="Transporter">Transporter</option>
                       <option value="Industry">Industry</option>
                     </select>
-                  </div>
+                  </div> */}
 
                   {/* Industry / Transport Name */}
                   <div className="relative">
@@ -640,7 +640,7 @@ const AuthForm = () => {
                     <input
                       type="text"
                       name="industry"
-                      placeholder="Industry / Transport Name"
+                      placeholder="Transport Name"
                       value={formData.industry}
                       onChange={handleChange}
                       required
@@ -705,9 +705,7 @@ const AuthForm = () => {
               </div>
 
               <div className="text-center">
-                <h3 className="text-xl font-bold text-white mb-1">
-                  VCARGO
-                </h3>
+                <h3 className="text-xl font-bold text-white mb-1">VCARGO</h3>
                 <p className="text-xs text-blue-200/70 tracking-wide">
                   Smart Fleet Management Platform.
                 </p>

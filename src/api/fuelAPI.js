@@ -1,10 +1,8 @@
 import apiClient from "./apiClient";
 
 export const fuelAPI = {
-  getAllFuel: async (page = 1, count = 10) => {
+  getAllFuel: async (page = 1, count = 10, orgId) => {
     try {
-      const orgId = localStorage.getItem("orgId") || 1001; // Default orgId
-
       console.log(
         `Fetching fuel entries - Page: ${page}, Count: ${count}, OrgId: ${orgId}`
       );

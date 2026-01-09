@@ -17,6 +17,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import driverAPI from "../../../api/TdriverAPI";
 import vehicleAPI from "../../../api/TvehicleAPI";
+import { useSelector } from "react-redux";
 
 export const FuelForm = ({
   entry = null,
@@ -44,6 +45,9 @@ export const FuelForm = ({
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [expandedSection, setExpandedSection] = useState("basic");
+
+  const { user } = useSelector((state) => state.auth);
+  const orgId = user.orgId;
 
   const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
 
@@ -109,8 +113,8 @@ export const FuelForm = ({
         driverId: entry.driverId || "",
         fuelType: entry.fuelType || "diesel",
         quantity: entry.quantity || "",
-        cost: entry.cost || "",
-       
+        cost: entry.costValue || "",
+
         odometerReading: entry.odometerReading || "",
         previousOdometer: entry.previousOdometer || "",
         station: entry.station || "",
@@ -163,7 +167,7 @@ export const FuelForm = ({
 
   const loadDrivers = async () => {
     try {
-      const response = await driverAPI.getDrivers(1, 10, userId);
+      const response = await driverAPI.getDrivers(1, 10, orgId);
       setDrivers(response.drivers);
       console.log("Test===>", response.drivers);
       console.log("Test===>", drivers);
@@ -175,7 +179,7 @@ export const FuelForm = ({
 
   const loadVehicles = async () => {
     try {
-      const response = await vehicleAPI.getVehicles(1, 10, userId);
+      const response = await vehicleAPI.getVehicles(1, 10, orgId);
       setVehicles(response.vehicles);
       console.log("Test===>", response);
       console.log("Test===>", vehicles);
@@ -277,7 +281,7 @@ export const FuelForm = ({
                   </h2>
                   <p className="text-blue-100 text-sm">
                     {selectedVehicle
-                      ? `${selectedVehicle.registrationNumber} • ${selectedVehicle.make} ${selectedVehicle.model}`
+                      ? `${selectedVehicle.vehicleNumber} • ${selectedVehicle.year} ${selectedVehicle.model}`
                       : "Select a vehicle to continue"}
                   </p>
                 </div>

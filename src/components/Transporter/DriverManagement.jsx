@@ -23,6 +23,7 @@ import {
 import { Briefcase, File, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import driverAPI from "../../api/TdriverAPI";
+import { useSelector } from "react-redux";
 
 // Import the driverAPI
 
@@ -52,6 +53,9 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
   const [filesToDelete, setFilesToDelete] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { user } = useSelector((state) => state.auth);
+    const orgId = user.orgId;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -173,7 +177,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
         branchName: "Main Branch",
         currentLocation: "",
         lastTrip: "",
-        orgId: localStorage.getItem("orgId") || 1001,
+        orgId: orgId,
         userId: JSON.parse(localStorage.getItem("user"))?.usersId || "",
       });
       setFiles({
@@ -1569,7 +1573,8 @@ const DriverManagement = () => {
   const [itemsPerPage] = useState(10);
   const [notification, setNotification] = useState({ type: "", message: "" });
   const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
-
+const { user } = useSelector((state) => state.auth);
+  const orgId = user.orgId;
   // Show notification
   const showNotification = (type, message) => {
     setNotification({ type, message });
@@ -1587,7 +1592,7 @@ const DriverManagement = () => {
       const response = await driverAPI.getDrivers(
         currentPage,
         itemsPerPage,
-        userId
+        orgId
       );
       setDrivers(response.drivers);
       setTotalPages(response.pagination.totalPages);

@@ -1,16 +1,32 @@
-import { Plus } from "lucide-react";
+// MaintenanceDashboard.js
+import { Plus, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
-import { MaintenanceFilters } from "./MaintenanceFilters";
+import toast from "react-hot-toast";
+import { maintananceAPI } from "../../../api/maintananceAPI";
+import vehicleAPI from "../../../api/TvehicleAPI";
 import { MaintenanceForm } from "./MaintenanceForm";
 import { MaintenanceList } from "./MaintenanceList";
 import { MaintenanceSchedule } from "./MaintenanceSchedule";
 import { MaintenanceStats } from "./MaintenanceStats";
 
-export const MaintenanceDashboard = ({ vehicles = [] }) => {
+export const MaintenanceDashboard = () => {
   const [maintenanceRecords, setMaintenanceRecords] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [selectedRecords, setSelectedRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [vehicles, setVehicles] = useState(false);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    count: 10,
+    total: 0,
+    totalPages: 1,
+    isFirst: true,
+    isLast: true,
+  });
+
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
@@ -19,77 +35,142 @@ export const MaintenanceDashboard = ({ vehicles = [] }) => {
     priority: "all",
   });
 
+  // Organization ID - should come from auth context or props
+  const orgId = "1000000001";
+
   // Fetch maintenance records
+  // useEffect(() => {
+  //   fetchMaintenanceRecords();
+  // }, [pagination.page, pagination.count]);
+
   useEffect(() => {
     fetchMaintenanceRecords();
   }, []);
 
+  useEffect(() => {
+    loadVehicles();
+  }, []);
+
   const fetchMaintenanceRecords = async () => {
-    // Mock data
-    const mockRecords = [
-      {
-        id: "MAINT-001",
-        title: "Engine Oil Change",
-        vehicleId: "V001",
-        vehicleName: "Tata Ace",
-        type: "preventive",
-        status: "completed",
-        priority: "medium",
-        scheduledDate: "2024-03-15",
-        completedDate: "2024-03-14",
-        odometerReading: 15000,
-        cost: 4500,
-        serviceCenter: "AutoCare Service",
-        mechanic: "Rajesh Kumar",
-        description: "Complete engine oil change with filter replacement",
-        parts: [
-          { name: "Engine Oil", quantity: 4, cost: 3200 },
-          { name: "Oil Filter", quantity: 1, cost: 800 },
-          { name: "Labor", quantity: 1, cost: 500 },
-        ],
-        notes: "Next oil change at 20,000 km",
-      },
-      {
-        id: "MAINT-002",
-        title: "Brake Pad Replacement",
-        vehicleId: "V002",
-        vehicleName: "Ashok Leyland Dost",
-        type: "corrective",
-        status: "in_progress",
-        priority: "high",
-        scheduledDate: "2024-03-20",
-        odometerReading: 25000,
-        estimatedCost: 8500,
-        serviceCenter: "Brake Masters",
-        mechanic: "Amit Sharma",
-        description: "Front brake pad replacement",
-        parts: [
-          { name: "Brake Pads", quantity: 2, cost: 4500 },
-          { name: "Labor", quantity: 1, cost: 4000 },
-        ],
-      },
-      // Add more records...
-    ];
-    setMaintenanceRecords(mockRecords);
+    setLoading(true);
+    setError(null);
+    try {
+      // Prepare filters for API
+      const apiFilters = {};
+
+      // Only add filters that are not "all"
+      if (filters.status !== "all") apiFilters.status = filters.status;
+      if (filters.vehicleId !== "all") apiFilters.vehicleId = filters.vehicleId;
+      if (filters.type !== "all") apiFilters.type = filters.type;
+      if (filters.priority !== "all") apiFilters.priority = filters.priority;
+      if (filters.search) apiFilters.search = filters.search;
+
+      console.log("Fetching maintenance with filters:", apiFilters);
+
+      const response = await maintananceAPI.getAllMaintenance(
+        pagination.page,
+        pagination.count,
+        orgId,
+        apiFilters
+      );
+
+      console.log("Maintenance API Response:", response);
+
+      setMaintenanceRecords(response.maintenanceRecords || []);
+
+      // Update pagination
+      setPagination((prev) => ({
+        ...prev,
+        total: response.pagination?.totalCount || 0,
+        totalPages: response.pagination?.totalPages || 1,
+        isFirst: response.pagination?.isFirst || true,
+        isLast: response.pagination?.isLast || true,
+        currentPage: response.pagination?.currentPage || pagination.page,
+        pageSize: response.pagination?.pageSize || pagination.count,
+      }));
+
+      if (response.message) {
+        // toast.success(response.message);
+      }
+    } catch (err) {
+      console.error("Error fetching maintenance records:", err);
+      setError(err.message || "Failed to load maintenance records");
+      toast.error(err.message || "Failed to load maintenance records");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadVehicles = async () => {
+    try {
+      setLoading(true);
+      const vehiclesResponse = await vehicleAPI.getVehicles(1, 100, orgId);
+      const vehicleList = vehiclesResponse.vehicles.map((vehicle) => ({
+        id: vehicle.id,
+        vehicleId: vehicle.Id,
+        registrationNumber: vehicle.vehicleNumber,
+        make: vehicle.type || "Unknown",
+        model: vehicle.model || "",
+      }));
+      setVehicles(vehicleList);
+    } catch (error) {
+      console.error("Error loading initial data:", error);
+      // Fallback to sample data if API fails
+      // setVehicles(sampleData.vehicles);
+      // setDrivers(sampleData.drivers);
+      // setFuelEntries(sampleData.fuelEntries);
+      // setFilteredEntries(sampleData.fuelEntries);
+      // calculateStats(sampleData.fuelEntries);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveRecord = async (recordData) => {
-    if (editingRecord) {
-      setMaintenanceRecords((records) =>
-        records.map((r) => (r.id === recordData.id ? recordData : r))
-      );
-    } else {
-      setMaintenanceRecords((records) => [
-        ...records,
-        { ...recordData, id: `MAINT-${Date.now()}` },
-      ]);
+    try {
+      // TODO: Implement create/update API calls
+      console.log("Saving record:", recordData);
+
+      if (editingRecord) {
+        // Update existing record
+        toast.success("Maintenance record updated successfully");
+      } else {
+        // Create new record
+        toast.success("Maintenance record created successfully");
+      }
+
+      // Refresh the list after save
+      await fetchMaintenanceRecords();
+      setShowForm(false);
+      setEditingRecord(null);
+    } catch (error) {
+      console.error("Error saving maintenance record:", error);
+      toast.error(error.message || "Failed to save maintenance record");
     }
-    setShowForm(false);
-    setEditingRecord(null);
   };
 
   const handleDeleteRecord = async (id) => {
-    setMaintenanceRecords((records) => records.filter((r) => r.id !== id));
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this maintenance record?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      // TODO: Implement delete API call
+      console.log("Deleting record:", id);
+
+      // For now, just filter out from local state
+      setMaintenanceRecords((prev) =>
+        prev.filter((record) => record.id !== id)
+      );
+      toast.success("Maintenance record deleted successfully");
+    } catch (error) {
+      console.error("Error deleting maintenance record:", error);
+      toast.error("Failed to delete maintenance record");
+    }
   };
 
   const handleEditRecord = (record) => {
@@ -97,21 +178,98 @@ export const MaintenanceDashboard = ({ vehicles = [] }) => {
     setShowForm(true);
   };
 
-  const handleStatusChange = (id, status) => {
-    setMaintenanceRecords((records) =>
-      records.map((record) =>
-        record.id === id ? { ...record, status } : record
-      )
-    );
+  const handleStatusChange = async (id, status) => {
+    try {
+      // TODO: Implement status update API call
+      console.log("Updating status:", id, status);
+
+      // Update local state
+      setMaintenanceRecords((prev) =>
+        prev.map((record) =>
+          record.id === id ? { ...record, status } : record
+        )
+      );
+
+      toast.success(`Status updated to ${status.replace("_", " ")}`);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status");
+    }
   };
 
+  const handleBulkAction = async (action) => {
+    if (selectedRecords.length === 0) {
+      toast.error("Please select records to perform bulk action");
+      return;
+    }
+
+    try {
+      // TODO: Implement bulk action API calls
+      console.log("Bulk action:", action, "on records:", selectedRecords);
+
+      switch (action) {
+        case "delete":
+          if (
+            window.confirm(`Delete ${selectedRecords.length} selected records?`)
+          ) {
+            // For now, just filter out from local state
+            setMaintenanceRecords((prev) =>
+              prev.filter((record) => !selectedRecords.includes(record.id))
+            );
+            setSelectedRecords([]);
+            toast.success("Selected records deleted successfully");
+          }
+          break;
+
+        case "status_pending":
+        case "status_in_progress":
+        case "status_completed":
+          const status = action.split("_")[1];
+          setMaintenanceRecords((prev) =>
+            prev.map((record) =>
+              selectedRecords.includes(record.id)
+                ? { ...record, status }
+                : record
+            )
+          );
+          toast.success(`Status updated for ${selectedRecords.length} records`);
+          break;
+
+        default:
+          toast.info(`Bulk action "${action}" executed`);
+      }
+    } catch (error) {
+      console.error("Error in bulk action:", error);
+      toast.error("Failed to perform bulk action");
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination((prev) => ({ ...prev, page: newPage }));
+  };
+
+  const handlePageSizeChange = (newCount) => {
+    setPagination((prev) => ({ ...prev, count: newCount, page: 1 }));
+  };
+
+  const handleRefresh = () => {
+    fetchMaintenanceRecords();
+  };
+
+  // Apply local filters
   const filteredRecords = maintenanceRecords.filter((record) => {
     const matchesSearch =
       !filters.search ||
       record.title.toLowerCase().includes(filters.search.toLowerCase()) ||
       record.vehicleName.toLowerCase().includes(filters.search.toLowerCase()) ||
-      record.serviceCenter
-        ?.toLowerCase()
+      (record.serviceCenter || "")
+        .toLowerCase()
+        .includes(filters.search.toLowerCase()) ||
+      (record.description || "")
+        .toLowerCase()
+        .includes(filters.search.toLowerCase()) ||
+      (record.mechanic || "")
+        .toLowerCase()
         .includes(filters.search.toLowerCase());
 
     const matchesStatus =
@@ -133,6 +291,19 @@ export const MaintenanceDashboard = ({ vehicles = [] }) => {
 
   return (
     <div className="space-y-6">
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-800 hover:text-red-900"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -145,8 +316,18 @@ export const MaintenanceDashboard = ({ vehicles = [] }) => {
         </div>
         <div className="flex items-center gap-3">
           <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2.5 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            title="Refresh data"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+          <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading}
           >
             <Plus className="h-4 w-4" />
             New Maintenance
@@ -158,36 +339,149 @@ export const MaintenanceDashboard = ({ vehicles = [] }) => {
       <MaintenanceStats records={maintenanceRecords} />
 
       {/* Filters */}
-      <MaintenanceFilters
+      {/* <MaintenanceFilters
         filters={filters}
         setFilters={setFilters}
         vehicles={vehicles}
         selectedRecords={selectedRecords}
-        onBulkAction={(action) => console.log(action)}
-      />
+        onBulkAction={handleBulkAction}
+        loading={loading}
+        onRefresh={handleRefresh}
+      /> */}
 
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Maintenance List */}
-        <div className="lg:col-span-2">
-          <MaintenanceList
-            records={filteredRecords}
-            onEdit={handleEditRecord}
-            onDelete={handleDeleteRecord}
-            onStatusChange={handleStatusChange}
-            selectedRecords={selectedRecords}
-            onSelectRecord={setSelectedRecords}
-          />
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading maintenance records...
+            </p>
+          </div>
         </div>
+      )}
 
-        {/* Maintenance Schedule */}
-        <div className="lg:col-span-1">
+      {/* Main Content */}
+      {!loading && (
+        <>
+          {/* Records Count */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {filteredRecords.length} of {maintenanceRecords.length} records
+              shown
+              {pagination.total > 0 && ` (Total: ${pagination.total} records)`}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Page {pagination.page} of {pagination.totalPages}
+            </div>
+          </div>
+
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Maintenance List */}
+            <div className="lg:col-span-3">
+              <MaintenanceList
+                records={filteredRecords}
+                onEdit={handleEditRecord}
+                onDelete={handleDeleteRecord}
+                onStatusChange={handleStatusChange}
+                selectedRecords={selectedRecords}
+                onSelectRecord={setSelectedRecords}
+                loading={loading}
+              />
+            </div>
+
+            {/* Maintenance Schedule */}
+            {/* <div className="lg:col-span-1">
+              <MaintenanceSchedule
+                vehicles={vehicles}
+                records={maintenanceRecords}
+              />
+            </div> */}
+          </div>
+
           <MaintenanceSchedule
             vehicles={vehicles}
             records={maintenanceRecords}
           />
-        </div>
-      </div>
+
+          {/* Pagination Controls */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Showing {filteredRecords.length} records on page{" "}
+                {pagination.page}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page <= 1 || pagination.isFirst}
+                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  Previous
+                </button>
+                <div className="flex items-center gap-1">
+                  {[...Array(Math.min(5, pagination.totalPages))].map(
+                    (_, i) => {
+                      const pageNum =
+                        pagination.page <= 3
+                          ? i + 1
+                          : pagination.page >= pagination.totalPages - 2
+                          ? pagination.totalPages - 4 + i
+                          : pagination.page - 2 + i;
+
+                      if (pageNum < 1 || pageNum > pagination.totalPages)
+                        return null;
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`w-10 h-10 rounded-lg text-sm font-medium ${
+                            pagination.page === pageNum
+                              ? "bg-blue-600 text-white"
+                              : "border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+                <button
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={
+                    pagination.page >= pagination.totalPages ||
+                    pagination.isLast
+                  }
+                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  Next
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Show
+                </span>
+                <select
+                  value={pagination.count}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
+                >
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  per page
+                </span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Maintenance Form Modal */}
       {showForm && (

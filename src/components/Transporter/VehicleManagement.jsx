@@ -18,6 +18,7 @@ import {
 import React, { useEffect, useState } from "react";
 import driverAPI from "../../api/TdriverAPI";
 import vehicleAPI from "../../api/TvehicleAPI";
+import { useSelector } from "react-redux";
 
 const Car = ({ className }) => (
   <svg
@@ -196,6 +197,9 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
   });
 
   const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
+
+    const { user } = useSelector((state) => state.auth);
+  const orgId = user.orgId;
 
   // New state for file uploads
   const [files, setFiles] = useState({
@@ -400,7 +404,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
   const loadDrivers = async () => {
     try {
-      const response = await driverAPI.getDrivers(1, 10, userId);
+      const response = await driverAPI.getDrivers(1, 10, orgId);
       setDrivers(response.drivers);
       console.log("Test===>", response.drivers);
     } catch (error) {
@@ -479,7 +483,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
           permitType: formData.permitType || "National",
           ownerName: formData.ownerName || "Self",
           userId: userId,
-          orgId: 1001,
+          orgId: orgId,
           branchCode: "CHE001",
           branchName: "Chennai",
           createdBy: "Admin",
@@ -550,6 +554,91 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
+  };
+
+  // Helper function to format vehicle number as user types
+  const formatVehicleNumber = (input) => {
+    // Remove all non-alphanumeric characters
+    let cleaned = input.replace(/[^A-Z0-9]/gi, "");
+
+    // Limit to 10 characters (2 for state, 2 for district, 2 for series, 4 for number)
+    cleaned = cleaned.substring(0, 10);
+
+    if (cleaned.length === 0) return "";
+
+    // Format based on length
+    let formatted = cleaned;
+
+    if (cleaned.length > 2) {
+      formatted = cleaned.substring(0, 2) + "-" + cleaned.substring(2);
+    }
+
+    if (cleaned.length > 4) {
+      formatted = formatted.substring(0, 5) + "-" + formatted.substring(5);
+    }
+
+    if (cleaned.length > 6) {
+      formatted = formatted.substring(0, 8) + "-" + formatted.substring(8);
+    }
+
+    return formatted;
+  };
+
+  // Helper function to validate and finalize format on blur
+  const formatAndValidateVehicleNumber = (input) => {
+    // Remove all non-alphanumeric characters
+    let cleaned = input.replace(/[^A-Z0-9]/gi, "");
+
+    // Check if we have a complete number (10 characters)
+    if (cleaned.length < 10) {
+      return input; // Return as-is, validation will catch it
+    }
+
+    // Format as TN-10-AB-7878
+    return (
+      cleaned.substring(0, 2) +
+      "-" +
+      cleaned.substring(2, 4) +
+      "-" +
+      cleaned.substring(4, 6) +
+      "-" +
+      cleaned.substring(6, 10)
+    );
+  };
+
+  // Also add a validation function in your existing validation logic:
+  const validateVehicleNumber = (value) => {
+    if (!value) return "Vehicle number is required";
+
+    // Remove dashes for validation
+    const cleaned = value.replace(/-/g, "");
+
+    // Should be exactly 10 characters
+    if (cleaned.length !== 10) {
+      return "Vehicle number must be 10 characters (e.g., TN-10-AB-7878)";
+    }
+
+    // First 2 should be letters (state code)
+    if (!/^[A-Z]{2}$/.test(cleaned.substring(0, 2))) {
+      return "First 2 characters should be state code letters";
+    }
+
+    // Next 2 should be numbers (district code)
+    if (!/^[0-9]{2}$/.test(cleaned.substring(2, 4))) {
+      return "District code should be 2 digits";
+    }
+
+    // Next 2 should be letters (series)
+    if (!/^[A-Z]{2}$/.test(cleaned.substring(4, 6))) {
+      return "Series should be 2 letters";
+    }
+
+    // Last 4 should be numbers
+    if (!/^[0-9]{4}$/.test(cleaned.substring(6, 10))) {
+      return "Last 4 characters should be numbers";
+    }
+
+    return null; // No error
   };
 
   const fileTypes = [
@@ -672,16 +761,26 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <input
                       type="text"
                       value={formData.vehicleNumber}
-                      onChange={(e) =>
-                        handleChange("vehicleNumber", e.target.value)
-                      }
+                      onChange={(e) => {
+                        const rawValue = e.target.value.toUpperCase();
+                        const formattedValue = formatVehicleNumber(rawValue);
+                        handleChange("vehicleNumber", formattedValue);
+                      }}
+                      onBlur={(e) => {
+                        // Validate and finalize format on blur
+                        const formattedValue = formatAndValidateVehicleNumber(
+                          e.target.value
+                        );
+                        handleChange("vehicleNumber", formattedValue);
+                      }}
                       className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                         errors.vehicleNumber
                           ? "border-red-500"
                           : "border-gray-300"
                       }`}
-                      placeholder="KA01AB1234"
+                      placeholder="TN-10-AB-7878"
                       disabled={saving}
+                      maxLength={13} // TN-10-AB-7878 = 13 characters max
                     />
                     {errors.vehicleNumber && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1225,6 +1324,8 @@ const VehicleManagement = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [notification, setNotification] = useState(null);
   const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
+   const { user } = useSelector((state) => state.auth);
+  const orgId = user.orgId;
 
   // Show notification
   const showNotification = (message, type = "success") => {
@@ -1244,7 +1345,7 @@ const VehicleManagement = () => {
         await vehicleAPI.getVehicles(
           pagination.currentPage,
           pagination.pageSize,
-          userId
+          orgId
         );
 
       const processedVehicles = fetchedVehicles.map((vehicle) => ({

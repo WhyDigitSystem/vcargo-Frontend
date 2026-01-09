@@ -10,15 +10,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { driverAPI } from "../../api/driverAPI";
 import { fuelAPI } from "../../api/fuelAPI";
-import { vehicleAPI } from "../../api/vehicleAPI";
 import { LoadingSpinner } from "../../utils/LoadingSpinner";
 import { FuelAnalytics } from "./fuel/FuelAnalytics";
 import { FuelEntriesGrid } from "./fuel/FuelEntriesGrid";
 import { FuelEntriesList } from "./fuel/FuelEntriesList";
-import { FuelFilters } from "./fuel/FuelFilters";
 import { DeleteModal, EmptyState, FuelEntryModal } from "./fuel/FuelModals";
 import { FuelReports } from "./fuel/FuelReports";
 import { FuelStats } from "./fuel/FuelStats";
+import { useSelector } from "react-redux";
+import vehicleAPI from "../../api/TvehicleAPI";
 
 const FuelManagement = () => {
   const navigate = useNavigate();
@@ -52,6 +52,9 @@ const FuelManagement = () => {
     efficiencyTrend: "up",
     totalEntries: 0,
   });
+
+  const { user } = useSelector((state) => state.auth);
+  const orgId = user.orgId;
 
   // Fuel types for UI
   const fuelTypes = [
@@ -95,7 +98,7 @@ const FuelManagement = () => {
       setLoading(true);
 
       // Load vehicles from API
-      const vehiclesResponse = await vehicleAPI.getAllVehicles(1, 100);
+      const vehiclesResponse = await vehicleAPI.getAllVehicles(1, 100,orgId);
       const vehicleList = vehiclesResponse.vehicles.map((vehicle) => ({
         id: vehicle.id,
         vehicleId: vehicle.vehicleNumber,
@@ -136,7 +139,7 @@ const FuelManagement = () => {
   const loadFuel = async () => {
     try {
       setLoading(true);
-      const response = await fuelAPI.getAllFuel(1, 100);
+      const response = await fuelAPI.getAllFuel(1, 100,orgId);
       console.log("Fuel API response:", response);
 
       if (response.fuelEntries && response.fuelEntries.length > 0) {
@@ -205,7 +208,7 @@ const FuelManagement = () => {
     } else if (numAmount >= 100000) {
       return `₹${(numAmount / 100000).toFixed(2)} L`;
     } else if (numAmount >= 1000) {
-      return `₹${(numAmount / 1000).toFixed(2)} K`;
+      return `₹${numAmount} K`;
     }
     return `₹${numAmount.toFixed(2)}`;
   };
@@ -419,7 +422,6 @@ const FuelManagement = () => {
 
       // Prepare payload for API
       const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
-      const orgId = localStorage.getItem("orgId") || 1001;
 
       const fuelPayload = {
         date: formData.date,
@@ -438,7 +440,7 @@ const FuelManagement = () => {
         notes: formData.notes,
         branchCode: "MAIN",
         branchName: "Main Branch",
-        orgId: parseInt(orgId),
+        orgId: orgId,
         createdBy: userId,
       };
 
@@ -746,7 +748,7 @@ const FuelManagement = () => {
           </div>
         </div>
 
-        {/* Filters */}
+        {/*        
         <FuelFilters
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -762,7 +764,7 @@ const FuelManagement = () => {
           handleExport={handleExport}
           handleBulkDelete={handleBulkDelete}
           onClearFilters={handleClearFilters}
-        />
+        /> */}
 
         {/* Content based on active tab */}
         {activeTab === "analytics" ? (
@@ -776,11 +778,11 @@ const FuelManagement = () => {
         ) : (
           <>
             <div className="mb-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              {/* <p className="text-sm text-gray-600 dark:text-gray-400">
                 Showing {filteredEntries.length} of {fuelEntries.length} fuel
                 entries
                 {searchQuery && ` for "${searchQuery}"`}
-              </p>
+              </p> */}
             </div>
 
             {filteredEntries.length === 0 ? (

@@ -1,15 +1,12 @@
-import { 
-  Settings, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
+import {
+  AlertTriangle,
   BarChart3,
-  TrendingUp,
-  TrendingDown,
+  Car,
   DollarSign,
   Gauge,
-  Car,
-  Layers
+  Layers,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 
 export const TyreStats = ({ stats, loading = false }) => {
@@ -45,8 +42,12 @@ export const TyreStats = ({ stats, loading = false }) => {
       icon: Gauge,
       color: "cyan",
       description: "Average tread condition",
-      trend: stats?.avgTreadDepth && parseFloat(stats.avgTreadDepth) > 70 ? "up" : 
-             stats?.avgTreadDepth && parseFloat(stats.avgTreadDepth) < 50 ? "down" : "neutral",
+      trend:
+        stats?.avgTreadDepth && parseFloat(stats.avgTreadDepth) > 70
+          ? "up"
+          : stats?.avgTreadDepth && parseFloat(stats.avgTreadDepth) < 50
+          ? "down"
+          : "neutral",
     },
     {
       title: "Needs Attention",
@@ -59,8 +60,11 @@ export const TyreStats = ({ stats, loading = false }) => {
     },
     {
       title: "Active Vehicles",
-      value: stats?.byPosition ? 
-        (stats.byPosition.front + stats.byPosition.rear + stats.byPosition.spare) : 0,
+      value: stats?.byPosition
+        ? stats.byPosition.front +
+          stats.byPosition.rear +
+          stats.byPosition.spare
+        : 0,
       icon: Car,
       color: "indigo",
       description: "Tyres assigned to vehicles",
@@ -206,8 +210,8 @@ export const TyreStats = ({ stats, loading = false }) => {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[...Array(6)].map((_, idx) => (
-          <div 
-            key={idx} 
+          <div
+            key={idx}
             className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 animate-pulse"
           >
             <div className="flex items-center justify-between mb-3">
@@ -232,11 +236,17 @@ export const TyreStats = ({ stats, loading = false }) => {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {statCards.map((stat, idx) => {
           const colors = colorConfig[stat.color];
-          
+
           return (
-            <div 
-              key={idx} 
-              className={`bg-white dark:bg-gray-800 rounded-xl border ${colors.border} p-4 hover:shadow-sm transition-shadow ${stat.isWarning ? 'ring-1 ring-amber-200 dark:ring-amber-800' : ''}`}
+            <div
+              key={idx}
+              className={`bg-white dark:bg-gray-800 rounded-xl border ${
+                colors.border
+              } p-4 hover:shadow-sm transition-shadow ${
+                stat.isWarning
+                  ? "ring-1 ring-amber-200 dark:ring-amber-800"
+                  : ""
+              }`}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className={`p-2.5 rounded-lg ${colors.bg}`}>
@@ -244,13 +254,15 @@ export const TyreStats = ({ stats, loading = false }) => {
                     <stat.icon className="h-4 w-4 text-white" />
                   </div>
                 </div>
-                
+
                 {stat.trend && stat.trend !== "neutral" && (
-                  <div className={`text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 ${
-                    stat.trend === "up" 
-                      ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" 
-                      : "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                  }`}>
+                  <div
+                    className={`text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 ${
+                      stat.trend === "up"
+                        ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                        : "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                    }`}
+                  >
                     {stat.trend === "up" ? (
                       <TrendingUp className="h-3 w-3" />
                     ) : (
@@ -272,175 +284,6 @@ export const TyreStats = ({ stats, loading = false }) => {
             </div>
           );
         })}
-      </div>
-
-      {/* Detailed Breakdown Grid */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Detailed Breakdown
-        </h3>
-        
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {statusCards.map((stat, idx) => {
-            const colors = colorConfig[stat.color];
-            
-            return (
-              <div 
-                key={idx} 
-                className={`p-3 rounded-lg border ${colors.border} ${colors.bg}`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className={`text-xs font-medium ${colors.text}`}>
-                    {stat.title}
-                  </span>
-                </div>
-                <div className="text-lg font-bold text-gray-900 dark:text-white mt-1">
-                  {stat.value}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  {stat.description}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Summary Section */}
-      {stats?.needsAttention > 0 && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <h4 className="font-medium text-amber-800 dark:text-amber-300 mb-1">
-                Maintenance Alert
-              </h4>
-              <p className="text-sm text-amber-700 dark:text-amber-400">
-                {stats.needsAttention} tyre{stats.needsAttention !== 1 ? 's' : ''} require{stats.needsAttention === 1 ? 's' : ''} attention. 
-                Check tread depth and pressure for optimal safety and performance.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Efficiency Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Tyre Health Distribution
-          </h4>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Good</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {stats?.byCondition?.good || 0} ({stats?.totalTyres ? Math.round(((stats.byCondition?.good || 0) / stats.totalTyres) * 100) : 0}%)
-              </span>
-            </div>
-            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-              <div 
-                className="bg-emerald-500 h-2 rounded-full" 
-                style={{ width: `${stats?.totalTyres ? Math.round(((stats.byCondition?.good || 0) / stats.totalTyres) * 100) : 0}%` }}
-              />
-            </div>
-          </div>
-          <div className="space-y-2 mt-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Needs Attention</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {stats?.needsAttention || 0} ({stats?.totalTyres ? Math.round(((stats.needsAttention || 0) / stats.totalTyres) * 100) : 0}%)
-              </span>
-            </div>
-            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-              <div 
-                className="bg-amber-500 h-2 rounded-full" 
-                style={{ width: `${stats?.totalTyres ? Math.round(((stats.needsAttention || 0) / stats.totalTyres) * 100) : 0}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Position Distribution
-          </h4>
-          <div className="space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-600 dark:text-gray-400">Front</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {stats?.byPosition?.front || 0}
-                </span>
-              </div>
-              <div className="w-full bg-blue-100 dark:bg-blue-900/30 rounded-full h-2">
-                <div 
-                  className="bg-blue-500 h-2 rounded-full" 
-                  style={{ width: `${stats?.byPosition?.front ? Math.round((stats.byPosition.front / (stats.byPosition.front + stats.byPosition.rear + stats.byPosition.spare)) * 100) : 0}%` }}
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-600 dark:text-gray-400">Rear</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {stats?.byPosition?.rear || 0}
-                </span>
-              </div>
-              <div className="w-full bg-green-100 dark:bg-green-900/30 rounded-full h-2">
-                <div 
-                  className="bg-green-500 h-2 rounded-full" 
-                  style={{ width: `${stats?.byPosition?.rear ? Math.round((stats.byPosition.rear / (stats.byPosition.front + stats.byPosition.rear + stats.byPosition.spare)) * 100) : 0}%` }}
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-600 dark:text-gray-400">Spare</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {stats?.byPosition?.spare || 0}
-                </span>
-              </div>
-              <div className="w-full bg-purple-100 dark:bg-purple-900/30 rounded-full h-2">
-                <div 
-                  className="bg-purple-500 h-2 rounded-full" 
-                  style={{ width: `${stats?.byPosition?.spare ? Math.round((stats.byPosition.spare / (stats.byPosition.front + stats.byPosition.rear + stats.byPosition.spare)) * 100) : 0}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Status Overview
-          </h4>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400">New</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {stats?.byStatus?.new || 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Used</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {stats?.byStatus?.used || 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Damaged</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {stats?.byStatus?.damaged || 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Replaced</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {stats?.byStatus?.replaced || 0}
-              </span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

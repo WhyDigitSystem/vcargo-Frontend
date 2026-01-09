@@ -2,7 +2,7 @@ import apiClient from "./apiClient";
 
 const vehicleAPI = {
   // Get all vehicles from real API
-  getVehicles: async (page = 1, count = 10, userId) => {
+  getVehicles: async (page = 1, count = 10, orgId) => {
     try {
       const response = await apiClient.get(
         "/api/transaction/getTvehiclesByOrgId",
@@ -10,7 +10,7 @@ const vehicleAPI = {
           params: {
             count: count,
             page: page,
-            userId: userId,
+            orgId: orgId,
           },
         }
       );

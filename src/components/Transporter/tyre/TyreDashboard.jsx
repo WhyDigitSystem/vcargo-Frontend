@@ -4,8 +4,8 @@ import vehicleAPI from "../../../api/TvehicleAPI";
 import { tyreAPI } from "../../../api/tyreAPI";
 
 // import { DeleteModal } from "./DeleteModal";
+import { useSelector } from "react-redux";
 import { LoadingSpinner } from "../../../utils/LoadingSpinner";
-import { TyreFilters } from "./TyreFilters";
 import { TyreForm } from "./TyreForm";
 import { TyreList } from "./TyreList";
 import { TyreStats } from "./TyreStats";
@@ -38,6 +38,9 @@ export const TyreDashboard = ({ vehicles = [] }) => {
     byStatus: { new: 0, used: 0, damaged: 0, replaced: 0 },
   });
 
+  const { user } = useSelector((state) => state.auth);
+  const orgId = user.orgId;
+
   // Format currency in Indian style
   const formatIndianCurrency = (amount) => {
     const numAmount = parseFloat(amount) || 0;
@@ -46,7 +49,7 @@ export const TyreDashboard = ({ vehicles = [] }) => {
     } else if (numAmount >= 100000) {
       return `₹${(numAmount / 100000).toFixed(2)} L`;
     } else if (numAmount >= 1000) {
-      return `₹${(numAmount / 1000).toFixed(2)} K`;
+      return `₹${numAmount}`;
     }
     return `₹${numAmount.toFixed(2)}`;
   };
@@ -62,7 +65,7 @@ export const TyreDashboard = ({ vehicles = [] }) => {
 
       // Load vehicles from API if not provided as prop
       if (vehicles.length === 0) {
-        const vehiclesResponse = await vehicleAPI.getAllVehicles(1, 100);
+        const vehiclesResponse = await vehicleAPI.getAllVehicles(1, 100, orgId);
         const vehicleList = vehiclesResponse.vehicles.map((vehicle) => ({
           id: vehicle.id,
           vehicleId: vehicle.vehicleNumber,
@@ -79,11 +82,6 @@ export const TyreDashboard = ({ vehicles = [] }) => {
       await loadTyre();
     } catch (error) {
       console.error("Error loading initial data:", error);
-      // Fallback to sample data
-      setVehiclesList(sampleData.vehicles || []);
-      setTyreEntries(sampleData.tyreEntries);
-      setFilteredEntries(sampleData.tyreEntries);
-      calculateTyreStats(sampleData.tyreEntries);
     } finally {
       setLoading(false);
     }
@@ -92,7 +90,7 @@ export const TyreDashboard = ({ vehicles = [] }) => {
   const loadTyre = async () => {
     try {
       setLoading(true);
-      const response = await tyreAPI.getAllTyre(1, 100);
+      const response = await tyreAPI.getAllTyre(1, 100,orgId);
       console.log("Tyre API response:", response.paramObjectsMap);
 
       if (response.tyreEntries && response.tyreEntries.length > 0) {
@@ -389,7 +387,6 @@ export const TyreDashboard = ({ vehicles = [] }) => {
 
       // Prepare payload for API
       const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
-      const orgId = localStorage.getItem("orgId") || 1001;
 
       const tyrePayload = {
         serialNumber: tyreData.serialNumber,
@@ -409,7 +406,7 @@ export const TyreDashboard = ({ vehicles = [] }) => {
         vehicle: tyreData.vehicleId,
         branchCode: "MAIN",
         branchName: "Main Branch",
-        orgId: parseInt(orgId),
+        orgId: orgId,
         createdBy: userId,
       };
 
@@ -609,7 +606,7 @@ export const TyreDashboard = ({ vehicles = [] }) => {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-3">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -634,7 +631,7 @@ export const TyreDashboard = ({ vehicles = [] }) => {
       <TyreStats stats={stats} loading={loading} />
 
       {/* Filters */}
-      <TyreFilters
+      {/* <TyreFilters
         filters={filters}
         setFilters={setFilters}
         vehicles={vehiclesList}
@@ -642,7 +639,7 @@ export const TyreDashboard = ({ vehicles = [] }) => {
         onExport={handleExport}
         onBulkDelete={handleBulkDelete}
         onClearFilters={handleClearFilters}
-      />
+      /> */}
 
       {/* Results count */}
       <div className="mb-4">

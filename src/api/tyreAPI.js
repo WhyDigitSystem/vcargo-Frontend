@@ -1,14 +1,8 @@
 import apiClient from "./apiClient";
 
 export const tyreAPI = {
-  getAllTyre: async (page = 1, count = 10) => {
+  getAllTyre: async (page = 1, count = 10, orgId) => {
     try {
-      const orgId = localStorage.getItem("orgId") || 1001; // Default orgId
-
-      console.log(
-        `Fetching tyre entries - Page: ${page}, Count: ${count}, OrgId: ${orgId}`
-      );
-
       const response = await apiClient.get("/api/tyre/getAllTyreByOrgId", {
         params: {
           orgId: orgId,
@@ -168,7 +162,6 @@ export const tyreAPI = {
 
       // Get user info
       const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
-      const orgId = localStorage.getItem("orgId") || 1001;
       const userName = localStorage.getItem("userName") || "Admin User";
 
       // Prepare the payload
@@ -206,7 +199,7 @@ export const tyreAPI = {
         active: tyreData.active !== undefined ? tyreData.active : true,
         branchCode: tyreData.branchCode || "MAIN",
         branchName: tyreData.branchName || "Main Branch",
-        orgId: parseInt(orgId),
+        orgId: tyreData.orgId,
         vehicle: tyreData.vehicle || "",
         user: userId,
         createdBy: userName,

@@ -2,10 +2,8 @@ import apiClient from "./apiClient";
 
 const driverAPI = {
   // Get all drivers from real API
-  getDrivers: async (page = 1, count = 10, userId) => {
+  getDrivers: async (page = 1, count = 10, orgId) => {
     try {
-      const orgId = localStorage.getItem("orgId") || 1001; // Default orgId
-
       const response = await apiClient.get(
         "/api/transaction/getTdriverByOrgId",
         {
@@ -13,7 +11,7 @@ const driverAPI = {
             orgId: orgId,
             count: count,
             page: page,
-            userId: userId,
+            orgId: orgId,
           },
         }
       );
