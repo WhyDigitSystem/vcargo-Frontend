@@ -381,7 +381,7 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
   return (
     <div className="relative w-full max-w-6xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6">
+      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
@@ -417,16 +417,160 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
         </div>
       </div>
 
-      {/* Map Container */}
+      {/* Main Content */}
       <div className="p-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Panel - Trip List */}
+          {/* Left Column - Trip Details */}
           <div className="lg:col-span-1">
-            <div className="mb-6">
+            {/* Trip Details Card */}
+            {selectedTrip && (
+              <div className="mb-6 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Trip Details: {selectedTrip.tripNumber || `TRIP-${selectedTrip.id}`}
+                  </h3>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedTrip.status === "in_progress"
+                        ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
+                        : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300"
+                    }`}
+                  >
+                    {selectedTrip.status === "in_progress"
+                      ? "In Progress"
+                      : "Active"}
+                  </span>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Route Section */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Route
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-blue-500 mt-0.5" />
+                        <div>
+                          <span className="text-sm text-gray-900 dark:text-white">
+                            Source
+                          </span>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {selectedTrip.source}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-green-500 mt-0.5" />
+                        <div>
+                          <span className="text-sm text-gray-900 dark:text-white">
+                            Destination
+                          </span>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {selectedTrip.destination}
+                          </p>
+                        </div>
+                      </div>
+                      {selectedTrip.waypoints && selectedTrip.waypoints.length > 0 && (
+                        <div className="ml-6">
+                          <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Waypoints:
+                          </div>
+                          <div className="space-y-2">
+                            {selectedTrip.waypoints.map((wp, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                  {typeof wp === 'string' ? wp : wp.location}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="text-sm text-gray-600 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
+                        Distance: {selectedTrip.distance || "N/A"} km
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Vehicle & Driver Section */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Vehicle & Driver
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Car className="h-4 w-4 text-gray-400" />
+                        <div>
+                          <span className="text-sm text-gray-900 dark:text-white">
+                            Vehicle
+                          </span>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {selectedTrip.vehicleName || selectedTrip.vehicle}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-gray-400" />
+                        <div>
+                          <span className="text-sm text-gray-900 dark:text-white">
+                            Driver
+                          </span>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {selectedTrip.driverName || selectedTrip.driver}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Timing Section */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Timing
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gray-400" />
+                        <div>
+                          <span className="text-sm text-gray-900 dark:text-white">
+                            Started
+                          </span>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {selectedTrip.startTime || "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Estimated Duration: {selectedTrip.estimatedDuration || "N/A"}
+                      </div>
+                      
+                      {/* Progress Bar */}
+                      <div className="pt-2">
+                        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <span>Progress</span>
+                          <span>{calculateProgress(selectedTrip)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${calculateProgress(selectedTrip)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Trip List */}
+            <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Active Trips ({trips.length})
               </h3>
-              <div className="space-y-4 max-h-[400px] overflow-y-auto">
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                 {trips.map((t) => (
                   <div
                     key={t.id}
@@ -469,43 +613,57 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
                 ))}
               </div>
             </div>
+          </div>
 
-            {/* Legend */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                Map Legend
-              </h4>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Source
-                  </span>
+          {/* Right Column - Map */}
+          <div className="lg:col-span-2">
+            {/* Map Legend - Now above the map in single row */}
+            <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    Map Legend
+                  </h4>
+                  <div className="flex flex-wrap gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Source
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Destination
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Waypoint
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 border-2 border-amber-500 rounded-full bg-amber-100"></div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Current Location
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-1 bg-blue-500 rounded-full"></div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Route
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Destination
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Waypoint
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 border-2 border-blue-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Current Location
-                  </span>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Zoom: {zoom}x
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Map View */}
-          <div className="lg:col-span-2">
+            {/* Map Container */}
             <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 h-[500px] relative overflow-hidden">
               {!mapsLoaded ? (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -608,130 +766,27 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
                       mapRef.current.fitBounds(directions.routes[0].bounds);
                     }
                   }}
-                  className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  title="Fit route to view"
                 >
                   <Route className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                 </button>
-              </div>
-
-              {/* Zoom Display */}
-              <div className="absolute top-4 left-4 px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  Zoom: {zoom}x
-                </span>
+                <button 
+                  onClick={handleZoomIn}
+                  className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  title="Zoom in"
+                >
+                  <ZoomIn className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                </button>
+                <button 
+                  onClick={handleZoomOut}
+                  className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  title="Zoom out"
+                >
+                  <ZoomOut className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                </button>
               </div>
             </div>
-
-            {/* Selected Trip Details */}
-            {selectedTrip && (
-              <div className="mt-6 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Trip Details: {selectedTrip.tripNumber || `TRIP-${selectedTrip.id}`}
-                  </h3>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      selectedTrip.status === "in_progress"
-                        ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
-                        : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300"
-                    }`}
-                  >
-                    {selectedTrip.status === "in_progress"
-                      ? "In Progress"
-                      : "Active"}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Route
-                    </h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-blue-500" />
-                        <span className="text-gray-900 dark:text-white">
-                          {selectedTrip.source}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-green-500" />
-                        <span className="text-gray-900 dark:text-white">
-                          {selectedTrip.destination}
-                        </span>
-                      </div>
-                      {selectedTrip.waypoints && selectedTrip.waypoints.length > 0 && (
-                        <div className="ml-6 mt-2">
-                          <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Waypoints:
-                          </div>
-                          {selectedTrip.waypoints.map((wp, index) => (
-                            <div key={index} className="flex items-center gap-2 text-sm">
-                              <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                              <span className="text-gray-600 dark:text-gray-400">
-                                {typeof wp === 'string' ? wp : wp.location}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        Distance: {selectedTrip.distance || "N/A"} km
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Vehicle & Driver
-                    </h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Car className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-900 dark:text-white">
-                          {selectedTrip.vehicleName || selectedTrip.vehicle}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-900 dark:text-white">
-                          {selectedTrip.driverName || selectedTrip.driver}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Timing
-                    </h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-900 dark:text-white">
-                          Started: {selectedTrip.startTime || "N/A"}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Estimated: {selectedTrip.estimatedDuration || "N/A"}
-                      </div>
-                      <div className="mt-4">
-                        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                          <span>Progress</span>
-                          <span>{calculateProgress(selectedTrip)}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${calculateProgress(selectedTrip)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

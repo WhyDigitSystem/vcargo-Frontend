@@ -428,13 +428,13 @@ export const TripDashboard = () => {
             <Plus className="h-4 w-4" />
             New Trip
           </button>
-          <button
+          {/* <button
             onClick={() => setShowMap(true)}
             className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
           >
             <Navigation className="h-4 w-4" />
             Map View
-          </button>
+          </button> */}
         </div>
       </div>
 
