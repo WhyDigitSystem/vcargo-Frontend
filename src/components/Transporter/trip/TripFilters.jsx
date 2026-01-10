@@ -1,13 +1,13 @@
 import { Search, Filter, Download, Navigation, MapPin, Calendar, ChevronDown, X } from "lucide-react";
 
-export const TripFilters = ({ 
-  filters, 
-  setFilters, 
-  vehicles = [], 
-  drivers = [], 
-  customers = [], 
-  selectedTrips, 
-  onBulkAction 
+export const TripFilters = ({
+  filters,
+  setFilters,
+  vehicles = [],
+  drivers = [],
+  customers = [],
+  selectedTrips,
+  onBulkAction
 }) => {
   const statusOptions = [
     { id: "all", name: "All Status" },
@@ -56,9 +56,9 @@ export const TripFilters = ({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-center">
         {/* Search */}
-        <div className="flex-1 max-w-md">
+        <div className="w-full">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
             <input
@@ -80,7 +80,7 @@ export const TripFilters = ({
         </div>
 
         {/* Filter Controls */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3 justify-end flex-wrap">
           <FilterSelect
             value={filters.status}
             onChange={(value) => handleFilterChange("status", value)}
@@ -130,49 +130,49 @@ export const TripFilters = ({
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
-            
+
             {filters.search && (
-              <FilterChip 
+              <FilterChip
                 label={`Search: "${filters.search}"`}
                 onRemove={() => handleFilterChange("search", "")}
               />
             )}
-            
+
             {filters.status !== "all" && (
-              <FilterChip 
+              <FilterChip
                 label={`Status: ${statusOptions.find(s => s.id === filters.status)?.name}`}
                 onRemove={() => handleFilterChange("status", "all")}
               />
             )}
-            
+
             {filters.vehicleId !== "all" && (
-              <FilterChip 
+              <FilterChip
                 label={`Vehicle: ${vehicles.find(v => v.id === filters.vehicleId)?.registrationNumber}`}
                 onRemove={() => handleFilterChange("vehicleId", "all")}
               />
             )}
-            
+
             {filters.driverId !== "all" && (
-              <FilterChip 
+              <FilterChip
                 label={`Driver: ${drivers.find(d => d.id === filters.driverId)?.name}`}
                 onRemove={() => handleFilterChange("driverId", "all")}
               />
             )}
-            
+
             {filters.customerId !== "all" && (
-              <FilterChip 
+              <FilterChip
                 label={`Customer: ${customers.find(c => c.id === filters.customerId)?.name}`}
                 onRemove={() => handleFilterChange("customerId", "all")}
               />
             )}
-            
+
             {filters.dateRange !== "all" && (
-              <FilterChip 
+              <FilterChip
                 label={`Date: ${dateRangeOptions.find(d => d.id === filters.dateRange)?.name}`}
                 onRemove={() => handleFilterChange("dateRange", "all")}
               />
             )}
-            
+
             <button
               onClick={clearFilters}
               className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 ml-2"
@@ -201,7 +201,7 @@ export const TripFilters = ({
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onBulkAction("export")}

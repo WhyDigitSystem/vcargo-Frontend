@@ -1,10 +1,9 @@
-import { 
-  X, 
-  Save, 
-  Navigation, 
+import {
+  X,
+  Save,
+  Navigation,
   MapPin,
   Calendar,
-  Clock,
   Car,
   User,
   Package,
@@ -12,21 +11,22 @@ import {
   Plus,
   Trash2,
   Hash,
-  AlertCircle,
-  FileText
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import driverAPI from "../../../api/TdriverAPI";
+import vehicleAPI from "../../../api/TvehicleAPI";
+import { useSelector } from "react-redux";
+import { Autocomplete } from "@react-google-maps/api";
+import { useGoogleMaps } from "../../../hooks/useGoogleMaps";
 
-export const TripForm = ({ 
-  trip = null, 
-  vehicles = [], 
-  drivers = [], 
-  customers = [], 
-  onSave, 
-  onCancel 
+export const TripForm = ({
+  trip = null,
+  customers = [],
+  onSave,
+  onCancel
 }) => {
   const [formData, setFormData] = useState({
-    customerId: "",
+    customer: "",
     vehicleId: "",
     driverId: "",
     source: "",
@@ -56,37 +56,121 @@ export const TripForm = ({
   const [errors, setErrors] = useState({});
   const [newWaypoint, setNewWaypoint] = useState("");
   const [newDocument, setNewDocument] = useState({ name: "", type: "pdf" });
+  const [drivers, setDrivers] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
 
-  useEffect(() => {
-    if (trip) {
-      setFormData({
-        ...trip,
-        startDate: trip.startDate || new Date().toISOString().split("T")[0],
-        startTime: trip.startTime || "08:00",
-        endDate: trip.endDate || "",
-        endTime: trip.endTime || "",
-        waypoints: trip.waypoints || [],
-        documents: trip.documents || [],
-      });
-    }
-  }, [trip]);
+  const { user } = useSelector((state) => state.auth);
+  const orgId = user.orgId;
 
-  // Calculate profit when costs or revenue change
+  const sourceRef = useRef(null);
+  const destinationRef = useRef(null);
+
+  const { isLoaded } = useGoogleMaps();
+
   useEffect(() => {
     const tripCost = parseFloat(formData.tripCost) || 0;
     const revenue = parseFloat(formData.revenue) || 0;
     const profit = revenue - tripCost;
-    
+
     setFormData(prev => ({
       ...prev,
       profit: profit.toFixed(2)
     }));
   }, [formData.tripCost, formData.revenue]);
 
+  useEffect(() => {
+    if (!formData.startDate || !formData.startTime || !formData.estimatedDuration) return;
+
+    const result = calculateEndDateTime(
+      formData.startDate,
+      formData.startTime,
+      formData.estimatedDuration
+    );
+
+    if (!result) return;
+
+    setFormData(prev => ({
+      ...prev,
+      endDate: result.endDate,
+      endTime: `${result.endTime.hour}:${result.endTime.minute}`
+    }));
+  }, [formData.startDate, formData.startTime, formData.estimatedDuration]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      calculateRouteDetails();
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [formData.source, formData.destination, formData.waypoints]);
+
+  useEffect(() => {
+    calculateRouteDetails();
+  }, [formData.source, formData.destination, formData.waypoints]);
+
+  useEffect(() => {
+    if (trip) {
+      setFormData({
+        customer: trip.customer || "",
+        vehicleId: trip.vehicleId || "",
+        driverId: trip.driverId || "",
+        source: trip.source || "",
+        destination: trip.destination || "",
+        distance: trip.distance || "",
+        estimatedDuration: trip.estimatedDuration || "",
+        startDate: trip.startDate || new Date().toISOString().split("T")[0],
+        startTime: trip.startTime || "08:00",
+        endDate: trip.endDate || "",
+        endTime: trip.endTime || "",
+        status: trip.status || "scheduled",
+        tripType: trip.tripType || "freight",
+        goodsType: trip.goodsType || "",
+        goodsWeight: trip.goodsWeight || "",
+        goodsValue: trip.goodsValue || "",
+        tripCost: trip.tripCost || "",
+        revenue: trip.revenue || "",
+        profit: trip.profit || "",
+        fuelCost: trip.fuelCost || "",
+        tollCharges: trip.tollCharges || "",
+        otherExpenses: trip.otherExpenses || "",
+        notes: trip.notes || "",
+        waypoints: trip.waypoints || [],
+        documents: trip.documents || [],
+      });
+    }
+  }, [trip]);
+
+  useEffect(() => {
+    loadDrivers();
+    loadVehicles();
+  }, []);
+
+  const loadDrivers = async () => {
+    try {
+      const response = await driverAPI.getDrivers(1, 10, orgId);
+      setDrivers(response.drivers);
+      console.log("Test===>", response.drivers);
+    } catch (error) {
+      console.error("Error loading drivers:", error);
+    } finally {
+    }
+  };
+
+  const loadVehicles = async () => {
+    try {
+      const response = await vehicleAPI.getVehicles(1, 10, orgId);
+      setVehicles(response.vehicles);
+      console.log("Test===>", response);
+    } catch (error) {
+      console.error("Error loading drivers:", error);
+    } finally {
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.customerId) newErrors.customerId = "Customer is required";
+    if (!formData.customer) newErrors.customer = "Customer is required";
     if (!formData.vehicleId) newErrors.vehicleId = "Vehicle is required";
     if (!formData.driverId) newErrors.driverId = "Driver is required";
     if (!formData.source) newErrors.source = "Source is required";
@@ -98,16 +182,21 @@ export const TripForm = ({
     if (!formData.startTime) newErrors.startTime = "Start time is required";
     if (!formData.tripType) newErrors.tripType = "Trip type is required";
 
+    // Additional validation for freight trips
+    if (formData.tripType === 'freight') {
+      if (!formData.goodsType) newErrors.goodsType = "Goods type is required for freight trips";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
-    onSave({
+    const tripDataToSave = {
       ...formData,
       distance: parseFloat(formData.distance) || 0,
       goodsWeight: parseFloat(formData.goodsWeight) || 0,
@@ -118,33 +207,77 @@ export const TripForm = ({
       fuelCost: parseFloat(formData.fuelCost) || 0,
       tollCharges: parseFloat(formData.tollCharges) || 0,
       otherExpenses: parseFloat(formData.otherExpenses) || 0,
-      customerName: customers.find(c => c.id === formData.customerId)?.name || "",
+      customerName: customers.find(c => c.id === formData.customer)?.name || "",
       vehicleName: vehicles.find(v => v.id === formData.vehicleId)?.registrationNumber || "",
-      driverName: drivers.find(d => d.id === formData.driverId)?.name || "",
-    });
+      driverName: parseInt(drivers.find(d => d.id === formData.driverId)?.name) || "",
+      waypoints: formData.waypoints.map((wp, index) => ({
+        location: wp.location,
+        sequenceNo: index + 1
+      })),
+      documents: formData.documents || []
+    };
+
+    console.log("Trip data to save:", tripDataToSave);
+
+    onSave(tripDataToSave);
+  };
+
+  const parseEstimatedDurationToMinutes = (duration = "") => {
+    if (!duration) return 0;
+
+    let totalMinutes = 0;
+    const lower = duration.toLowerCase();
+
+    const hourMatch = lower.match(/(\d+)\s*hour/);
+    const minuteMatch = lower.match(/(\d+)\s*(min|minute)/);
+
+    if (hourMatch) totalMinutes += parseInt(hourMatch[1], 10) * 60;
+    if (minuteMatch) totalMinutes += parseInt(minuteMatch[1], 10);
+
+    return totalMinutes;
+  };
+
+  const calculateEndDateTime = (startDate, startTime, estimatedDuration) => {
+    if (!startDate || !startTime || !estimatedDuration) return null;
+
+    const totalMinutes = parseEstimatedDurationToMinutes(estimatedDuration);
+
+    const start = new Date(`${startDate}T${startTime}:00`);
+    const end = new Date(start.getTime() + totalMinutes * 60 * 1000);
+
+    return {
+      endDate: end.toISOString().split("T")[0],
+      endTime: {
+        hour: String(end.getHours()).padStart(2, "0"),
+        minute: String(end.getMinutes()).padStart(2, "0"),
+        second: "00",
+        nano: 0,
+      },
+    };
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: "" }));
     }
   };
 
   const addWaypoint = () => {
-    if (newWaypoint.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        waypoints: [...prev.waypoints, { 
-          location: newWaypoint.trim(),
-          lat: 0,
-          lng: 0
-        }]
-      }));
-      setNewWaypoint("");
-    }
+    const value = newWaypoint.trim();
+    if (!value) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      waypoints: [
+        ...prev.waypoints,
+        { location: value }
+      ]
+    }));
+
+    setNewWaypoint(""); // reset input
   };
 
   const removeWaypoint = (index) => {
@@ -158,7 +291,7 @@ export const TripForm = ({
     if (newDocument.name.trim()) {
       setFormData(prev => ({
         ...prev,
-        documents: [...prev.documents, { 
+        documents: [...prev.documents, {
           ...newDocument,
           url: "#"
         }]
@@ -183,15 +316,143 @@ export const TripForm = ({
   ];
 
   const goodsTypeOptions = [
-    "Electronics", "Textiles", "Auto Parts", "FMCG", "Chemicals", 
+    "Electronics", "Textiles", "Auto Parts", "FMCG", "Chemicals",
     "Construction Material", "Agriculture", "Pharmaceuticals", "Other"
   ];
 
-  const documentTypes = ["pdf", "image", "excel", "word"];
+  const LocationAutocomplete = ({
+    value,
+    onChange,
+    placeholder,
+    inputRef,
+    className = "",
+    onKeyPress,
+  }) => {
+    const [inputValue, setInputValue] = useState(value || "");
+    const autocompleteRef = useRef(null);
 
-  const selectedCustomer = customers.find(c => c.id === formData.customerId);
-  const selectedVehicle = vehicles.find(v => v.id === formData.vehicleId);
-  const selectedDriver = drivers.find(d => d.id === formData.driverId);
+    useEffect(() => {
+      setInputValue(value || "");
+    }, [value]);
+
+    if (!isLoaded) {
+      return (
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => {
+            setInputValue(e.target.value);
+            onChange(e.target.value);
+          }}
+          onKeyPress={onKeyPress}
+          placeholder={placeholder}
+          className={`w-full px-4 py-3 rounded-xl
+          bg-white dark:bg-gray-800
+          text-gray-900 dark:text-gray-100
+          border border-gray-300 dark:border-gray-700
+          focus:outline-none focus:ring-2 focus:ring-blue-500
+          ${className}`}
+        />
+      );
+    }
+
+    return (
+      <Autocomplete
+        onLoad={(auto) => {
+          autocompleteRef.current = auto;
+          if (inputRef) inputRef.current = auto;
+        }}
+        onPlaceChanged={() => {
+          if (!autocompleteRef.current) return;
+
+          const place = autocompleteRef.current.getPlace();
+
+          const placeName = place?.name || "";
+          const formattedAddress = place?.formatted_address || "";
+
+          let fullLocation = "";
+
+          if (placeName && formattedAddress) {
+            if (!formattedAddress.toLowerCase().includes(placeName.toLowerCase())) {
+              fullLocation = `${placeName}, ${formattedAddress}`;
+            } else {
+              fullLocation = formattedAddress;
+            }
+          } else {
+            fullLocation = placeName || formattedAddress;
+          }
+
+          if (fullLocation) {
+            setInputValue(fullLocation);
+            onChange(fullLocation);
+          }
+        }}
+      >
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            setInputValue(newValue);
+          }}
+          onKeyPress={onKeyPress}
+          placeholder={placeholder}
+          className={`w-full px-4 py-3 rounded-xl
+          bg-white dark:bg-gray-800
+          text-gray-900 dark:text-gray-100
+          border border-gray-300 dark:border-gray-700
+          focus:outline-none focus:ring-2 focus:ring-blue-500
+          ${className}`}
+        />
+      </Autocomplete>
+    );
+  };
+
+  const calculateRouteDetails = async () => {
+    if (!isLoaded || !formData.source || !formData.destination) return;
+
+    const directionsService = new window.google.maps.DirectionsService();
+
+    const waypoints = formData.waypoints.map((w) => ({
+      location: w.location,
+      stopover: true,
+    }));
+
+    try {
+      const result = await directionsService.route({
+        origin: formData.source,
+        destination: formData.destination,
+        waypoints,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      });
+
+      const legs = result.routes[0].legs;
+
+      let totalDistanceMeters = 0;
+      let totalDurationSeconds = 0;
+
+      legs.forEach((leg) => {
+        totalDistanceMeters += leg.distance.value;   // meters
+        totalDurationSeconds += leg.duration.value;  // seconds
+      });
+
+      const totalDistanceKm = Math.round(totalDistanceMeters / 1000);
+
+      const hours = Math.floor(totalDurationSeconds / 3600);
+      const minutes = Math.round((totalDurationSeconds % 3600) / 60);
+
+      const formattedDuration =
+        hours > 0 ? `${hours} hours ${minutes} mins` : `${minutes} mins`;
+
+      setFormData((prev) => ({
+        ...prev,
+        distance: totalDistanceKm,
+        estimatedDuration: formattedDuration,
+      }));
+    } catch (err) {
+      console.error("Route calculation failed:", err);
+    }
+  };
 
   return (
     <div className="relative w-full max-w-6xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
@@ -224,137 +485,119 @@ export const TripForm = ({
       <form onSubmit={handleSubmit} className="p-6">
         <div className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
           {/* Basic Information */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Customer Selection */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Customer Details
-              </h3>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Customer *
-                </label>
-                <select
-                  name="customerId"
-                  value={formData.customerId}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.customerId ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                  }`}
-                >
-                  <option value="" className="text-gray-500 dark:text-gray-400">Select Customer</option>
-                  {customers.map(customer => (
-                    <option key={customer.id} value={customer.id} className="text-gray-900 dark:text-gray-100">
-                      {customer.name} - {customer.phone}
-                    </option>
-                  ))}
-                </select>
-                {errors.customerId && (
-                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">
-                    {errors.customerId}
-                  </p>
-                )}
-              </div>
+          <div className="space-y-6">
 
-              {selectedCustomer && (
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {selectedCustomer.name}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {selectedCustomer.email}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {selectedCustomer.phone}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {selectedCustomer.address}
-                    </div>
-                  </div>
+            {/* ================= ROW 1 ================= */}
+            <div className="space-y-6">
+
+              {/* ===== Header Row ===== */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                {/* -------- Customer -------- */}
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Customer Details
+                  </h3>
+
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Customer *
+                  </label>
+                  <input
+                    type="text"
+                    name="customer"
+                    value={formData.customer}
+                    onChange={handleChange}
+                    placeholder="Enter Customer"
+                    className={`w-full px-4 py-3 rounded-xl
+          bg-white dark:bg-gray-800
+          text-gray-900 dark:text-gray-100
+          border focus:outline-none focus:ring-2 focus:ring-blue-500
+          ${errors.customer ? "border-red-500" : "border-gray-300 dark:border-gray-700"}
+        `}
+                  />
                 </div>
-              )}
-            </div>
 
-            {/* Vehicle & Driver Selection */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <Car className="h-5 w-5" />
-                Vehicle & Driver
-              </h3>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Vehicle *
-                </label>
-                <select
-                  name="vehicleId"
-                  value={formData.vehicleId}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.vehicleId ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                  }`}
-                >
-                  <option value="" className="text-gray-500 dark:text-gray-400">Select Vehicle</option>
-                  {vehicles.map(vehicle => (
-                    <option key={vehicle.id} value={vehicle.id} className="text-gray-900 dark:text-gray-100">
-                      {vehicle.registrationNumber} - {vehicle.make} {vehicle.model}
-                    </option>
-                  ))}
-                </select>
+                {/* -------- Vehicle -------- */}
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Car className="h-5 w-5" />
+                    Vehicle
+                  </h3>
+
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Vehicle *
+                  </label>
+                  <select
+                    name="vehicleId"
+                    value={formData.vehicleId}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select Vehicle</option>
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.id}>
+                        {v.vehicleNumber} - {v.year} {v.model}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* -------- Driver -------- */}
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Driver
+                  </h3>
+
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Driver *
+                  </label>
+                  <select
+                    name="driverId"
+                    value={formData.driverId}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select Driver</option>
+                    {drivers.map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} - {d.licenseNumber}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Driver *
-                </label>
-                <select
-                  name="driverId"
-                  value={formData.driverId}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.driverId ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                  }`}
-                >
-                  <option value="" className="text-gray-500 dark:text-gray-400">Select Driver</option>
-                  {drivers.map(driver => (
-                    <option key={driver.id} value={driver.id} className="text-gray-900 dark:text-gray-100">
-                      {driver.name} - {driver.license}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
 
-            {/* Trip Type */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Navigation className="h-5 w-5" />
                 Trip Type
               </h3>
-              
-              <div className="grid grid-cols-2 gap-3">
+
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {tripTypeOptions.map(type => (
                   <button
                     key={type.id}
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, tripType: type.id }))}
-                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
-                      formData.tripType === type.id
+                    className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center dark:text-gray-300 transition-all
+                      ${formData.tripType === type.id
                         ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                    }`}
+                        : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
+                      }
+                    `}
                   >
                     <span className="text-xl mb-2">{type.icon}</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {type.name}
-                    </span>
+                    <span className="text-sm font-medium">{type.name}</span>
                   </button>
                 ))}
               </div>
             </div>
+
           </div>
 
           {/* Route Details */}
@@ -363,21 +606,21 @@ export const TripForm = ({
               <MapPin className="h-5 w-5" />
               Route Details
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Source *
                 </label>
-                <input
-                  type="text"
-                  name="source"
+                <LocationAutocomplete
+                  inputRef={sourceRef}
                   value={formData.source}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.source ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                  }`}
                   placeholder="e.g., Mumbai, Maharashtra"
+                  onChange={(val) =>
+                    setFormData((prev) => ({ ...prev, source: val }))
+                  }
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.source ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    }`}
                 />
               </div>
 
@@ -385,15 +628,15 @@ export const TripForm = ({
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Destination *
                 </label>
-                <input
-                  type="text"
-                  name="destination"
+                <LocationAutocomplete
+                  inputRef={destinationRef}
                   value={formData.destination}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.destination ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                  }`}
                   placeholder="e.g., Pune, Maharashtra"
+                  onChange={(val) =>
+                    setFormData((prev) => ({ ...prev, destination: val }))
+                  }
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.destination ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    }`}
                 />
               </div>
 
@@ -408,9 +651,8 @@ export const TripForm = ({
                   onChange={handleChange}
                   step="0.1"
                   min="0"
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.distance ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.distance ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    }`}
                   placeholder="150"
                 />
               </div>
@@ -431,25 +673,15 @@ export const TripForm = ({
                   Add Waypoint
                 </button>
               </div>
-              
-              <div className="flex gap-3 mb-3">
-                <input
-                  type="text"
+
+              <div className="mb-3 space-y-3">
+                <LocationAutocomplete
                   value={newWaypoint}
-                  onChange={(e) => setNewWaypoint(e.target.value)}
-                  className="flex-1 px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Lonavala, Maharashtra"
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addWaypoint())}
+                  placeholder="Search waypoint..."
+                  onChange={setNewWaypoint}
                 />
-                <button
-                  type="button"
-                  onClick={addWaypoint}
-                  className="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700"
-                >
-                  Add
-                </button>
               </div>
-              
+
               {formData.waypoints.length > 0 && (
                 <div className="space-y-2">
                   {formData.waypoints.map((waypoint, index) => (
@@ -478,7 +710,7 @@ export const TripForm = ({
               <Calendar className="h-5 w-5" />
               Schedule
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -489,9 +721,8 @@ export const TripForm = ({
                   name="startDate"
                   value={formData.startDate}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.startDate ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.startDate ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    }`}
                 />
               </div>
 
@@ -504,9 +735,8 @@ export const TripForm = ({
                   name="startTime"
                   value={formData.startTime}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.startTime ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.startTime ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    }`}
                 />
               </div>
 
@@ -519,9 +749,8 @@ export const TripForm = ({
                   name="estimatedDuration"
                   value={formData.estimatedDuration}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.estimatedDuration ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.estimatedDuration ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    }`}
                   placeholder="e.g., 3 hours, 4 hours 30 mins"
                 />
               </div>
@@ -553,7 +782,7 @@ export const TripForm = ({
                 <Package className="h-5 w-5" />
                 Goods Information
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -616,7 +845,7 @@ export const TripForm = ({
               <IndianRupee className="h-5 w-5" />
               Financial Details
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -735,7 +964,7 @@ export const TripForm = ({
           </div>
 
           {/* Documents */}
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <FileText className="h-5 w-5" />
@@ -750,7 +979,7 @@ export const TripForm = ({
                 Add Document
               </button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -765,7 +994,7 @@ export const TripForm = ({
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addDocument())}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Document Type
@@ -781,7 +1010,7 @@ export const TripForm = ({
                 </select>
               </div>
             </div>
-            
+
             {formData.documents.length > 0 && (
               <div className="space-y-2">
                 {formData.documents.map((doc, index) => (
@@ -808,7 +1037,7 @@ export const TripForm = ({
                 ))}
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Notes */}
           <div>

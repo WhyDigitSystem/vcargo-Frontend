@@ -6,18 +6,28 @@ import { TripList } from "./TripList";
 import { TripMapView } from "./TripMapView";
 import { TripStats } from "./TripStats";
 import { TripTimeline } from "./TripTimeline";
+import { tripAPI } from "../../../api/TtripAPI";
+import { useSelector } from "react-redux";
+import { toast } from "../../../utils/toast";
 
-export const TripDashboard = ({
-  vehicles = [],
-  drivers = [],
-  customers = [],
-}) => {
+export const TripDashboard = () => {
   const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [editingTrip, setEditingTrip] = useState(null);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [selectedTrips, setSelectedTrips] = useState([]);
+  const [filterCustomers, setFilterCustomers] = useState([]);
+  const [filterDrivers, setFilterDrivers] = useState([]);
+  const [filterVehicles, setFilterVehicles] = useState([]);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    pageSize: 10,
+    totalCount: 0
+  });
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
@@ -27,203 +37,225 @@ export const TripDashboard = ({
     dateRange: "all",
   });
 
-  // Fetch trips
+  const { user } = useSelector((state) => state.auth);
+  const orgId = user.orgId;
+
   useEffect(() => {
     fetchTrips();
-  }, []);
+  }, [filters, pagination.currentPage]);
 
   const fetchTrips = async () => {
-    // Mock data
-    const mockTrips = [
-      {
-        id: "TRIP-2024-001",
-        tripNumber: "TRIP-2024-001",
-        customerId: "CUST-001",
-        customerName: "Reliance Industries",
-        customerContact: "+91 9876543210",
-        vehicleId: "V001",
-        vehicleName: "Tata Ace",
-        driverId: "D001",
-        driverName: "Rajesh Kumar",
-        source: "Mumbai, Maharashtra",
-        destination: "Pune, Maharashtra",
-        distance: 150, // km
-        estimatedDuration: "3 hours",
-        actualDuration: "2.5 hours",
-        startDate: "2024-03-15",
-        startTime: "08:00",
-        endDate: "2024-03-15",
-        endTime: "10:30",
-        status: "completed",
-        tripType: "freight",
-        goodsType: "Electronics",
-        goodsWeight: 2, // tons
-        goodsValue: 500000,
-        tripCost: 25000,
-        revenue: 35000,
-        profit: 10000,
-        fuelCost: 5000,
-        tollCharges: 1500,
-        otherExpenses: 2000,
-        route: [
-          { location: "Mumbai", lat: 19.076, lng: 72.8777 },
-          { location: "Pune", lat: 18.5204, lng: 73.8567 },
-        ],
-        waypoints: [{ location: "Lonavala", lat: 18.7522, lng: 73.4058 }],
-        notes: "Delivered electronics goods safely",
-        documents: [
-          { name: "Delivery Challan", type: "pdf", url: "#" },
-          { name: "E-Way Bill", type: "pdf", url: "#" },
-        ],
-        milestones: [
-          {
-            id: "M1",
-            name: "Trip Started",
-            time: "08:00",
-            status: "completed",
-          },
-          {
-            id: "M2",
-            name: "Goods Loaded",
-            time: "08:30",
-            status: "completed",
-          },
-          { id: "M3", name: "Toll Paid", time: "09:15", status: "completed" },
-          {
-            id: "M4",
-            name: "Goods Unloaded",
-            time: "10:30",
-            status: "completed",
-          },
-          {
-            id: "M5",
-            name: "Trip Completed",
-            time: "10:30",
-            status: "completed",
-          },
-        ],
-      },
-      {
-        id: "TRIP-2024-002",
-        tripNumber: "TRIP-2024-002",
-        customerId: "CUST-002",
-        customerName: "Tata Motors",
-        customerContact: "+91 9876543211",
-        vehicleId: "V002",
-        vehicleName: "Ashok Leyland Dost",
-        driverId: "D002",
-        driverName: "Amit Sharma",
-        source: "Pune, Maharashtra",
-        destination: "Bangalore, Karnataka",
-        distance: 450,
-        estimatedDuration: "8 hours",
-        actualDuration: "",
-        startDate: "2024-03-16",
-        startTime: "06:00",
-        endDate: "2024-03-16",
-        endTime: "",
-        status: "in_progress",
-        tripType: "freight",
-        goodsType: "Auto Parts",
-        goodsWeight: 3.5,
-        goodsValue: 750000,
-        tripCost: 45000,
-        revenue: 65000,
-        profit: 20000,
-        currentLocation: "Satara, Maharashtra",
-        lastUpdate: "2024-03-16T10:30:00",
-        notes: "Urgent delivery of auto parts",
-      },
-      {
-        id: "TRIP-2024-003",
-        tripNumber: "TRIP-2024-003",
-        customerId: "CUST-003",
-        customerName: "Aditya Birla Group",
-        customerContact: "+91 9876543212",
-        vehicleId: "V003",
-        vehicleName: "Mahindra Bolero",
-        driverId: "D003",
-        driverName: "Suresh Patel",
-        source: "Mumbai, Maharashtra",
-        destination: "Ahmedabad, Gujarat",
-        distance: 525,
-        estimatedDuration: "9 hours",
-        actualDuration: "",
-        startDate: "2024-03-17",
-        startTime: "07:00",
-        endDate: "2024-03-17",
-        endTime: "",
-        status: "scheduled",
-        tripType: "freight",
-        goodsType: "Textiles",
-        goodsWeight: 4,
-        goodsValue: 300000,
-        tripCost: 35000,
-        revenue: 45000,
-        profit: 10000,
-        notes: "Textile shipment to Ahmedabad",
-      },
-      {
-        id: "TRIP-2024-004",
-        tripNumber: "TRIP-2024-004",
-        customerId: "CUST-001",
-        customerName: "Reliance Industries",
-        customerContact: "+91 9876543210",
-        vehicleId: "V001",
-        vehicleName: "Tata Ace",
-        driverId: "D001",
-        driverName: "Rajesh Kumar",
-        source: "Pune, Maharashtra",
-        destination: "Mumbai, Maharashtra",
-        distance: 150,
-        estimatedDuration: "3 hours",
-        actualDuration: "",
-        startDate: "2024-03-18",
-        startTime: "10:00",
-        endDate: "2024-03-18",
-        endTime: "",
-        status: "pending",
-        tripType: "return",
-        goodsType: "Empty",
-        goodsWeight: 0,
-        tripCost: 18000,
-        revenue: 22000,
-        profit: 4000,
-        notes: "Return trip from Pune",
-      },
-    ];
-    setTrips(mockTrips);
+    try {
+      setLoading(true);
+      const response = await tripAPI.getAllTrips({
+        count: 10,
+        page: 1,
+        orgId,
+      });
+
+      const apiTrips = response?.paramObjectsMap?.trip?.data || [];
+
+      const mappedTrips = apiTrips.map((trip) => ({
+        id: trip.id,
+        tripNumber: `TRIP-${trip.id}`,
+        customerId: trip.customer,
+        customerName: trip.customer,
+        vehicleId: trip.vehicleId,
+        vehicleName: trip.vehicle,
+        driverId: trip.driverId,
+        driverName: trip.driver,
+        source: trip.source,
+        destination: trip.destination,
+        distance: trip.distance,
+        estimatedDuration: trip.estimatedDuration,
+        startDate: trip.startDate,
+        startTime: trip.startTime?.slice(0, 5),
+        endDate: trip.endDate,
+        endTime: trip.endTime?.slice(0, 5),
+        status: trip.status,
+        tripType: trip.tripType,
+        goodsType: trip.goodsType,
+        goodsWeight: trip.goodsWeight,
+        goodsValue: trip.goodsValue,
+        tripCost: trip.tripCost,
+        revenue: trip.revenue,
+        profit: trip.profit,
+        fuelCost: trip.fuelCost,
+        tollCharges: trip.tollCharges,
+        otherExpenses: trip.otherExpenses,
+        notes: trip.notes,
+        waypoints: trip.waypoints || [],
+        active: trip.active,
+      }));
+
+      setTrips(mappedTrips);
+
+      const uniqueCustomers = Array.from(
+        new Map(
+          mappedTrips
+            .filter(t => t.customerId)
+            .map(t => [
+              t.customerId,
+              { id: t.customerId, name: t.customerName }
+            ])
+        ).values()
+      );
+
+      const uniqueDrivers = Array.from(
+        new Map(
+          mappedTrips
+            .filter(t => t.driverId)
+            .map(t => [
+              t.driverId,
+              { id: t.driverId, name: t.driverName }
+            ])
+        ).values()
+      );
+
+      const uniqueVehicles = Array.from(
+        new Map(
+          mappedTrips
+            .filter(t => t.vehicleId)
+            .map(t => [
+              t.vehicleId,
+              { id: t.vehicleId, registrationNumber: t.vehicleName, name: t.vehicleName }
+            ])
+        ).values()
+      );
+
+      setFilterCustomers(uniqueCustomers);
+      setFilterDrivers(uniqueDrivers);
+      setFilterVehicles(uniqueVehicles);
+
+    } catch (error) {
+      console.error("Failed to load trips:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveTrip = async (tripData) => {
-    if (editingTrip) {
-      setTrips(trips.map((t) => (t.id === tripData.id ? tripData : t)));
-    } else {
-      const tripNumber = `TRIP-${new Date().getFullYear()}-${String(
-        trips.length + 1
-      ).padStart(3, "0")}`;
-      setTrips([
-        ...trips,
-        {
-          ...tripData,
-          id: `TRIP-${Date.now()}`,
-          tripNumber,
-          status: "scheduled",
-          currentLocation: tripData.source,
-        },
-      ]);
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+      const userId = storedUser.usersId || storedUser.userId || "";
+
+      const payload = {
+        ...(editingTrip && { id: editingTrip.id ? parseInt(editingTrip.id, 10) : 0 }),
+        orgId: parseInt(orgId, 10) || 0,
+        branchCode: "MAIN",
+        branchName: "Main Branch",
+        createdBy: userId.toString(),
+        user: parseInt(userId, 10) || 0,
+        customer: tripData.customer,
+        source: tripData.source || "",
+        destination: tripData.destination || "",
+        vehicle: tripData.vehicleId,
+        driver: tripData.driverId,
+        tripType: tripData.tripType || "",
+        status: tripData.status || "",
+        distance: parseInt(tripData.distance || 0, 10),
+        estimatedDuration: tripData.estimatedDuration || "",
+        goodsType: tripData.goodsType || "",
+        goodsWeight: parseFloat(tripData.goodsWeight || 0),
+        goodsValue: parseFloat(tripData.goodsValue || 0),
+        tripCost: parseFloat(tripData.tripCost || 0),
+        revenue: parseFloat(tripData.revenue || 0),
+        profit: parseFloat(tripData.profit || 0),
+        fuelCost: parseFloat(tripData.fuelCost || 0),
+        tollCharges: parseFloat(tripData.tollCharges || 0),
+        otherExpenses: parseFloat(tripData.otherExpenses || 0),
+        startDate: tripData.startDate || new Date().toISOString().split("T")[0],
+        endDate: tripData.endDate || tripData.startDate || new Date().toISOString().split("T")[0],
+        startTime: tripData.startTime,
+        endTime: tripData.endTime,
+        notes: tripData.notes || "",
+        waypoints: (tripData.waypoints || []).map((wp, index) => ({
+          location: wp.location || "",
+          sequenceNo: index + 1
+        }))
+      };
+
+      if (editingTrip) {
+        payload.id = parseInt(editingTrip.id, 10);
+      }
+
+      const response = await tripAPI.createUpdateTrip(payload);
+
+      if (response?.statusFlag === "Ok" || response?.success === true || response?.status === 200) {
+        toast.success(editingTrip ? "Trip updated successfully!" : "Trip created successfully!");
+        setShowForm(false);
+        setEditingTrip(null);
+        await fetchTrips(); // Refresh the list
+      } else {
+        throw new Error(response?.message || "Trip save failed");
+      }
+    } catch (error) {
+      console.error("SAVE TRIP ERROR:", error);
+      toast.error("Failed to save trip!");
     }
-    setShowForm(false);
-    setEditingTrip(null);
   };
 
   const handleDeleteTrip = async (id) => {
     setTrips(trips.filter((t) => t.id !== id));
   };
 
-  const handleEditTrip = (trip) => {
-    setEditingTrip(trip);
-    setShowForm(true);
+  const handleEditTrip = async (trip) => {
+    try {
+      setLoading(true);
+
+      const response = await tripAPI.getTripById(trip.id);
+
+      if (response?.paramObjectsMap?.trip) {
+        const apiTrip = response.paramObjectsMap.trip;
+
+        const tripForEdit = {
+          id: apiTrip.id,
+          tripNumber: `TRIP-${apiTrip.id}`,
+          customer: apiTrip.customer,
+          customerName: apiTrip.customer,
+          vehicleId: apiTrip.vehicleId,
+          vehicleName: apiTrip.vehicle,
+          driverId: apiTrip.driverId,
+          driverName: apiTrip.driver,
+          source: apiTrip.source,
+          destination: apiTrip.destination,
+          distance: apiTrip.distance,
+          estimatedDuration: apiTrip.estimatedDuration,
+          startDate: apiTrip.startDate,
+          startTime: apiTrip.startTime?.slice(0, 5),
+          endDate: apiTrip.endDate,
+          endTime: apiTrip.endTime?.slice(0, 5),
+          status: apiTrip.status,
+          tripType: apiTrip.tripType,
+          goodsType: apiTrip.goodsType,
+          goodsWeight: apiTrip.goodsWeight,
+          goodsValue: apiTrip.goodsValue,
+          tripCost: apiTrip.tripCost,
+          revenue: apiTrip.revenue,
+          profit: apiTrip.profit,
+          fuelCost: apiTrip.fuelCost,
+          tollCharges: apiTrip.tollCharges,
+          otherExpenses: apiTrip.otherExpenses,
+          notes: apiTrip.notes,
+          waypoints: apiTrip.waypoints || [],
+          active: apiTrip.active,
+
+          waypoints: apiTrip.waypoints?.map(wp => ({
+            location: wp.location,
+            sequenceNo: wp.sequenceNo
+          })) || []
+        };
+
+        setEditingTrip(tripForEdit);
+        setShowForm(true);
+      }
+    } catch (error) {
+      console.error("Failed to fetch trip details:", error);
+      alert("Failed to load trip details for editing");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleViewMap = (trip) => {
@@ -231,41 +263,44 @@ export const TripDashboard = ({
     setShowMap(true);
   };
 
-  const handleStatusChange = (id, status) => {
+  const handleStatusChange = async (id, status) => {
     setTrips(
       trips.map((trip) =>
         trip.id === id
           ? {
-              ...trip,
-              status,
-              endDate:
-                status === "completed"
-                  ? new Date().toISOString().split("T")[0]
-                  : trip.endDate,
-              endTime:
-                status === "completed"
-                  ? new Date().toTimeString().slice(0, 5)
-                  : trip.endTime,
-            }
+            ...trip,
+            status,
+            endDate:
+              status === "completed"
+                ? new Date().toISOString().split("T")[0]
+                : trip.endDate,
+            endTime:
+              status === "completed"
+                ? new Date().toTimeString().slice(0, 5)
+                : trip.endTime,
+          }
           : trip
       )
     );
   };
 
   const handleStartTrip = (id) => {
-    setTrips(
-      trips.map((trip) =>
-        trip.id === id
-          ? {
+    const tripToUpdate = trips.find(t => t.id === id);
+    if (tripToUpdate) {
+      setTrips(
+        trips.map((trip) =>
+          trip.id === id
+            ? {
               ...trip,
               status: "in_progress",
               startDate: new Date().toISOString().split("T")[0],
               startTime: new Date().toTimeString().slice(0, 5),
               currentLocation: trip.source,
             }
-          : trip
-      )
-    );
+            : trip
+        )
+      );
+    }
   };
 
   const handleCompleteTrip = (id) => {
@@ -273,15 +308,19 @@ export const TripDashboard = ({
       trips.map((trip) =>
         trip.id === id
           ? {
-              ...trip,
-              status: "completed",
-              endDate: new Date().toISOString().split("T")[0],
-              endTime: new Date().toTimeString().slice(0, 5),
-              currentLocation: trip.destination,
-            }
+            ...trip,
+            status: "completed",
+            endDate: new Date().toISOString().split("T")[0],
+            endTime: new Date().toTimeString().slice(0, 5),
+            currentLocation: trip.destination,
+          }
           : trip
       )
     );
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, currentPage: newPage }));
   };
 
   const filteredTrips = trips.filter((trip) => {
@@ -295,13 +334,12 @@ export const TripDashboard = ({
     const matchesStatus =
       filters.status === "all" || trip.status === filters.status;
     const matchesVehicle =
-      filters.vehicleId === "all" || trip.vehicleId === filters.vehicleId;
+      filters.vehicleId === "all" || trip.vehicleId.toString() === filters.vehicleId.toString();
     const matchesDriver =
-      filters.driverId === "all" || trip.driverId === filters.driverId;
+      filters.driverId === "all" || trip.driverId.toString() === filters.driverId.toString();
     const matchesCustomer =
-      filters.customerId === "all" || trip.customerId === filters.customerId;
+      filters.customerId === "all" || trip.customerId.toString() === filters.customerId.toString();
 
-    // Date range filter
     let matchesDate = true;
     if (filters.dateRange !== "all") {
       const tripDate = new Date(trip.startDate);
@@ -336,6 +374,39 @@ export const TripDashboard = ({
       matchesDate
     );
   });
+
+  if (loading && trips.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading trips...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && trips.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-600 dark:text-red-400 mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-red-600 dark:text-red-400 font-medium">Error loading trips</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">{error}</p>
+          <button
+            onClick={fetchTrips}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -374,9 +445,9 @@ export const TripDashboard = ({
       <TripFilters
         filters={filters}
         setFilters={setFilters}
-        vehicles={vehicles}
-        drivers={drivers}
-        customers={customers}
+        vehicles={filterVehicles}
+        drivers={filterDrivers}
+        customers={filterCustomers}
         selectedTrips={selectedTrips}
         onBulkAction={(action) => {
           if (action === "export") {
@@ -401,6 +472,8 @@ export const TripDashboard = ({
             onCompleteTrip={handleCompleteTrip}
             selectedTrips={selectedTrips}
             onSelectTrip={setSelectedTrips}
+            pagination={pagination}
+            onPageChange={handlePageChange}
           />
         </div>
 
@@ -426,9 +499,9 @@ export const TripDashboard = ({
             />
             <TripForm
               trip={editingTrip}
-              vehicles={vehicles}
-              drivers={drivers}
-              customers={customers}
+              vehicles={filterVehicles}
+              drivers={filterDrivers}
+              customers={filterCustomers}
               onSave={handleSaveTrip}
               onCancel={() => {
                 setShowForm(false);
