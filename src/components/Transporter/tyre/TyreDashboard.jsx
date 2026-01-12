@@ -159,7 +159,7 @@ export const TyreDashboard = ({ vehicles = [] }) => {
             pressure: parseFloat(entry.pressure) || 0,
             notes: entry.notes || "",
             active: entry.active !== undefined ? entry.active : true,
-            vehicleId: entry.vehicle,
+            vehicleId: String(entry.vehicleId),
             vehicle: entry.vehicle || "Unassigned",
             branchCode: entry.branchCode || "MAIN",
             branchName: entry.branchName || "Main Branch",

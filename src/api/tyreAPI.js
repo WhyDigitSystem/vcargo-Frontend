@@ -25,67 +25,67 @@ export const tyreAPI = {
       const tyreEntries = data.paramObjectsMap?.tyre?.data
         ? Array.isArray(data.paramObjectsMap.tyre.data)
           ? data.paramObjectsMap.tyre.data.map((tyre) => ({
-              id: tyre.id,
-              serialNumber: tyre.serialNumber,
-              brand: tyre.brand,
-              model: tyre.model,
-              size: tyre.size,
-              position: tyre.position,
-              status: tyre.status,
-              purchaseDate: tyre.purchaseDate,
-              purchaseCost: parseFloat(tyre.purchaseCost) || 0,
-              odometerReading: parseFloat(tyre.odometerReading) || 0,
-              treadDepth: parseFloat(tyre.treadDepth) || 0,
-              recommendedPressure: parseFloat(tyre.recommendedPressure) || 0,
-              pressure: parseFloat(tyre.pressure) || 0,
-              notes: tyre.notes,
-              active: tyre.active || true,
-              createdBy: tyre.createdBy,
-              updatedBy: tyre.updatedBy,
-              cancel: tyre.cancel || false,
-              branchCode: tyre.branchCode || "MAIN",
-              branchName: tyre.branchName || "Main Branch",
-              orgId: tyre.orgId || orgId,
-              vehicle: tyre.vehicle,
-              vehicleId: tyre.vehicleId,
-              user: tyre.user,
-              createdAt: tyre.commonDate?.createdon,
-              updatedAt: tyre.commonDate?.modifiedon,
-            }))
+            id: tyre.id,
+            serialNumber: tyre.serialNumber,
+            brand: tyre.brand,
+            model: tyre.model,
+            size: tyre.size,
+            position: tyre.position,
+            status: tyre.status,
+            purchaseDate: tyre.purchaseDate,
+            purchaseCost: parseFloat(tyre.purchaseCost) || 0,
+            odometerReading: parseFloat(tyre.odometerReading) || 0,
+            treadDepth: parseFloat(tyre.treadDepth) || 0,
+            recommendedPressure: parseFloat(tyre.recommendedPressure) || 0,
+            pressure: parseFloat(tyre.pressure) || 0,
+            notes: tyre.notes,
+            active: tyre.active || true,
+            createdBy: tyre.createdBy,
+            updatedBy: tyre.updatedBy,
+            cancel: tyre.cancel || false,
+            branchCode: tyre.branchCode || "MAIN",
+            branchName: tyre.branchName || "Main Branch",
+            orgId: tyre.orgId || orgId,
+            vehicleId: String(tyre.vehicleId),
+            vehicle: tyre.vehicle,
+            user: tyre.user,
+            createdAt: tyre.commonDate?.createdon,
+            updatedAt: tyre.commonDate?.modifiedon,
+          }))
           : // If it's a single object (like in sample), wrap in array
-            [
-              {
-                id: data.paramObjectsMap.tyre.id,
-                serialNumber: data.paramObjectsMap.tyre.serialNumber,
-                brand: data.paramObjectsMap.tyre.brand,
-                model: data.paramObjectsMap.tyre.model,
-                size: data.paramObjectsMap.tyre.size,
-                position: data.paramObjectsMap.tyre.position,
-                status: data.paramObjectsMap.tyre.status,
-                purchaseDate: data.paramObjectsMap.tyre.purchaseDate,
-                purchaseCost:
-                  parseFloat(data.paramObjectsMap.tyre.purchaseCost) || 0,
-                odometerReading:
-                  parseFloat(data.paramObjectsMap.tyre.odometerReading) || 0,
-                treadDepth:
-                  parseFloat(data.paramObjectsMap.tyre.treadDepth) || 0,
-                recommendedPressure:
-                  parseFloat(data.paramObjectsMap.tyre.recommendedPressure) ||
-                  0,
-                pressure: parseFloat(data.paramObjectsMap.tyre.pressure) || 0,
-                notes: data.paramObjectsMap.tyre.notes,
-                active: data.paramObjectsMap.tyre.active || true,
-                createdBy: data.paramObjectsMap.tyre.createdBy,
-                updatedBy: data.paramObjectsMap.tyre.updatedBy,
-                cancel: data.paramObjectsMap.tyre.cancel || false,
-                branchCode: data.paramObjectsMap.tyre.branchCode || "MAIN",
-                branchName:
-                  data.paramObjectsMap.tyre.branchName || "Main Branch",
-                orgId: data.paramObjectsMap.tyre.orgId || orgId,
-                vehicle: data.paramObjectsMap.tyre.vehicle,
-                user: data.paramObjectsMap.tyre.user,
-              },
-            ]
+          [
+            {
+              id: data.paramObjectsMap.tyre.id,
+              serialNumber: data.paramObjectsMap.tyre.serialNumber,
+              brand: data.paramObjectsMap.tyre.brand,
+              model: data.paramObjectsMap.tyre.model,
+              size: data.paramObjectsMap.tyre.size,
+              position: data.paramObjectsMap.tyre.position,
+              status: data.paramObjectsMap.tyre.status,
+              purchaseDate: data.paramObjectsMap.tyre.purchaseDate,
+              purchaseCost:
+                parseFloat(data.paramObjectsMap.tyre.purchaseCost) || 0,
+              odometerReading:
+                parseFloat(data.paramObjectsMap.tyre.odometerReading) || 0,
+              treadDepth:
+                parseFloat(data.paramObjectsMap.tyre.treadDepth) || 0,
+              recommendedPressure:
+                parseFloat(data.paramObjectsMap.tyre.recommendedPressure) ||
+                0,
+              pressure: parseFloat(data.paramObjectsMap.tyre.pressure) || 0,
+              notes: data.paramObjectsMap.tyre.notes,
+              active: data.paramObjectsMap.tyre.active || true,
+              createdBy: data.paramObjectsMap.tyre.createdBy,
+              updatedBy: data.paramObjectsMap.tyre.updatedBy,
+              cancel: data.paramObjectsMap.tyre.cancel || false,
+              branchCode: data.paramObjectsMap.tyre.branchCode || "MAIN",
+              branchName:
+                data.paramObjectsMap.tyre.branchName || "Main Branch",
+              orgId: data.paramObjectsMap.tyre.orgId || orgId,
+              vehicle: data.paramObjectsMap.tyre.vehicle,
+              user: data.paramObjectsMap.tyre.user,
+            },
+          ]
         : [];
 
       console.log("Parsed tyre entries:", tyreEntries);
@@ -200,7 +200,8 @@ export const tyreAPI = {
         branchCode: tyreData.branchCode || "MAIN",
         branchName: tyreData.branchName || "Main Branch",
         orgId: tyreData.orgId,
-        vehicle: tyreData.vehicle || "",
+        // vehicle: tyreData.vehicle || "",
+        vehicleId: tyreData.vehicleId,
         user: userId,
         createdBy: userName,
       };

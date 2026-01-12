@@ -179,7 +179,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
     type: "Container Truck",
     model: "",
     capacity: "",
-    status: "active",
+    status: "ACTIVE",
     insuranceExpiry: "",
     fitnessExpiry: "",
     lastService: "",
@@ -231,6 +231,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
       ) {
         // If vehicle comes from API response with tvehiclesVO structure
         vehicleData = vehicle.tvehiclesVO.data[0];
+        console.log("VehicleData", vehicleData)
       }
 
       setFormData({
@@ -238,7 +239,12 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
         type: vehicleData.type || "Container Truck",
         model: vehicleData.model || "",
         capacity: vehicleData.capacity || "",
-        status: vehicleData.active ? "active" : vehicleData.status || "active",
+        // active: vehicleData.active === true
+        //   ? "ACTIVE"
+        //   : vehicleData.active === false
+        //     ? "INACTIVE"
+        //     : "",
+        active: vehicleData.status,
         insuranceExpiry: vehicleData.insuranceExpiry || "",
         fitnessExpiry: vehicleData.fitnessExpiry || "",
         lastService: vehicleData.lastService || "",
@@ -471,7 +477,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
           type: formData.type,
           model: formData.model,
           capacity: formData.capacity,
-          active: formData.status === "active",
+          active: formData.status,
           insuranceExpiry: formatDateForAPI(formData.insuranceExpiry),
           fitnessExpiry: formatDateForAPI(formData.fitnessExpiry),
           lastService: formatDateForAPI(formData.lastService),
@@ -720,11 +726,10 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
             <button
               type="button"
               onClick={() => setActiveTab("details")}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                activeTab === "details"
-                  ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-              }`}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === "details"
+                ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Car className="h-4 w-4" />
@@ -734,11 +739,10 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
             <button
               type="button"
               onClick={() => setActiveTab("documents")}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                activeTab === "documents"
-                  ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
-                  : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-              }`}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === "documents"
+                ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <File className="h-4 w-4" />
@@ -778,11 +782,10 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                         );
                         handleChange("vehicleNumber", formattedValue);
                       }}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.vehicleNumber
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.vehicleNumber
+                        ? "border-red-500"
+                        : "border-gray-300"
+                        }`}
                       placeholder="TN-10-AB-7878"
                       disabled={saving}
                       maxLength={13} // TN-10-AB-7878 = 13 characters max
@@ -837,9 +840,8 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
                         handleChange("model", value);
                       }}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.model ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.model ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="Tata Prima 5530.S"
                       disabled={saving}
                     />
@@ -866,9 +868,8 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
                         handleChange("capacity", value);
                       }}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.capacity ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.capacity ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="40 FT / 25 Tons"
                       disabled={saving}
                     />
@@ -889,11 +890,10 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                       onChange={(e) =>
                         handleChange("insuranceExpiry", e.target.value)
                       }
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.insuranceExpiry
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.insuranceExpiry
+                        ? "border-red-500"
+                        : "border-gray-300"
+                        }`}
                       disabled={saving}
                     />
                     {errors.insuranceExpiry && (
@@ -913,11 +913,10 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                       onChange={(e) =>
                         handleChange("fitnessExpiry", e.target.value)
                       }
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.fitnessExpiry
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.fitnessExpiry
+                        ? "border-red-500"
+                        : "border-gray-300"
+                        }`}
                       disabled={saving}
                     />
                     {errors.fitnessExpiry && (
@@ -938,9 +937,10 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                       disabled={saving}
                     >
-                      <option value="active">Active</option>
-                      <option value="maintenance">Maintenance</option>
-                      <option value="inactive">Inactive</option>
+                      <option value="">Status</option>
+                      <option value="ACTIVE">Active</option>
+                      <option value="MAINTENANCE">Maintenance</option>
+                      <option value="INACTIVE">Inactive</option>
                     </select>
                   </div>
 
@@ -1246,7 +1246,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
                       <div className="flex-1">
                         {files[fileType.key] &&
-                        files[fileType.key].length > 0 ? (
+                          files[fileType.key].length > 0 ? (
                           <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
                             {files[fileType.key].map((file) => (
                               <div
@@ -1426,7 +1426,7 @@ const VehicleManagement = () => {
       const processedVehicles = fetchedVehicles.map((vehicle) => ({
         ...vehicle,
         documents: vehicle.documents || [],
-        status: vehicle.status || "active",
+        status: (vehicle.status || "ACTIVE").toLowerCase(),
         fuelEfficiency: vehicle.fuelEfficiency || "N/A",
         currentLocation: vehicle.currentLocation || "Not specified",
         driver: vehicle.driver || "Not assigned",
@@ -1665,11 +1665,10 @@ const VehicleManagement = () => {
       {/* Notification */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg ${
-            notification.type === "error"
-              ? "bg-red-100 text-red-800 border border-red-300"
-              : "bg-green-100 text-green-800 border border-green-300"
-          }`}
+          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg ${notification.type === "error"
+            ? "bg-red-100 text-red-800 border border-red-300"
+            : "bg-green-100 text-green-800 border border-green-300"
+            }`}
         >
           <div className="flex items-center gap-2">
             {notification.type === "error" ? (
@@ -1977,13 +1976,12 @@ const VehicleManagement = () => {
                           Next: {formatDate(nextServiceDate)}
                           {nextServiceDate && (
                             <div
-                              className={`text-xs mt-1 ${
-                                daysRemaining <= 0
-                                  ? "text-red-500"
-                                  : daysRemaining <= 7
+                              className={`text-xs mt-1 ${daysRemaining <= 0
+                                ? "text-red-500"
+                                : daysRemaining <= 7
                                   ? "text-orange-500"
                                   : "text-green-500"
-                              }`}
+                                }`}
                             >
                               {daysRemaining <= 0
                                 ? "Service overdue"
@@ -2061,11 +2059,10 @@ const VehicleManagement = () => {
               <button
                 onClick={() => handlePageChange(pagination.currentPage - 1)}
                 disabled={pagination.currentPage === 1}
-                className={`p-2 rounded-lg border ${
-                  pagination.currentPage === 1
-                    ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                    : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
+                className={`p-2 rounded-lg border ${pagination.currentPage === 1
+                  ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -2091,11 +2088,10 @@ const VehicleManagement = () => {
                         <span className="px-2 text-gray-500">...</span>
                         <button
                           onClick={() => handlePageChange(page)}
-                          className={`px-3 py-1 rounded-lg ${
-                            pagination.currentPage === page
-                              ? "bg-indigo-600 text-white"
-                              : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                          }`}
+                          className={`px-3 py-1 rounded-lg ${pagination.currentPage === page
+                            ? "bg-indigo-600 text-white"
+                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            }`}
                         >
                           {page}
                         </button>
@@ -2106,11 +2102,10 @@ const VehicleManagement = () => {
                     <button
                       key={page}
                       onClick={() => handlePageChange(page)}
-                      className={`px-3 py-1 rounded-lg ${
-                        pagination.currentPage === page
-                          ? "bg-indigo-600 text-white"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      }`}
+                      className={`px-3 py-1 rounded-lg ${pagination.currentPage === page
+                        ? "bg-indigo-600 text-white"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
                     >
                       {page}
                     </button>
@@ -2120,11 +2115,10 @@ const VehicleManagement = () => {
               <button
                 onClick={() => handlePageChange(pagination.currentPage + 1)}
                 disabled={pagination.currentPage === pagination.totalPages}
-                className={`p-2 rounded-lg border ${
-                  pagination.currentPage === pagination.totalPages
-                    ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                    : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
+                className={`p-2 rounded-lg border ${pagination.currentPage === pagination.totalPages
+                  ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

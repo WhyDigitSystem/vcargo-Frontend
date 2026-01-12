@@ -70,13 +70,16 @@ export const TripForm = ({
   useEffect(() => {
     const tripCost = parseFloat(formData.tripCost) || 0;
     const revenue = parseFloat(formData.revenue) || 0;
-    const profit = revenue - tripCost;
+    const fuelCost = parseFloat(formData.fuelCost) || 0;
+    const tollCharges = parseFloat(formData.tollCharges) || 0;
+    const otherExpenses = parseFloat(formData.otherExpenses) || 0;
+    const profit = revenue - (tripCost + fuelCost + tollCharges + otherExpenses);
 
     setFormData(prev => ({
       ...prev,
       profit: profit.toFixed(2)
     }));
-  }, [formData.tripCost, formData.revenue]);
+  }, [formData.tripCost, formData.revenue, formData.fuelCost, formData.tollCharges, formData.otherExpenses]);
 
   useEffect(() => {
     if (!formData.startDate || !formData.startTime || !formData.estimatedDuration) return;
@@ -457,17 +460,17 @@ export const TripForm = ({
   return (
     <div className="relative w-full max-w-6xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6">
+      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-2 pl-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
               <Navigation className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">
+              <h2 className="text-lg font-bold text-white">
                 {trip ? "Edit Trip" : "Create New Trip"}
               </h2>
-              <p className="text-blue-100 text-sm">
+              <p className="text-blue-100 text-xs">
                 {trip ? "Update trip details" : "Plan a new transport trip"}
               </p>
             </div>
@@ -849,25 +852,6 @@ export const TripForm = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Trip Cost (₹)
-                </label>
-                <div className="relative">
-                  <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
-                  <input
-                    type="number"
-                    name="tripCost"
-                    value={formData.tripCost}
-                    onChange={handleChange}
-                    step="0.01"
-                    min="0"
-                    className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="25000"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Revenue (₹)
                 </label>
                 <div className="relative">
@@ -887,23 +871,23 @@ export const TripForm = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Profit (₹)
+                  Trip Cost (₹)
                 </label>
                 <div className="relative">
                   <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
                   <input
                     type="number"
-                    name="profit"
-                    value={formData.profit}
-                    readOnly
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl"
+                    name="tripCost"
+                    value={formData.tripCost}
+                    onChange={handleChange}
+                    step="0.01"
+                    min="0"
+                    className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="25000"
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Expense Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Fuel Cost (₹)
@@ -922,7 +906,10 @@ export const TripForm = ({
                   />
                 </div>
               </div>
+            </div>
 
+            {/* Expense Breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Toll Charges (₹)
@@ -957,6 +944,23 @@ export const TripForm = ({
                     min="0"
                     className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="2000"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Profit (₹)
+                </label>
+                <div className="relative">
+                  <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <input
+                    type="number"
+                    name="profit"
+                    disabled
+                    value={formData.profit}
+                    readOnly
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl"
                   />
                 </div>
               </div>

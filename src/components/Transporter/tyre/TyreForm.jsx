@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import vehicleAPI from "../../../api/TvehicleAPI";
+import { useSelector } from "react-redux";
 
 export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -32,6 +33,9 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
   const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
   const [vehiclesList, setVehiclesList] = useState([]);
 
+  const { user } = useSelector((state) => state.auth);
+  const orgId = user.orgId;
+
   useEffect(() => {
     loadVehicles();
   }, []);
@@ -45,7 +49,7 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
         brand: tyre.brand || "",
         model: tyre.model || "",
         size: tyre.size || "",
-        vehicleId: tyre.vehicleId || "",
+        vehicleId: String(tyre.vehicleId || ""),
         position: tyre.position || "Front Left",
         status: tyre.status || "active",
         purchaseDate:
@@ -57,12 +61,13 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
         pressure: tyre.pressure || 32,
         notes: tyre.notes || "",
       });
+      console.log('Vehicle', tyre.vehicle)
     }
   }, [tyre]);
 
   const loadVehicles = async () => {
     try {
-      const response = await vehicleAPI.getVehicles(1, 10, userId);
+      const response = await vehicleAPI.getVehicles(1, 10, orgId);
       setVehiclesList(response.vehicles);
       console.log("Tyre===>", response);
       console.log("Test===>", vehiclesList);
