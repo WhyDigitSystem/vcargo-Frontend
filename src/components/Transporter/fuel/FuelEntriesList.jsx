@@ -37,6 +37,8 @@ export const FuelEntriesList = ({
     dateRange: { start: "", end: "" },
   });
 
+  console.log("entries==>", entries);
+
   // Filter and sort entries
   const filteredAndSortedEntries = useMemo(() => {
     let result = [...entries];
