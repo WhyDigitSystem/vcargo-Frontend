@@ -16,9 +16,9 @@ import {
   XCircle,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import driverAPI from "../../api/TdriverAPI";
 import vehicleAPI from "../../api/TvehicleAPI";
-import { useSelector } from "react-redux";
 
 const Car = ({ className }) => (
   <svg
@@ -192,13 +192,14 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
     chassisNumber: "",
     engineNumber: "",
     permitType: "National",
+    registrationType: "",
     ownerName: "Self",
     maintenanceRequired: false,
   });
 
   const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
 
-    const { user } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
 
   // New state for file uploads
@@ -250,6 +251,8 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
         chassisNumber: vehicleData.chassisNumber || "",
         engineNumber: vehicleData.engineNumber || "",
         permitType: vehicleData.permitType || "National",
+        registrationType: vehicleData.registrationType || "",
+
         ownerName: vehicleData.ownerName || "Self",
         maintenanceRequired: vehicleData.maintenanceRequired || false,
       });
@@ -323,6 +326,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
         chassisNumber: "",
         engineNumber: "",
         permitType: "National",
+        registrationType: "",
         ownerName: "Self",
         maintenanceRequired: false,
       });
@@ -481,6 +485,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
           chassisNumber: formData.chassisNumber || "",
           engineNumber: formData.engineNumber || "",
           permitType: formData.permitType || "National",
+          registrationType: formData.registrationType || "",
           ownerName: formData.ownerName || "Self",
           userId: userId,
           orgId: orgId,
@@ -799,11 +804,22 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                       disabled={saving}
                     >
-                      <option value="Container Truck">Container Truck</option>
-                      <option value="Trailer">Trailer</option>
+                      <option value="CONTAINER_TRUCK">Container Truck</option>
+                      <option value="OPEN_TRUCK">Open Truck</option>
+                      <option value="TRAILER">Trailer</option>
+                      <option value="FLATBED">Flatbed Truck</option>
+                      <option value="TANKER">Tanker</option>
+                      <option value="TIPPER">Tipper</option>
+                      <option value="REEFER">Reefer (Refrigerated)</option>
+
+                      {/* LCV */}
                       <option value="LCV">LCV</option>
-                      <option value="Pickup Truck">Pickup Truck</option>
-                      <option value="Tanker">Tanker</option>
+                      <option value="PICKUP">Pickup Truck</option>
+                      <option value="MINI_TRUCK">Mini Truck</option>
+
+                      {/* Special */}
+                      <option value="CAR_CARRIER">Car Carrier</option>
+                      <option value="COURIER_VAN">Courier Van</option>
                     </select>
                   </div>
 
@@ -814,7 +830,13 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <input
                       type="text"
                       value={formData.model}
-                      onChange={(e) => handleChange("model", e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value
+                          .toUpperCase() // force uppercase
+                          .replace(/[^A-Z0-9 ]/g, ""); // allow A–Z, 0–9, and SPACE
+
+                        handleChange("model", value);
+                      }}
                       className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                         errors.model ? "border-red-500" : "border-gray-300"
                       }`}
@@ -836,7 +858,14 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <input
                       type="text"
                       value={formData.capacity}
-                      onChange={(e) => handleChange("capacity", e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value
+                          .toUpperCase()
+                          .replace(/[^A-Z0-9 /]/g, "") // allow letters, numbers, space, /
+                          .replace(/\s+/g, " "); // collapse extra spaces
+
+                        handleChange("capacity", value);
+                      }}
                       className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                         errors.capacity ? "border-red-500" : "border-gray-300"
                       }`}
@@ -949,6 +978,27 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                       <option value="All India">All India</option>
                     </select>
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Registration Type
+                    </label>
+                    <select
+                      value={formData.registrationType}
+                      onChange={(e) =>
+                        handleChange("registrationType", e.target.value)
+                      }
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      disabled={saving}
+                    >
+                      <option value="">Select Registration Type</option>
+                      <option value="TEMPORARY">Temporary Registration</option>
+                      <option value="PRIVATE">Private</option>
+                      <option value="COMMERCIAL">Commercial</option>
+                      <option value="GOVERNMENT">Government</option>
+                      <option value="TOURIST">Tourist Permit</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -1058,16 +1108,31 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Fuel Efficiency
                     </label>
-                    <input
-                      type="text"
-                      value={formData.fuelEfficiency}
-                      onChange={(e) =>
-                        handleChange("fuelEfficiency", e.target.value)
-                      }
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                      placeholder="4.2 km/l"
-                      disabled={saving}
-                    />
+
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.fuelEfficiency}
+                        maxLength={4}
+                        onChange={(e) => {
+                          const value = e.target.value
+                            .replace(/[^0-9.]/g, "") // allow digits & dot
+                            .replace(/(\..*)\./g, "$1"); // allow only ONE dot
+
+                          handleChange("fuelEfficiency", value);
+                        }}
+                        className="w-full px-3 py-2 pr-14 text-sm border border-gray-300 dark:border-gray-600 
+                 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 
+                 dark:bg-gray-700 dark:text-white"
+                        placeholder="e.g. 4.2"
+                        disabled={saving}
+                      />
+
+                      {/* UNIT */}
+                      <span className="absolute inset-y-0 right-3 flex items-center text-sm text-gray-500 dark:text-gray-400 pointer-events-none">
+                        KMPL
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1085,9 +1150,14 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <input
                       type="text"
                       value={formData.chassisNumber}
-                      onChange={(e) =>
-                        handleChange("chassisNumber", e.target.value)
-                      }
+                      maxLength={17}
+                      onChange={(e) => {
+                        const value = e.target.value
+                          .toUpperCase()
+                          .replace(/[^A-Z0-9]/g, ""); // only A–Z & 0–9
+
+                        handleChange("chassisNumber", value);
+                      }}
                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Chassis number"
                       disabled={saving}
@@ -1101,9 +1171,14 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <input
                       type="text"
                       value={formData.engineNumber}
-                      onChange={(e) =>
-                        handleChange("engineNumber", e.target.value)
-                      }
+                      maxLength={17}
+                      onChange={(e) => {
+                        const value = e.target.value
+                          .toUpperCase()
+                          .replace(/[^A-Z0-9]/g, "");
+
+                        handleChange("engineNumber", value);
+                      }}
                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Engine number"
                       disabled={saving}
@@ -1112,7 +1187,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Owner Name
+                      Vehicle Ownership
                     </label>
                     <select
                       value={formData.ownerName}
@@ -1324,7 +1399,7 @@ const VehicleManagement = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [notification, setNotification] = useState(null);
   const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
-   const { user } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
 
   // Show notification
@@ -1546,6 +1621,30 @@ const VehicleManagement = () => {
         )}
       </div>
     );
+  };
+
+  const calculateNextServiceDate = (lastService, intervalDays = 90) => {
+    if (!lastService) return null;
+
+    const lastDate = new Date(lastService);
+    if (isNaN(lastDate)) return null;
+
+    const nextDate = new Date(lastDate);
+    nextDate.setDate(lastDate.getDate() + intervalDays);
+
+    return nextDate;
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+    return date.toISOString().split("T")[0]; // YYYY-MM-DD
+  };
+
+  const getDaysRemaining = (nextDate) => {
+    if (!nextDate) return null;
+    const today = new Date();
+    const diff = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+    return diff;
   };
 
   if (loading) {
@@ -1801,78 +1900,111 @@ const VehicleManagement = () => {
                   </td>
                 </tr>
               ) : (
-                // Show filtered vehicles
-                filteredVehicles.map((vehicle) => (
-                  <tr
-                    key={vehicle.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                          <TruckIcon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-900 dark:text-white">
-                            {vehicle.vehicleNumber}
+                filteredVehicles.map((vehicle) => {
+                  const nextServiceDate = calculateNextServiceDate(
+                    vehicle.lastService,
+                    vehicle.serviceIntervalDays || 90
+                  );
+
+                  const daysRemaining = getDaysRemaining(nextServiceDate);
+
+                  return (
+                    <tr
+                      key={vehicle.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    >
+                      {/* VEHICLE INFO */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                            <TruckIcon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {vehicle.model}
-                          </div>
-                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            {vehicle.type} • {vehicle.capacity}
+                          <div>
+                            <div className="font-semibold text-gray-900 dark:text-white">
+                              {vehicle.vehicleNumber}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {vehicle.model}
+                            </div>
+                            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                              {vehicle.type} • {vehicle.capacity}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {getStatusBadge(vehicle.status)}
-                      {vehicle.maintenanceRequired && (
-                        <div className="flex items-center gap-1 mt-2 text-xs text-orange-600 dark:text-orange-400">
-                          <Wrench className="h-3 w-3" />
-                          Maintenance Due
+                      </td>
+
+                      {/* STATUS */}
+                      <td className="px-6 py-4">
+                        {getStatusBadge(vehicle.status)}
+                        {vehicle.maintenanceRequired && (
+                          <div className="flex items-center gap-1 mt-2 text-xs text-orange-600 dark:text-orange-400">
+                            <Wrench className="h-3 w-3" />
+                            Maintenance Due
+                          </div>
+                        )}
+                      </td>
+
+                      {/* DRIVER */}
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {vehicle.driver}
                         </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {vehicle.driver}
-                      </div>
-                      <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        <MapPin className="h-3 w-3" />
-                        {vehicle.currentLocation}
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        <Fuel className="h-3 w-3" />
-                        {vehicle.fuelEfficiency}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {getDocumentIcons(vehicle.documents)}
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Insurance: {vehicle.insuranceExpiry || "N/A"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        Last: {vehicle.lastService || "N/A"}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        Next: {vehicle.nextService || "N/A"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          <MapPin className="h-3 w-3" />
+                          {vehicle.currentLocation}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          <Fuel className="h-3 w-3" />
+                          {vehicle.fuelEfficiency}
+                        </div>
+                      </td>
+
+                      {/* DOCUMENTS */}
+                      <td className="px-6 py-4">
+                        {getDocumentIcons(vehicle.documents)}
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          Insurance: {vehicle.insuranceExpiry || "N/A"}
+                        </div>
+                      </td>
+
+                      {/* SERVICE */}
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 dark:text-white">
+                          Last: {vehicle.lastService || "N/A"}
+                        </div>
+
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          Next: {formatDate(nextServiceDate)}
+                          {nextServiceDate && (
+                            <div
+                              className={`text-xs mt-1 ${
+                                daysRemaining <= 0
+                                  ? "text-red-500"
+                                  : daysRemaining <= 7
+                                  ? "text-orange-500"
+                                  : "text-green-500"
+                              }`}
+                            >
+                              {daysRemaining <= 0
+                                ? "Service overdue"
+                                : `${daysRemaining} days remaining`}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* ACTIONS */}
+                      <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => handleEdit(vehicle)}
                           className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

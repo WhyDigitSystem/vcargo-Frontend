@@ -50,6 +50,7 @@ const vehicleAPI = {
         chassisNumber: vehicle.chassisNumber,
         engineNumber: vehicle.engineNumber,
         permitType: vehicle.permitType,
+        registrationType:vehicle.registrationType,
         ownerName: vehicle.ownerName,
         orgId: vehicle.orgId,
         branchCode: vehicle.branchCode,

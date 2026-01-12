@@ -49,17 +49,15 @@ const driverAPI = {
           orgId: driver.orgId || orgId,
           branchCode: driver.branchCode || "MAIN",
           branchName: driver.branchName || "Main Branch",
-          active: driver.active || true,
           createdBy: driver.createdBy,
           updatedBy: driver.updatedBy,
           createdAt: driver.commonDate?.createdon,
           updatedAt: driver.commonDate?.modifiedon,
           cancel: driver.cancel || false,
-          // Handle documents if they come from a separate endpoint
-          documents: driver.tdriverDocumentsVO?.map(
-            (doc) => doc.documentType
-          ) || ["License", "Aadhar", "PAN"],
-          documentObjects: driver.tdriverDocumentsVO || [],
+
+          // ✅ FIXED DOCUMENT HANDLING
+          documents: driver.documents?.map((doc) => doc.documentType) || [],
+          documentObjects: driver.documents || [],
         })) || [];
 
       return {

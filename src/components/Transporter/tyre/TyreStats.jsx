@@ -17,7 +17,6 @@ export const TyreStats = ({ stats, loading = false }) => {
       value: stats?.totalTyres || 0,
       icon: Layers,
       color: "blue",
-      description: "Total tyres in inventory",
       trend: "neutral",
     },
     {
@@ -25,7 +24,6 @@ export const TyreStats = ({ stats, loading = false }) => {
       value: stats?.totalCost || "₹0",
       icon: DollarSign,
       color: "purple",
-      description: "Total purchase cost",
       trend: "neutral",
     },
     {
@@ -33,7 +31,6 @@ export const TyreStats = ({ stats, loading = false }) => {
       value: stats?.avgCost || "₹0",
       icon: BarChart3,
       color: "emerald",
-      description: "Average cost per tyre",
       trend: "neutral",
     },
     {
@@ -41,7 +38,6 @@ export const TyreStats = ({ stats, loading = false }) => {
       value: stats?.avgTreadDepth || "0%",
       icon: Gauge,
       color: "cyan",
-      description: "Average tread condition",
       trend:
         stats?.avgTreadDepth && parseFloat(stats.avgTreadDepth) > 70
           ? "up"
@@ -54,7 +50,6 @@ export const TyreStats = ({ stats, loading = false }) => {
       value: stats?.needsAttention || 0,
       icon: AlertTriangle,
       color: "amber",
-      description: "Tyres requiring maintenance",
       trend: stats?.needsAttention > 0 ? "down" : "neutral",
       isWarning: true,
     },
@@ -67,7 +62,6 @@ export const TyreStats = ({ stats, loading = false }) => {
         : 0,
       icon: Car,
       color: "indigo",
-      description: "Tyres assigned to vehicles",
       trend: "neutral",
     },
   ];
@@ -278,9 +272,9 @@ export const TyreStats = ({ stats, loading = false }) => {
               <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
                 {stat.title}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {/* <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {stat.description}
-              </p>
+              </p> */}
             </div>
           );
         })}

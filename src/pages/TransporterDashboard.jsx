@@ -1,34 +1,16 @@
 import {
-  Bell,
   Calendar,
-  ChevronRight,
   FileText,
-  Filter,
   Fuel,
   IndianRupee,
   Map,
-  Search,
-  TrendingUp,
   Truck,
   Users,
   Wrench,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import QuickStats from "../components/Transporter/Dashboard/QuickStats";
+import RecentActivities from "../components/Transporter/Dashboard/RecentActivities";
 
 const TransporterDashboard = () => {
   const navigate = useNavigate();
@@ -304,37 +286,9 @@ const TransporterDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-gray-50 dark:from-gray-900 dark:via-gray-800/20 dark:to-gray-900 p-6">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <div>
-            <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              Fleet Dashboard
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Real-time overview of your fleet operations
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search vehicles, trips..."
-                className="pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <button className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <Filter className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-            </button>
-            <button className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors relative">
-              <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-            </button>
-          </div>
-        </div>
-
+      <div className="mb-2">
         {/* Quick Actions Bar */}
-        <div className="flex flex-wrap gap-3 mb-6">
+        {/* <div className="flex flex-wrap gap-3 mb-6">
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (
@@ -348,240 +302,17 @@ const TransporterDashboard = () => {
               </button>
             );
           })}
-        </div>
+        </div> */}
       </div>
 
-      {/* Quick Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-        {quickStats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.name}
-              onClick={() => navigate(stat.path)}
-              className="group cursor-pointer relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-gray-900/5 to-gray-900/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative">
-                <div className="flex items-start justify-between mb-4">
-                  <div
-                    className={`p-2 rounded-lg bg-gradient-to-r ${stat.gradient} text-white`}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <span
-                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      stat.changeType === "positive"
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-                        : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                    }`}
-                  >
-                    {stat.changeType === "positive" ? "↑" : "↓"} {stat.change}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {stat.name}
-                  </p>
-                  <div className="flex items-baseline gap-2">
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {stat.count}
-                      {stat.suffix && (
-                        <span className="text-sm text-gray-500 ml-1">
-                          {stat.suffix}
-                        </span>
-                      )}
-                    </h3>
-                    {stat.amount && (
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                        {stat.amount}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {stat.description}
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <QuickStats />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         {/* Left Column - Recent Trips */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Recent Trips */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Recent Trips
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Live trip monitoring & tracking
-                </p>
-              </div>
-              <button
-                onClick={() => navigate("/trips")}
-                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
-              >
-                View All
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {recentTrips.map((trip) => (
-                <div
-                  key={trip.id}
-                  className="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer"
-                  onClick={() => navigate(`/trips/${trip.id}`)}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                      <Map className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-900 dark:text-white">
-                          {trip.id}
-                        </h4>
-                        <span
-                          className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusColor(
-                            trip.status
-                          )}`}
-                        >
-                          {trip.statusText}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {trip.vehicle} • {trip.driver}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {trip.route}
-                    </p>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {trip.distance}
-                      </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        ETA: {trip.eta}
-                      </span>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {trip.revenue}
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Monthly Revenue Bar Chart */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Monthly Revenue
-                  </h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Last 6 months performance
-                  </p>
-                </div>
-                <TrendingUp className="h-5 w-5 text-emerald-500" />
-              </div>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={monthlyRevenueData}
-                    margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} />
-                    <YAxis
-                      stroke="#9CA3AF"
-                      fontSize={12}
-                      tickFormatter={(value) => `$${value / 1000}k`}
-                    />
-                    <Tooltip
-                      content={<CustomTooltip />}
-                      formatter={(value) => [
-                        `$${value.toLocaleString()}`,
-                        "Revenue",
-                      ]}
-                    />
-                    <Legend />
-                    <Bar
-                      dataKey="revenue"
-                      name="Revenue"
-                      fill="#3b82f6"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="trips"
-                      name="Trips"
-                      fill="#10b981"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Vehicle Status Pie Chart */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Vehicle Status
-                  </h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Fleet utilization overview
-                  </p>
-                </div>
-                <Truck className="h-5 w-5 text-blue-500" />
-              </div>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={vehicleStatusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) =>
-                        `${name}: ${(percent * 100).toFixed(0)}%`
-                      }
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {vehicleStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      content={<CustomTooltip />}
-                      formatter={(value) => [value, "Vehicles"]}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
+        <RecentActivities />
 
         {/* Right Column - Summary & Actions */}
-        <div className="space-y-6">
-          {/* Invoice Status */}
+        {/* <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -600,7 +331,6 @@ const TransporterDashboard = () => {
               </button>
             </div>
 
-            {/* Invoice Status Pie Chart */}
             <div className="h-48 mb-4">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -634,7 +364,6 @@ const TransporterDashboard = () => {
             </button>
           </div>
 
-          {/* Trip Status Bar Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -674,7 +403,6 @@ const TransporterDashboard = () => {
             </div>
           </div>
 
-          {/* Fuel Efficiency Line Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -712,7 +440,7 @@ const TransporterDashboard = () => {
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Bottom Navigation */}

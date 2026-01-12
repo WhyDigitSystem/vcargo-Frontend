@@ -22,8 +22,8 @@ import {
 
 import { Briefcase, File, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
-import driverAPI from "../../api/TdriverAPI";
 import { useSelector } from "react-redux";
+import driverAPI from "../../api/TdriverAPI";
 
 // Import the driverAPI
 
@@ -55,11 +55,12 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { user } = useSelector((state) => state.auth);
-    const orgId = user.orgId;
+  const orgId = user.orgId;
 
   useEffect(() => {
     if (!isOpen) return;
-    // DRIVER LOGIC
+
+    // Map API document types → UI file keys
     const documentTypeMapping = {
       DL: "driverLicense",
       AADHAR: "aadharCard",
@@ -69,12 +70,15 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
       MEDICAL: "medicalCertificate",
     };
 
+    // -------------------------------
+    // EDIT DRIVER FLOW
+    // -------------------------------
     if (driver) {
       let driverData = driver;
 
       console.log("Raw driver data structure:", driver);
 
-      // Handle different driver data structures
+      // Handle wrapped API responses (safety)
       if (driver.tdriverVO?.data?.length > 0) {
         driverData = driver.tdriverVO.data[0];
       } else if (driver.tdriversVO?.data?.length > 0) {
@@ -83,6 +87,9 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
 
       console.log("Extracted driver data for form:", driverData);
 
+      // -------------------------------
+      // FORM DATA
+      // -------------------------------
       setFormData({
         name: driverData.name || "",
         phone: driverData.phone || "",
@@ -105,37 +112,46 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
         branchName: driverData.branchName || "Main Branch",
         id: driverData.id || 0,
         lastTrip: driverData.lastTrip || "",
-        orgId: driverData.orgId || 1001,
+        orgId: driverData.orgId || orgId,
         userId: driverData.userId || "",
         createdBy: driverData.createdBy || "",
         userName: driverData.userName || "",
-        active: driverData.active || driverData.status === "active",
+        active:
+          typeof driverData.active === "boolean"
+            ? driverData.active
+            : driverData.status === "active",
       });
 
       setFilesToDelete([]);
 
-      if (driverData.documents?.length > 0) {
-        console.log("Loading driver documents:", driverData.documents);
+      // -------------------------------
+      // DOCUMENTS (FIXED & CORRECT)
+      // -------------------------------
+      const emptyFiles = {
+        driverLicense: [],
+        aadharCard: [],
+        panCard: [],
+        passportPhoto: [],
+        experienceCertificate: [],
+        medicalCertificate: [],
+      };
 
-        const transformedFiles = {
-          driverLicense: [],
-          aadharCard: [],
-          panCard: [],
-          passportPhoto: [],
-          experienceCertificate: [],
-          medicalCertificate: [],
-        };
+      if (driverData.documentObjects?.length > 0) {
+        console.log("Loading driver documents:", driverData.documentObjects);
 
-        driverData.documents.forEach((doc) => {
-          const fileType = documentTypeMapping[doc.documentType];
-          if (fileType) {
-            transformedFiles[fileType].push({
-              id: doc.id || Date.now() + Math.random(),
-              name: doc.fileName || `document-${doc.id}`,
+        const transformedFiles = { ...emptyFiles };
+
+        driverData.documentObjects.forEach((doc) => {
+          const fileKey = documentTypeMapping[doc.documentType];
+
+          if (fileKey) {
+            transformedFiles[fileKey].push({
+              id: doc.id,
+              name: doc.fileName,
               type: doc.fileType || "application/octet-stream",
               size: doc.fileSize || 0,
               url: doc.filePath,
-              uploadedAt: doc.uploadedOn || new Date().toISOString(),
+              uploadedAt: doc.uploadedOn,
               serverId: doc.id,
               serverPath: doc.filePath,
               documentType: doc.documentType,
@@ -146,17 +162,14 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
 
         setFiles(transformedFiles);
       } else {
-        setFiles({
-          driverLicense: [],
-          aadharCard: [],
-          panCard: [],
-          passportPhoto: [],
-          experienceCertificate: [],
-          medicalCertificate: [],
-        });
+        setFiles(emptyFiles);
       }
-    } else {
-      // Reset for new driver
+    }
+
+    // -------------------------------
+    // CREATE NEW DRIVER FLOW
+    // -------------------------------
+    else {
       setFormData({
         name: "",
         phone: "",
@@ -169,17 +182,19 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
         experience: "",
         salary: "",
         assignedVehicle: "",
+        currentLocation: "",
         bloodGroup: "",
         emergencyContact: "",
         joinedDate: new Date().toISOString().split("T")[0],
         performance: "4.5/5",
         branchCode: "MAIN",
         branchName: "Main Branch",
-        currentLocation: "",
         lastTrip: "",
         orgId: orgId,
         userId: JSON.parse(localStorage.getItem("user"))?.usersId || "",
+        active: true,
       });
+
       setFiles({
         driverLicense: [],
         aadharCard: [],
@@ -188,12 +203,13 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
         experienceCertificate: [],
         medicalCertificate: [],
       });
+
       setFilesToDelete([]);
       setErrors({});
     }
 
     setActiveTab("personal");
-  }, [driver, isOpen]);
+  }, [driver, isOpen, orgId]);
 
   useEffect(() => {
     return () => {
@@ -1573,7 +1589,7 @@ const DriverManagement = () => {
   const [itemsPerPage] = useState(10);
   const [notification, setNotification] = useState({ type: "", message: "" });
   const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
-const { user } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
   // Show notification
   const showNotification = (type, message) => {
@@ -1695,6 +1711,8 @@ const { user } = useSelector((state) => state.auth);
 
     return matchesSearch && matchesStatus;
   });
+
+  console.log("filteredDrivers==>", filteredDrivers);
 
   // Calculate stats
   const stats = {

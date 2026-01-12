@@ -65,7 +65,7 @@ export const TyreDashboard = ({ vehicles = [] }) => {
 
       // Load vehicles from API if not provided as prop
       if (vehicles.length === 0) {
-        const vehiclesResponse = await vehicleAPI.getAllVehicles(1, 100, orgId);
+        const vehiclesResponse = await vehicleAPI.getVehicles(1, 100, orgId);
         const vehicleList = vehiclesResponse.vehicles.map((vehicle) => ({
           id: vehicle.id,
           vehicleId: vehicle.vehicleNumber,
@@ -90,7 +90,7 @@ export const TyreDashboard = ({ vehicles = [] }) => {
   const loadTyre = async () => {
     try {
       setLoading(true);
-      const response = await tyreAPI.getAllTyre(1, 100,orgId);
+      const response = await tyreAPI.getAllTyre(1, 100, orgId);
       console.log("Tyre API response:", response.paramObjectsMap);
 
       if (response.tyreEntries && response.tyreEntries.length > 0) {
