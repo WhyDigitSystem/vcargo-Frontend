@@ -1,21 +1,9 @@
-import { CheckCircle, Copy, MapPin } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { CheckCircle, Copy, MapPin, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
 
 const AddressDisplay = ({ label, address }) => {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isTruncated, setIsTruncated] = useState(false);
-
-  const textRef = useRef(null);
-
-  useEffect(() => {
-    const el = textRef.current;
-    if (!el) return;
-
-    // Check if overflowing one line
-    const isOverflowing = el.scrollWidth > el.clientWidth;
-    setIsTruncated(isOverflowing);
-  }, [address]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(address);
@@ -23,67 +11,74 @@ const AddressDisplay = ({ label, address }) => {
     setTimeout(() => setCopied(false), 1200);
   };
 
-  // Icon color by direction
   const iconColor =
     label.toLowerCase() === "from"
-      ? "text-green-600 dark:text-green-300"
-      : "text-red-600 dark:text-red-300";
+      ? "text-green-500"
+      : "text-red-500";
 
   return (
-    <div className="flex items-start gap-3">
-      <MapPin className={`h-5 w-5 mt-1 ${iconColor}`} />
+    <div className="w-full max-w-[520px]">
+      {/* Compact Row */}
+      <div className="flex items-center gap-2">
+        <MapPin className={`h-4 w-4 shrink-0 ${iconColor}`} />
 
-      <div>
-        <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+        <div className="flex-1 min-w-0">
+          <div
+            className="text-sm text-gray-900 dark:text-gray-200 truncate"
+            title={address}
+          >
+            {address}
+          </div>
+        </div>
 
-        {/* Address */}
-        <div
-          ref={textRef}
-          className={`text-sm text-gray-800 dark:text-gray-200 max-w-xs 
-            ${expanded ? "" : "truncate"} 
-          `}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+          title={expanded ? "Collapse" : "Expand"}
         >
-          {address}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-3 mt-1 text-xs">
-          {/* Copy */}
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            {copied ? (
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
-            {copied ? "Copied!" : "Copy"}
-          </button>
-
-          {/* Google Maps */}
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-              address
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-red-500 dark:text-red-300 hover:underline"
-          >
-            Open in Maps
-          </a>
-
-          {/* Expand/Collapse ONLY if text was truncated */}
-          {isTruncated && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="text-gray-500 dark:text-gray-400 hover:underline"
-            >
-              {expanded ? "Show less" : "Show more"}
-            </button>
+          {expanded ? (
+            <ChevronUp className="h-4 w-4 text-gray-400" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-gray-400" />
           )}
-        </div>
+        </button>
       </div>
+
+      {/* Expanded Inline View */}
+      {expanded && (
+        <div className="mt-2 ml-6 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-gray-500 mb-1">{label}</p>
+
+          <p className="text-sm text-gray-900 dark:text-gray-200 break-words">
+            {address}
+          </p>
+
+          <div className="flex items-center gap-3 mt-2 text-xs">
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {copied ? (
+                <CheckCircle className="h-3 w-3 text-green-500" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+              {copied ? "Copied" : "Copy"}
+            </button>
+
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                address
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-red-500 dark:text-red-300 hover:underline"
+            >
+              Open in Maps
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

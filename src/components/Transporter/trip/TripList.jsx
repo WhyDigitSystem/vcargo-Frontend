@@ -1,8 +1,8 @@
-import { 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Navigation, 
+import {
+  Edit,
+  Trash2,
+  Eye,
+  Navigation,
   MapPin,
   MoreVertical,
   ChevronRight,
@@ -18,17 +18,18 @@ import {
   Package
 } from "lucide-react";
 import { useState } from "react";
+import AddressDisplay from "../../QuortsView/AddressDisplay";
 
-export const TripList = ({ 
-  trips, 
-  onEdit, 
-  onDelete, 
+export const TripList = ({
+  trips,
+  onEdit,
+  onDelete,
   onViewMap,
   onStatusChange,
   onStartTrip,
   onCompleteTrip,
-  selectedTrips, 
-  onSelectTrip 
+  selectedTrips,
+  onSelectTrip
 }) => {
   const [expandedId, setExpandedId] = useState(null);
 
@@ -49,7 +50,7 @@ export const TripList = ({
   };
 
   const getStatusColor = (status) => {
-    switch(status) {
+    switch (status) {
       case 'completed': return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300';
       case 'in_progress': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
       case 'scheduled': return 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300';
@@ -60,7 +61,7 @@ export const TripList = ({
   };
 
   const getStatusIcon = (status) => {
-    switch(status) {
+    switch (status) {
       case 'completed': return <CheckCircle className="h-3 w-3" />;
       case 'in_progress': return <Clock className="h-3 w-3" />;
       case 'scheduled': return <Calendar className="h-3 w-3" />;
@@ -91,26 +92,28 @@ export const TripList = ({
 
   const calculateTimeRemaining = (trip) => {
     if (trip.status !== 'in_progress') return null;
-    
+
     const start = new Date(`${trip.startDate}T${trip.startTime}`);
     const now = new Date();
     const elapsed = now - start;
     const estimatedMs = parseFloat(trip.estimatedDuration) * 60 * 60 * 1000;
     const remainingMs = estimatedMs - elapsed;
-    
+
     if (remainingMs <= 0) return 'Overdue';
-    
+
     const hours = Math.floor(remainingMs / (1000 * 60 * 60));
     const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     return `${hours}h ${minutes}m`;
   };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* Table Header */}
+      {/* Table Header - UPDATED */}
       <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
         <div className="flex items-center justify-between">
+          {/* Left Side - matches body structure */}
           <div className="flex items-center gap-4">
             <input
               type="checkbox"
@@ -118,14 +121,34 @@ export const TripList = ({
               onChange={handleSelectAll}
               className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Trips ({trips.length})
-            </span>
+
+            {/* Trip Info area - empty div to match body spacing */}
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl opacity-0">
+                <Navigation className="h-5 w-5" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Trips ({trips.length})
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
-            <span className="hidden md:inline">Distance</span>
-            <span className="hidden lg:inline">Revenue</span>
-            <span className="hidden xl:inline">Actions</span>
+
+          {/* Right Side - matches body structure */}
+          <div className="flex items-center">
+            <div className="w-26 text-right text-sm font-medium text-gray-700 dark:text-gray-300">
+              Distance
+            </div>
+
+            <div className="w-28 text-right text-sm font-medium text-gray-700 dark:text-gray-300">
+              Revenue
+            </div>
+
+            <div className="w-36 text-right text-sm font-medium text-gray-700 dark:text-gray-300">
+              Actions
+            </div>
           </div>
         </div>
       </div>
@@ -148,13 +171,12 @@ export const TripList = ({
           trips.map((trip) => {
             const timeRemaining = calculateTimeRemaining(trip);
             const progress = getProgressPercentage(trip);
-            
+
             return (
-              <div 
-                key={trip.id} 
-                className={`px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors ${
-                  selectedTrips.includes(trip.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                }`}
+              <div
+                key={trip.id}
+                className={`px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors ${selectedTrips.includes(trip.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   {/* Left Side */}
@@ -165,23 +187,21 @@ export const TripList = ({
                       onChange={() => handleSelectTrip(trip.id)}
                       className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                     />
-                    
+
                     {/* Trip Info */}
                     <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl ${
-                        trip.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/20' :
+                      <div className={`p-3 rounded-xl ${trip.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/20' :
                         trip.status === 'in_progress' ? 'bg-blue-100 dark:bg-blue-900/20' :
-                        trip.status === 'scheduled' ? 'bg-cyan-100 dark:bg-cyan-900/20' :
-                        'bg-amber-100 dark:bg-amber-900/20'
-                      }`}>
-                        <Navigation className={`h-5 w-5 ${
-                          trip.status === 'completed' ? 'text-emerald-600 dark:text-emerald-400' :
+                          trip.status === 'scheduled' ? 'bg-cyan-100 dark:bg-cyan-900/20' :
+                            'bg-amber-100 dark:bg-amber-900/20'
+                        }`}>
+                        <Navigation className={`h-5 w-5 ${trip.status === 'completed' ? 'text-emerald-600 dark:text-emerald-400' :
                           trip.status === 'in_progress' ? 'text-blue-600 dark:text-blue-400' :
-                          trip.status === 'scheduled' ? 'text-cyan-600 dark:text-cyan-400' :
-                          'text-amber-600 dark:text-amber-400'
-                        }`} />
+                            trip.status === 'scheduled' ? 'text-cyan-600 dark:text-cyan-400' :
+                              'text-amber-600 dark:text-amber-400'
+                          }`} />
                       </div>
-                      
+
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-medium text-gray-900 dark:text-white">
@@ -192,26 +212,15 @@ export const TripList = ({
                             {trip.status.charAt(0).toUpperCase() + trip.status.slice(1).replace('_', ' ')}
                           </span>
                         </div>
-                        
-                        {/* Route Info */}
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3 text-gray-400" />
-                            <span className="text-sm text-gray-900 dark:text-white font-medium">
-                              {trip.source}
-                            </span>
-                          </div>
-                          <div className="w-8 h-px bg-gray-300"></div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3 text-gray-400" />
-                            <span className="text-sm text-gray-900 dark:text-white font-medium">
-                              {trip.destination}
-                            </span>
-                          </div>
+
+                        {/* Route Info - Using AddressDisplay */}
+                        <div className="space-y-2 mb-2 max-w-[300px]">
+                          <AddressDisplay label="From" address={trip.source} />
+                          <AddressDisplay label="To" address={trip.destination} />
                         </div>
-                        
+
                         {/* Trip Details */}
-                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-40 max-w-[300px]">
                           <span className="flex items-center gap-1">
                             <User className="h-3 w-3" />
                             {trip.driverName}
@@ -236,7 +245,7 @@ export const TripList = ({
                             </>
                           )}
                         </div>
-                        
+
                         {/* Progress Bar */}
                         <div className="mt-3">
                           <div className="flex items-center justify-between mb-1">
@@ -248,12 +257,11 @@ export const TripList = ({
                             </span>
                           </div>
                           <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full ${
-                                trip.status === 'completed' ? 'bg-emerald-500' :
+                            <div
+                              className={`h-full rounded-full ${trip.status === 'completed' ? 'bg-emerald-500' :
                                 trip.status === 'in_progress' ? 'bg-blue-500' :
-                                'bg-cyan-500'
-                              }`}
+                                  'bg-cyan-500'
+                                }`}
                               style={{ width: `${progress}%` }}
                             />
                           </div>
@@ -263,7 +271,7 @@ export const TripList = ({
                   </div>
 
                   {/* Right Side */}
-                  <div className="flex items-center gap-8">
+                  <div className="flex items-start gap-8 pt-1">
                     {/* Distance */}
                     <div className="hidden md:block">
                       <div className="text-right">
@@ -293,10 +301,9 @@ export const TripList = ({
                     {timeRemaining && (
                       <div className="hidden xl:block">
                         <div className="text-right">
-                          <div className={`text-sm font-medium ${
-                            timeRemaining === 'Overdue' ? 'text-red-600 dark:text-red-400' : 
+                          <div className={`text-sm font-medium ${timeRemaining === 'Overdue' ? 'text-red-600 dark:text-red-400' :
                             'text-gray-900 dark:text-white'
-                          }`}>
+                            }`}>
                             {timeRemaining}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -307,18 +314,21 @@ export const TripList = ({
                     )}
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      {trip.status === 'scheduled' && (
-                        <button
-                          onClick={() => onStartTrip(trip.id)}
-                          className="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"
-                          title="Start trip"
-                        >
-                          <Play className="h-4 w-4" />
-                        </button>
-                      )}
-                      
-                      {trip.status === 'in_progress' && (
+                    <div className="flex items-center gap-0">
+                      {/* Start Trip (keeps alignment even when hidden) */}
+                      <div className="w-[20px] flex justify-center">
+                        {trip.status === "scheduled" && (
+                          <button
+                            onClick={() => onStartTrip(trip.id)}
+                            className="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"
+                            title="Start trip"
+                          >
+                            <Play className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      {trip.status === 'in_progress' ? (
                         <button
                           onClick={() => onCompleteTrip(trip.id)}
                           className="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"
@@ -326,8 +336,8 @@ export const TripList = ({
                         >
                           <StopCircle className="h-4 w-4" />
                         </button>
-                      )}
-                      
+                      ) : ''}
+
                       <button
                         onClick={() => onViewMap(trip)}
                         className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
@@ -335,7 +345,7 @@ export const TripList = ({
                       >
                         <MapPin className="h-4 w-4" />
                       </button>
-                      
+
                       <button
                         onClick={() => onEdit(trip)}
                         className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
@@ -343,8 +353,8 @@ export const TripList = ({
                       >
                         <Edit className="h-4 w-4" />
                       </button>
-                      
-                      <button 
+
+                      <button
                         onClick={() => setExpandedId(expandedId === trip.id ? null : trip.id)}
                         className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                       >

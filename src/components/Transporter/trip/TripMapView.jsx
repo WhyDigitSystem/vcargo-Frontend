@@ -17,6 +17,7 @@ import {
   Polyline,
 } from "@react-google-maps/api";
 import { useGoogleMaps } from "../../../hooks/useGoogleMaps";
+import AddressDisplay from "../../QuortsView/AddressDisplay";
 
 export const TripMapView = ({ trip, trips = [], onClose }) => {
   const [zoom, setZoom] = useState(10);
@@ -443,34 +444,15 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Route Section */}
+                  {/* Route Section - Using AddressDisplay */}
                   <div>
                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Route
                     </h4>
                     <div className="space-y-3">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-blue-500 mt-0.5" />
-                        <div>
-                          <span className="text-sm text-gray-900 dark:text-white">
-                            Source
-                          </span>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {selectedTrip.source}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-green-500 mt-0.5" />
-                        <div>
-                          <span className="text-sm text-gray-900 dark:text-white">
-                            Destination
-                          </span>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {selectedTrip.destination}
-                          </p>
-                        </div>
-                      </div>
+                      <AddressDisplay label="From" address={selectedTrip.source} />
+                      <AddressDisplay label="To" address={selectedTrip.destination} />
+                      
                       {selectedTrip.waypoints && selectedTrip.waypoints.length > 0 && (
                         <div className="ml-6">
                           <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -587,7 +569,8 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
                           {t.tripNumber || `TRIP-${t.id}`}
                         </h4>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {t.source} → {t.destination}
+                          <AddressDisplay label="From" address={t.source} showLabel={false} />
+                          <AddressDisplay label="To" address={t.destination} showLabel={false} />
                         </div>
                       </div>
                       <span className="text-xs font-medium px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">

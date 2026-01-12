@@ -862,9 +862,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
-                      <option value="On Duty">On Duty</option>
-                      <option value="On Trip">On Trip</option>
-                      <option value="Available">Available</option>
+                      <option value="Leave">Leave</option>
                     </select>
                   </div>
                 </div>
