@@ -218,6 +218,10 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
   const [drivers, setDrivers] = useState([]);
 
   useEffect(() => {
+    console.log("Current formData status:", formData.status);
+  }, [formData.status]);
+
+  useEffect(() => {
     console.log("Vechicle", vehicle);
 
     if (vehicle) {
@@ -231,20 +235,28 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
       ) {
         // If vehicle comes from API response with tvehiclesVO structure
         vehicleData = vehicle.tvehiclesVO.data[0];
-        console.log("VehicleData", vehicleData)
       }
+
+      console.log("Vehicle data for form:", vehicleData);
+      console.log("Original status from API:", vehicleData.active);
+
+      // Map the status from API to form format
+      const apiStatus = vehicleData.status || "";
+      let formStatus = "ACTIVE"; // default
+
+      if (apiStatus) {
+        // Convert from any case to uppercase for the select field
+        formStatus = apiStatus.toUpperCase();
+      }
+
+      console.log("Mapped form status:", formStatus);
 
       setFormData({
         vehicleNumber: vehicleData.vehicleNumber || "",
         type: vehicleData.type || "Container Truck",
         model: vehicleData.model || "",
         capacity: vehicleData.capacity || "",
-        // active: vehicleData.active === true
-        //   ? "ACTIVE"
-        //   : vehicleData.active === false
-        //     ? "INACTIVE"
-        //     : "",
-        active: vehicleData.status,
+        status: formStatus,
         insuranceExpiry: vehicleData.insuranceExpiry || "",
         fitnessExpiry: vehicleData.fitnessExpiry || "",
         lastService: vehicleData.lastService || "",
@@ -258,7 +270,6 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
         engineNumber: vehicleData.engineNumber || "",
         permitType: vehicleData.permitType || "National",
         registrationType: vehicleData.registrationType || "",
-
         ownerName: vehicleData.ownerName || "Self",
         maintenanceRequired: vehicleData.maintenanceRequired || false,
       });
@@ -300,9 +311,11 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
           }
         });
 
+        console.log("Transformed files:", transformedFiles);
         setFiles(transformedFiles);
       } else {
         // Reset files if no documents
+        console.log("No documents found, resetting files");
         setFiles({
           rc: [],
           insurance: [],
@@ -314,12 +327,13 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
       }
     } else {
       // Reset form for new vehicle
+      console.log("Resetting form for new vehicle");
       setFormData({
         vehicleNumber: "",
         type: "Container Truck",
         model: "",
         capacity: "",
-        status: "active",
+        status: "ACTIVE", // Explicitly set default status
         insuranceExpiry: "",
         fitnessExpiry: "",
         lastService: "",
@@ -929,19 +943,22 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                   {/* Row 3 */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Status
+                      Status *
                     </label>
                     <select
-                      value={formData.status}
+                      value={formData.status || ""}
                       onChange={(e) => handleChange("status", e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                       disabled={saving}
                     >
-                      <option value="">Status</option>
+                      <option value="">Select Status</option>
                       <option value="ACTIVE">Active</option>
                       <option value="MAINTENANCE">Maintenance</option>
                       <option value="INACTIVE">Inactive</option>
                     </select>
+                    {!formData.status && (
+                      <p className="text-red-500 text-xs mt-1">Please select a status</p>
+                    )}
                   </div>
 
                   <div>
