@@ -13,8 +13,11 @@ import {
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useRef } from "react";
+import { useSelector } from "react-redux";
 
 export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
+  const { user } = useSelector((state) => state.auth);
+  const organizationName = user.organizationName;
   const pdfRef = useRef();
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -88,7 +91,7 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
               <h2 className="text-xl font-bold text-white tracking-tight">
                 INVOICE #{invoice.invoiceNumber}
               </h2>
-              <p className="text-blue-100 text-sm">Preview • Transport Solutions Ltd.</p>
+              <p className="text-blue-100 text-sm">Preview • {organizationName}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -120,7 +123,7 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
                 <Building className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">TRANSPORT SOLUTIONS LTD.</h1>
+                <h1 className="text-xl font-bold text-gray-900">{organizationName}</h1>
                 <p className="text-gray-600 text-sm">Professional Transportation & Logistics</p>
               </div>
             </div>
