@@ -61,63 +61,26 @@ export const TripList = ({
       const response = await apiClient.put(
         `/api/trip/trip/${tripId}/status`,
         null,
-        {
-          params: { status },
-        }
+        { params: { status } }
       );
 
-      console.log("Trip status update response:", response);
-
       if (response?.status) {
-        const successMessage =
+        toast.success(
           response?.paramObjectsMap?.message ||
           (status === "START"
             ? "Trip started successfully"
-            : "Trip completed successfully");
+            : "Trip completed successfully")
+        );
 
-        toast.success(successMessage, {
-          autoClose: 5000,
-        });
+        // ✅ THIS IS THE KEY FIX
+        await onRefresh?.();   // refetchTrips immediately
 
-        // Call the parent callback to update the trip status in the UI
-        if (status === "START" && onStartTrip) {
-          onStartTrip(tripId);
-        } else if (status === "END" && onCompleteTrip) {
-          onCompleteTrip(tripId);
-        }
-
-        // Call onStatusChange if provided
-        if (onStatusChange) {
-          onStatusChange(
-            tripId,
-            status === "START" ? "in_progress" : "COMPLETED"
-          );
-        }
-
-        // Refresh the trip list
-        if (onRefresh) {
-          onRefresh();
-        }
-
-        return true;
+        setExpandedId(null);
       } else {
-        const errorMessage =
-          response?.paramObjectsMap?.message || "Failed to update trip status";
-        throw new Error(errorMessage);
+        throw new Error("Status update failed");
       }
-    } catch (error) {
-      console.error(`Error updating trip status to ${status}:`, error);
-
-      toast.error(
-        error.message ||
-          `Failed to ${status === "START" ? "start" : "complete"} trip`,
-        {
-          position: "top-right",
-          autoClose: 4000,
-        }
-      );
-
-      return false;
+    } catch (err) {
+      toast.error("Failed to update trip status");
     } finally {
       setLoadingTripId(null);
       setLoadingAction(null);
@@ -210,14 +173,9 @@ export const TripList = ({
   };
 
   // Check if trip can be started
-  const canStartTrip = (trip) => {
-    return trip.status === "scheduled" || trip.status === "pending";
-  };
+  const canStartTrip = (trip) => trip.status === "scheduled";
 
-  // Check if trip can be COMPLETED
-  const canCompleteTrip = (trip) => {
-    return trip.status === "STARTED";
-  };
+  const canCompleteTrip = (trip) => trip.status === "STARTED";
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -289,11 +247,10 @@ export const TripList = ({
             return (
               <div
                 key={trip.id}
-                className={`px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors ${
-                  selectedTrips.includes(trip.id)
-                    ? "bg-blue-50 dark:bg-blue-900/20"
-                    : ""
-                }`}
+                className={`px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors ${selectedTrips.includes(trip.id)
+                  ? "bg-blue-50 dark:bg-blue-900/20"
+                  : ""
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   {/* Left Side */}
@@ -308,26 +265,24 @@ export const TripList = ({
                     {/* Trip Info */}
                     <div className="flex items-center gap-4">
                       <div
-                        className={`p-3 rounded-xl ${
-                          trip.status === "COMPLETED"
-                            ? "bg-emerald-100 dark:bg-emerald-900/20"
-                            : trip.status === "in_progress"
+                        className={`p-3 rounded-xl ${trip.status === "COMPLETED"
+                          ? "bg-emerald-100 dark:bg-emerald-900/20"
+                          : trip.status === "in_progress"
                             ? "bg-blue-100 dark:bg-blue-900/20"
                             : trip.status === "scheduled"
-                            ? "bg-cyan-100 dark:bg-cyan-900/20"
-                            : "bg-amber-100 dark:bg-amber-900/20"
-                        }`}
+                              ? "bg-cyan-100 dark:bg-cyan-900/20"
+                              : "bg-amber-100 dark:bg-amber-900/20"
+                          }`}
                       >
                         <Navigation
-                          className={`h-5 w-5 ${
-                            trip.status === "COMPLETED"
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : trip.status === "in_progress"
+                          className={`h-5 w-5 ${trip.status === "COMPLETED"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : trip.status === "in_progress"
                               ? "text-blue-600 dark:text-blue-400"
                               : trip.status === "scheduled"
-                              ? "text-cyan-600 dark:text-cyan-400"
-                              : "text-amber-600 dark:text-amber-400"
-                          }`}
+                                ? "text-cyan-600 dark:text-cyan-400"
+                                : "text-amber-600 dark:text-amber-400"
+                            }`}
                         />
                       </div>
 
@@ -336,7 +291,7 @@ export const TripList = ({
                           <h4 className="font-medium text-gray-900 dark:text-white">
                             {trip.tripNumber}
                           </h4>
-                          <span
+                          {/* <span
                             className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
                               trip?.status
                             )}`}
@@ -344,7 +299,13 @@ export const TripList = ({
                             {getStatusIcon(trip.status)}
                             {trip?.status.charAt(0).toUpperCase() +
                               trip?.status.slice(1).replace("_", " ")}
+                          </span> */}
+
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(trip.status)}`}>
+                            {getStatusIcon(trip.status)}
+                            {trip.status}
                           </span>
+
                         </div>
 
                         {/* Route Info - Using AddressDisplay */}
@@ -396,13 +357,12 @@ export const TripList = ({
                           </div>
                           <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div
-                              className={`h-full rounded-full ${
-                                trip.status === "COMPLETED"
-                                  ? "bg-emerald-500"
-                                  : trip.status === "in_progress"
+                              className={`h-full rounded-full ${trip.status === "COMPLETED"
+                                ? "bg-emerald-500"
+                                : trip.status === "in_progress"
                                   ? "bg-blue-500"
                                   : "bg-cyan-500"
-                              }`}
+                                }`}
                               style={{ width: `${progress}%` }}
                             />
                           </div>
@@ -443,11 +403,10 @@ export const TripList = ({
                       <div className="hidden xl:block">
                         <div className="text-right">
                           <div
-                            className={`text-sm font-medium ${
-                              timeRemaining === "Overdue"
-                                ? "text-red-600 dark:text-red-400"
-                                : "text-gray-900 dark:text-white"
-                            }`}
+                            className={`text-sm font-medium ${timeRemaining === "Overdue"
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-gray-900 dark:text-white"
+                              }`}
                           >
                             {timeRemaining}
                           </div>
@@ -517,9 +476,8 @@ export const TripList = ({
                         className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                       >
                         <ChevronRight
-                          className={`h-4 w-4 transition-transform ${
-                            expandedId === trip.id ? "rotate-90" : ""
-                          }`}
+                          className={`h-4 w-4 transition-transform ${expandedId === trip.id ? "rotate-90" : ""
+                            }`}
                         />
                       </button>
                     </div>
@@ -573,8 +531,8 @@ export const TripList = ({
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {trip.endDate
                                 ? `${formatDate(trip.endDate)} ${formatTime(
-                                    trip.endTime
-                                  )}`
+                                  trip.endTime
+                                )}`
                                 : "Ongoing"}
                             </span>
                           </div>

@@ -10,15 +10,19 @@ import {
 import { useState } from "react";
 import { toast } from "react-toastify";
 import apiClient from "../../../api/apiClient";
+import AddressDisplay from "../../QuortsView/AddressDisplay";
 
 export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
   const [loadingTripId, setLoadingTripId] = useState(null);
 
   const activeTrips = trips.filter((t) => t.status === "STARTED");
-  const upcomingTrips = trips
-    .filter((t) => t.status === "scheduled")
-    .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
-    .slice(0, 3);
+
+  // const upcomingTrips = trips
+  //   .filter((t) => t.status === "scheduled")
+  //   .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+  //   .slice(0, 3);
+
+  const upcomingTrips = trips.filter((t) => t.status === "scheduled");
 
   // API function to update trip status
   const updateTripStatus = async (tripId, status) => {
@@ -166,13 +170,12 @@ export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
               return (
                 <div
                   key={trip.id}
-                  className={`p-4 border rounded-xl transition-all ${
-                    isLoading
+                  className={`p-4 border rounded-xl transition-all ${isLoading
                       ? "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10 animate-pulse"
                       : timeRemaining?.text === "Overdue"
-                      ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10"
-                      : "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10"
-                  }`}
+                        ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10"
+                        : "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10"
+                    }`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -188,11 +191,9 @@ export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <MapPin className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">
-                          {trip.source} → {trip.destination}
-                        </span>
+                      <div className="space-y-2 mt-2">
+                        <AddressDisplay label="From" address={trip.source} />
+                        <AddressDisplay label="To" address={trip.destination} />
                       </div>
                     </div>
                   </div>
@@ -292,13 +293,12 @@ export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <div
-                        className={`w-2 h-2 rounded-full ${
-                          index === 0
+                        className={`w-2 h-2 rounded-full ${index === 0
                             ? "bg-emerald-500"
                             : index === 1
-                            ? "bg-blue-500"
-                            : "bg-cyan-500"
-                        }`}
+                              ? "bg-blue-500"
+                              : "bg-cyan-500"
+                          }`}
                       />
                       <div className="font-medium text-gray-900 dark:text-white text-sm">
                         {trip.tripNumber}
@@ -393,7 +393,7 @@ export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
                 trips.filter(
                   (t) =>
                     new Date(t.startDate).toDateString() ===
-                      new Date().toDateString() && t.status === "completed"
+                    new Date().toDateString() && t.status === "completed"
                 ).length
               }
             </div>
@@ -407,7 +407,7 @@ export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
                 trips.filter(
                   (t) =>
                     new Date(t.startDate).toDateString() ===
-                      new Date().toDateString() && t.status === "in_progress"
+                    new Date().toDateString() && t.status === "in_progress"
                 ).length
               }
             </div>

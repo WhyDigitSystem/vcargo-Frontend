@@ -277,49 +277,49 @@ export const TripDashboard = () => {
     setShowMap(true);
   };
 
-  const handleTripStatusChange = (tripId, newStatus) => {
-    // Update local trips state
-    setTrips((prevTrips) =>
-      prevTrips.map((trip) =>
-        trip.id === tripId ? { ...trip, status: newStatus } : trip
-      )
-    );
-  };
+  // const handleTripStatusChange = (tripId, newStatus) => {
+  //   // Update local trips state
+  //   setTrips((prevTrips) =>
+  //     prevTrips.map((trip) =>
+  //       trip.id === tripId ? { ...trip, status: newStatus } : trip
+  //     )
+  //   );
+  // };
 
-  const handleStartTrip = (id) => {
-    const tripToUpdate = trips.find((t) => t.id === id);
-    if (tripToUpdate) {
-      setTrips(
-        trips.map((trip) =>
-          trip.id === id
-            ? {
-                ...trip,
-                status: "in_progress",
-                startDate: new Date().toISOString().split("T")[0],
-                startTime: new Date().toTimeString().slice(0, 5),
-                currentLocation: trip.source,
-              }
-            : trip
-        )
-      );
-    }
-  };
+  // const handleStartTrip = (id) => {
+  //   const tripToUpdate = trips.find((t) => t.id === id);
+  //   if (tripToUpdate) {
+  //     setTrips(
+  //       trips.map((trip) =>
+  //         trip.id === id
+  //           ? {
+  //               ...trip,
+  //               status: "in_progress",
+  //               startDate: new Date().toISOString().split("T")[0],
+  //               startTime: new Date().toTimeString().slice(0, 5),
+  //               currentLocation: trip.source,
+  //             }
+  //           : trip
+  //       )
+  //     );
+  //   }
+  // };
 
-  const handleCompleteTrip = (id) => {
-    setTrips(
-      trips.map((trip) =>
-        trip.id === id
-          ? {
-              ...trip,
-              status: "completed",
-              endDate: new Date().toISOString().split("T")[0],
-              endTime: new Date().toTimeString().slice(0, 5),
-              currentLocation: trip.destination,
-            }
-          : trip
-      )
-    );
-  };
+  // const handleCompleteTrip = (id) => {
+  //   setTrips(
+  //     trips.map((trip) =>
+  //       trip.id === id
+  //         ? {
+  //             ...trip,
+  //             status: "completed",
+  //             endDate: new Date().toISOString().split("T")[0],
+  //             endTime: new Date().toTimeString().slice(0, 5),
+  //             currentLocation: trip.destination,
+  //           }
+  //         : trip
+  //     )
+  //   );
+  // };
 
   const handlePageChange = (newPage) => {
     setPagination((prev) => ({ ...prev, currentPage: newPage }));
@@ -468,13 +468,13 @@ export const TripDashboard = () => {
         drivers={filterDrivers}
         customers={filterCustomers}
         selectedTrips={selectedTrips}
-        onBulkAction={(action) => {
-          if (action === "export") {
-            console.log("Exporting:", selectedTrips);
-          } else if (action === "start") {
-            selectedTrips.forEach((id) => handleStartTrip(id));
-          }
-        }}
+      // onBulkAction={(action) => {
+      //   if (action === "export") {
+      //     console.log("Exporting:", selectedTrips);
+      //   } else if (action === "start") {
+      //     selectedTrips.forEach((id) => handleStartTrip(id));
+      //   }
+      // }}
       />
 
       {/* Two Column Layout */}
@@ -486,19 +486,24 @@ export const TripDashboard = () => {
             onEdit={handleEditTrip}
             onDelete={handleDeleteTrip}
             onViewMap={handleViewMap}
-            onStatusChange={handleTripStatusChange}
-            onStartTrip={handleStartTrip}
-            onCompleteTrip={handleCompleteTrip}
+            // onStatusChange={handleTripStatusChange}
+            // onStartTrip={handleStartTrip}
+            // onCompleteTrip={handleCompleteTrip}
             selectedTrips={selectedTrips}
             onSelectTrip={setSelectedTrips}
             pagination={pagination}
             onPageChange={handlePageChange}
+            onRefresh={fetchTrips}
           />
         </div>
 
         {/* Trip Timeline */}
         <div className="lg:col-span-1">
-          <TripTimeline trips={trips} onStatusChange={handleTripStatusChange} />
+          <TripTimeline
+            trips={trips}
+            // onStatusChange={handleTripStatusChange}
+            onRefresh={fetchTrips}
+          />
         </div>
       </div>
 
