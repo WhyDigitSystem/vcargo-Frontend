@@ -385,7 +385,7 @@ const AuthForm = () => {
               </div>
               <div className="text-left">
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  VCARGO
+                  Vcargo
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Smart Fleet Management Platform.
@@ -705,7 +705,7 @@ const AuthForm = () => {
               </div>
 
               <div className="text-center">
-                <h3 className="text-xl font-bold text-white mb-1">VCARGO</h3>
+                <h3 className="text-xl font-bold text-white mb-1">Vcargo</h3>
                 <p className="text-xs text-blue-200/70 tracking-wide">
                   Smart Fleet Management Platform.
                 </p>

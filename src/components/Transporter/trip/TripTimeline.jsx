@@ -8,9 +8,9 @@ import {
   User,
 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "react-toastify";
 import apiClient from "../../../api/apiClient";
 import AddressDisplay from "../../QuortsView/AddressDisplay";
+import { toast } from "../../../utils/toast";
 
 export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
   const [loadingTripId, setLoadingTripId] = useState(null);
@@ -94,6 +94,7 @@ export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
     const success = await updateTripStatus(tripId, "END");
     if (success) {
       // Success handled in updateTripStatus
+      // toast.success("Trip Completed successfully!");
     }
   };
 
@@ -171,10 +172,10 @@ export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
                 <div
                   key={trip.id}
                   className={`p-4 border rounded-xl transition-all ${isLoading
-                      ? "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10 animate-pulse"
-                      : timeRemaining?.text === "Overdue"
-                        ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10"
-                        : "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10"
+                    ? "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10 animate-pulse"
+                    : timeRemaining?.text === "Overdue"
+                      ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10"
+                      : "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10"
                     }`}
                 >
                   <div className="flex items-start justify-between mb-3">
@@ -294,10 +295,10 @@ export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
                     <div className="flex items-center gap-2 mb-1">
                       <div
                         className={`w-2 h-2 rounded-full ${index === 0
-                            ? "bg-emerald-500"
-                            : index === 1
-                              ? "bg-blue-500"
-                              : "bg-cyan-500"
+                          ? "bg-emerald-500"
+                          : index === 1
+                            ? "bg-blue-500"
+                            : "bg-cyan-500"
                           }`}
                       />
                       <div className="font-medium text-gray-900 dark:text-white text-sm">

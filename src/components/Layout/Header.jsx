@@ -359,7 +359,7 @@ const Header = () => {
                   {/* Footer */}
                   <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
                     <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                      Version 2.1.0 • © 2025 Efit Transport
+                      Version 2.1.0 • © 2025 Vcargo
                     </div>
                   </div>
                 </div>

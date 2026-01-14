@@ -15,7 +15,7 @@ export const TripStats = ({ trips }) => {
   const stats = {
     totalTrips: trips.length,
     inProgress: trips.filter(t => t.status === 'in_progress').length,
-    completed: trips.filter(t => t.status === 'completed').length,
+    completed: trips.filter(t => t.status === 'COMPLETED').length,
     scheduled: trips.filter(t => t.status === 'scheduled').length,
     pending: trips.filter(t => t.status === 'pending').length,
     totalDistance: trips.reduce((sum, trip) => sum + (trip.distance || 0), 0),
