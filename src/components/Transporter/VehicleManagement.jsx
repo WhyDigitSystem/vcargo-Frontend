@@ -740,10 +740,11 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
             <button
               type="button"
               onClick={() => setActiveTab("details")}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === "details"
-                ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                }`}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === "details"
+                  ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              }`}
             >
               <div className="flex items-center gap-2">
                 <Car className="h-4 w-4" />
@@ -753,10 +754,11 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
             <button
               type="button"
               onClick={() => setActiveTab("documents")}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === "documents"
-                ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
-                : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                }`}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === "documents"
+                  ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                  : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              }`}
             >
               <div className="flex items-center gap-2">
                 <File className="h-4 w-4" />
@@ -796,10 +798,11 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                         );
                         handleChange("vehicleNumber", formattedValue);
                       }}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.vehicleNumber
-                        ? "border-red-500"
-                        : "border-gray-300"
-                        }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                        errors.vehicleNumber
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
                       placeholder="TN-10-AB-7878"
                       disabled={saving}
                       maxLength={13} // TN-10-AB-7878 = 13 characters max
@@ -854,8 +857,9 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
                         handleChange("model", value);
                       }}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.model ? "border-red-500" : "border-gray-300"
-                        }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                        errors.model ? "border-red-500" : "border-gray-300"
+                      }`}
                       placeholder="Tata Prima 5530.S"
                       disabled={saving}
                     />
@@ -882,8 +886,9 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
                         handleChange("capacity", value);
                       }}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.capacity ? "border-red-500" : "border-gray-300"
-                        }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                        errors.capacity ? "border-red-500" : "border-gray-300"
+                      }`}
                       placeholder="40 FT / 25 Tons"
                       disabled={saving}
                     />
@@ -904,10 +909,11 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                       onChange={(e) =>
                         handleChange("insuranceExpiry", e.target.value)
                       }
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.insuranceExpiry
-                        ? "border-red-500"
-                        : "border-gray-300"
-                        }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                        errors.insuranceExpiry
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
                       disabled={saving}
                     />
                     {errors.insuranceExpiry && (
@@ -927,10 +933,11 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                       onChange={(e) =>
                         handleChange("fitnessExpiry", e.target.value)
                       }
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.fitnessExpiry
-                        ? "border-red-500"
-                        : "border-gray-300"
-                        }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                        errors.fitnessExpiry
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
                       disabled={saving}
                     />
                     {errors.fitnessExpiry && (
@@ -957,7 +964,9 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                       <option value="INACTIVE">Inactive</option>
                     </select>
                     {!formData.status && (
-                      <p className="text-red-500 text-xs mt-1">Please select a status</p>
+                      <p className="text-red-500 text-xs mt-1">
+                        Please select a status
+                      </p>
                     )}
                   </div>
 
@@ -1263,7 +1272,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
                       <div className="flex-1">
                         {files[fileType.key] &&
-                          files[fileType.key].length > 0 ? (
+                        files[fileType.key].length > 0 ? (
                           <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
                             {files[fileType.key].map((file) => (
                               <div
@@ -1682,10 +1691,11 @@ const VehicleManagement = () => {
       {/* Notification */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg ${notification.type === "error"
-            ? "bg-red-100 text-red-800 border border-red-300"
-            : "bg-green-100 text-green-800 border border-green-300"
-            }`}
+          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg ${
+            notification.type === "error"
+              ? "bg-red-100 text-red-800 border border-red-300"
+              : "bg-green-100 text-green-800 border border-green-300"
+          }`}
         >
           <div className="flex items-center gap-2">
             {notification.type === "error" ? (
@@ -1895,26 +1905,7 @@ const VehicleManagement = () => {
                 </tr>
               ) : filteredVehicles.length === 0 ? (
                 // No vehicles at all (empty state)
-                <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <Car className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                        No vehicles found
-                      </h3>
-                      <p className="text-gray-500 dark:text-gray-400 mb-4">
-                        Add your first vehicle to get started
-                      </p>
-                      <button
-                        onClick={handleAddNew}
-                        className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Add Your First Vehicle
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                ""
               ) : (
                 filteredVehicles.map((vehicle) => {
                   const nextServiceDate = calculateNextServiceDate(
@@ -1993,12 +1984,13 @@ const VehicleManagement = () => {
                           Next: {formatDate(nextServiceDate)}
                           {nextServiceDate && (
                             <div
-                              className={`text-xs mt-1 ${daysRemaining <= 0
-                                ? "text-red-500"
-                                : daysRemaining <= 7
+                              className={`text-xs mt-1 ${
+                                daysRemaining <= 0
+                                  ? "text-red-500"
+                                  : daysRemaining <= 7
                                   ? "text-orange-500"
                                   : "text-green-500"
-                                }`}
+                              }`}
                             >
                               {daysRemaining <= 0
                                 ? "Service overdue"
@@ -2076,10 +2068,11 @@ const VehicleManagement = () => {
               <button
                 onClick={() => handlePageChange(pagination.currentPage - 1)}
                 disabled={pagination.currentPage === 1}
-                className={`p-2 rounded-lg border ${pagination.currentPage === 1
-                  ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  }`}
+                className={`p-2 rounded-lg border ${
+                  pagination.currentPage === 1
+                    ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                    : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                }`}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -2105,10 +2098,11 @@ const VehicleManagement = () => {
                         <span className="px-2 text-gray-500">...</span>
                         <button
                           onClick={() => handlePageChange(page)}
-                          className={`px-3 py-1 rounded-lg ${pagination.currentPage === page
-                            ? "bg-indigo-600 text-white"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                            }`}
+                          className={`px-3 py-1 rounded-lg ${
+                            pagination.currentPage === page
+                              ? "bg-indigo-600 text-white"
+                              : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          }`}
                         >
                           {page}
                         </button>
@@ -2119,10 +2113,11 @@ const VehicleManagement = () => {
                     <button
                       key={page}
                       onClick={() => handlePageChange(page)}
-                      className={`px-3 py-1 rounded-lg ${pagination.currentPage === page
-                        ? "bg-indigo-600 text-white"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                        }`}
+                      className={`px-3 py-1 rounded-lg ${
+                        pagination.currentPage === page
+                          ? "bg-indigo-600 text-white"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      }`}
                     >
                       {page}
                     </button>
@@ -2132,10 +2127,11 @@ const VehicleManagement = () => {
               <button
                 onClick={() => handlePageChange(pagination.currentPage + 1)}
                 disabled={pagination.currentPage === pagination.totalPages}
-                className={`p-2 rounded-lg border ${pagination.currentPage === pagination.totalPages
-                  ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  }`}
+                className={`p-2 rounded-lg border ${
+                  pagination.currentPage === pagination.totalPages
+                    ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                    : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                }`}
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

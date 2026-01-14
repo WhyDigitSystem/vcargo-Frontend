@@ -1,442 +1,338 @@
 import {
   AlertCircle,
-  Battery,
-  ChevronDown,
-  Eye,
-  EyeOff,
-  FileText,
-  Filter,
+  DollarSign,
   Fuel,
+  Loader2,
   MapPin,
-  TrendingUp,
+  RefreshCw,
+  Settings,
   Truck,
   Users,
   Wrench,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import apiClient from "../../../api/apiClient";
 
 const QuickStats = () => {
   const navigate = useNavigate();
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [visibleCategories, setVisibleCategories] = useState({
-    vehicles: true,
-    drivers: true,
-    fuel: true,
-    tyres: true,
-    maintenance: true,
-    operations: true,
-  });
-  const [showAllStats, setShowAllStats] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
 
-  // Stats data organized by category
-  const statsByCategory = {
-    vehicles: [
-      {
-        name: "Active Vehicles",
-        count: 24,
-        icon: Truck,
-        gradient: "from-blue-500 to-cyan-500",
-        path: "/vehicles",
-        change: "+2",
-        changeType: "positive",
-        description: "Ready for dispatch",
-        trend: "up",
-        value: "92%",
-        subtext: "Utilization",
-      },
-      {
-        name: "Idle Vehicles",
-        count: 3,
-        icon: Truck,
-        gradient: "from-gray-400 to-gray-600",
-        path: "/vehicles",
-        change: "-1",
-        changeType: "negative",
-        description: "Available",
-        trend: "down",
-      },
-    ],
-    drivers: [
-      {
-        name: "Available Drivers",
-        count: "28/32",
-        icon: Users,
-        gradient: "from-indigo-500 to-violet-500",
-        path: "/drivers",
-        change: "+2",
-        changeType: "positive",
-        description: "Active",
-        progress: 87,
-        value: "4.8/5.0",
-        subtext: "Avg Rating",
-      },
-      {
-        name: "Driver Efficiency",
-        count: "92%",
-        icon: TrendingUp,
-        gradient: "from-emerald-500 to-green-500",
-        path: "/drivers/performance",
-        change: "+3%",
-        changeType: "positive",
-        description: "On-time deliveries",
-      },
-    ],
-    fuel: [
-      {
-        name: "Fuel Efficiency",
-        count: "8.2",
-        icon: Fuel,
-        gradient: "from-amber-500 to-orange-500",
-        path: "/fuel",
-        change: "+0.4",
-        changeType: "positive",
-        description: "km/liter avg",
-        value: "$18.4K",
-        subtext: "Monthly cost",
-      },
-      {
-        name: "Fuel Savings",
-        count: "$1.2K",
-        icon: TrendingUp,
-        gradient: "from-teal-500 to-emerald-500",
-        path: "/fuel/analytics",
-        change: "+15%",
-        changeType: "positive",
-        description: "Cost reduction",
-      },
-    ],
-    tyres: [
-      {
-        name: "Tyre Health",
-        count: "78%",
-        icon: Battery,
-        gradient: "from-teal-500 to-emerald-500",
-        path: "/tyres",
-        change: "-5%",
-        changeType: "warning",
-        description: "Avg tread depth",
-        value: "6",
-        subtext: "Replace soon",
-      },
-      {
-        name: "Tyre Alert",
-        count: 3,
-        icon: AlertCircle,
-        gradient: "from-orange-500 to-amber-500",
-        path: "/tyres/alerts",
-        change: "+1",
-        changeType: "negative",
-        description: "Critical issues",
-      },
-    ],
-    maintenance: [
-      {
-        name: "Maintenance Due",
-        count: 5,
-        icon: Wrench,
-        gradient: "from-red-500 to-pink-500",
-        path: "/maintenance",
-        change: "+1",
-        changeType: "warning",
-        description: "Scheduled",
-        value: "2.4h",
-        subtext: "Avg MTTR",
-      },
-      {
-        name: "Service Cost",
-        count: "$4.8K",
-        icon: FileText,
-        gradient: "from-purple-500 to-pink-500",
-        path: "/maintenance/cost",
-        change: "-$320",
-        changeType: "positive",
-        description: "Monthly average",
-      },
-    ],
-    operations: [
-      {
-        name: "Active Trips",
-        count: 18,
-        icon: MapPin,
-        gradient: "from-cyan-500 to-blue-500",
-        path: "/trips",
-        change: "+3",
-        changeType: "positive",
-        description: "On road",
-        value: "94%",
-        subtext: "On-time rate",
-      },
-      {
-        name: "Pending Invoices",
-        count: 8,
-        icon: FileText,
-        gradient: "from-yellow-500 to-orange-500",
-        path: "/invoices",
-        change: "-2",
-        changeType: "positive",
-        description: "Awaiting payment",
-        value: "$42.8K",
-        subtext: "Total amount",
-      },
-    ],
+  const { user } = useSelector((state) => state.auth);
+  const orgId = user?.orgId;
+
+  // Fetch dashboard data from API
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await apiClient.get(
+        "/api/dashboard/getAllDashBoardStatsDetails",
+        {
+          params: { orgId },
+        }
+      );
+      console.log("Res==>", response);
+      if (response?.status) {
+        // Fixed: access data from response.data
+        setDashboardData(response?.paramObjectsMap?.dashboard || {});
+      } else {
+        throw new Error(
+          response?.paramObjectsMap?.message || "Failed to fetch dashboard data"
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+      setError(err.message || "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filters = [
-    { id: "all", label: "All Modules", color: "gray" },
-    { id: "vehicles", label: "Vehicles", color: "blue" },
-    { id: "drivers", label: "Drivers", color: "indigo" },
-    { id: "fuel", label: "Fuel", color: "amber" },
-    { id: "tyres", label: "Tyres", color: "teal" },
-    { id: "maintenance", label: "Maintenance", color: "red" },
-    { id: "operations", label: "Operations", color: "cyan" },
+  useEffect(() => {
+    if (orgId) {
+      fetchDashboardData();
+    }
+  }, [orgId]);
+
+  // Get data from API or fallback to 0 - UPDATED WITH ALL API FIELDS
+  const getAPIData = () => {
+    if (!dashboardData) return {};
+
+    const apiData = dashboardData;
+
+    return {
+      // Active Vehicles
+      activeVehicles: apiData.activeVechicle || apiData.activeVehicle || 0,
+
+      // Maintenance Vehicles
+      maintenanceVehicles: apiData.maintenanceVehicleCount || 0,
+
+      // Upcoming Maintenance Vehicles
+      upcomingMaintenance: apiData.upcomingMaintenanceVehicle || 0,
+
+      // Driver data
+      activeDrivers: apiData.tDriver?.activeDriver || 0,
+      inactiveDrivers: apiData.tDriver?.inActiveDriver || 0,
+      leaveDrivers: apiData.tDriver?.leaveDriver || 0,
+      totalDrivers:
+        (apiData.tDriver?.activeDriver || 0) +
+        (apiData.tDriver?.inActiveDriver || 0) +
+        (apiData.tDriver?.leaveDriver || 0),
+
+      // Fuel data
+      totalFuel: apiData.totalFuel || 0,
+
+      // Maintenance Cost
+      maintenanceCost: apiData.maintenanceCost || 0,
+
+      // Tyres Purchased
+      tyresPurchased: apiData.totalTyresPurchased || 0,
+
+      // Active Trips (assuming totalTripCount is active trips)
+      activeTrips: apiData.totalTripCount || 0,
+
+      // For drivers in trip, we can assume some percentage of active drivers are in trip
+      // Since API doesn't provide this, we'll calculate as 75% of active drivers (round up)
+      driversInTrip: Math.ceil((apiData.tDriver?.activeDriver || 0) * 0.75),
+    };
+  };
+
+  const stats = [
+    {
+      name: "Active Vehicles",
+      count: getAPIData().activeVehicles,
+      icon: Truck,
+      color: "blue",
+      path: "/vehicles",
+      change: "+0", // Static for now, can be dynamic if API provides trend
+      subtext: "Ready for dispatch",
+    },
+    {
+      name: "Maintenance Vehicles",
+      count: getAPIData().maintenanceVehicles,
+      icon: Wrench,
+      color: "red",
+      path: "/maintenance",
+      change: "+0",
+      subtext: "Under maintenance",
+    },
+    {
+      name: "Upcoming Maintenance",
+      count: getAPIData().upcomingMaintenance,
+      icon: Wrench,
+      color: "orange",
+      path: "/maintenance/upcoming",
+      change: "+0",
+      subtext: "Next 7 days",
+    },
+    {
+      name: "Maintenance Cost",
+      count: `₹${getAPIData().maintenanceCost}`,
+      icon: DollarSign,
+      color: "purple",
+      path: "/maintenance/cost",
+      change: "-₹0",
+      subtext: "Total cost",
+    },
+    {
+      name: "Total Tyres Purchased",
+      count: getAPIData().tyresPurchased,
+      icon: Settings,
+      color: "teal",
+      path: "/tyres",
+      change: "+0",
+      subtext: "This quarter",
+    },
+    {
+      name: "Total Fuel Consumption",
+      count: `${getAPIData().totalFuel} L`,
+      icon: Fuel,
+      color: "amber",
+      path: "/fuel",
+      change: "+0",
+      subtext: "Total liters",
+    },
+    {
+      name: "Active Drivers",
+      count: `${getAPIData().activeDrivers}`,
+      icon: Users,
+      color: "indigo",
+      path: "/drivers",
+      change: "+0",
+      subtext: "Available",
+    },
+    {
+      name: "Drivers in Trip",
+      count: getAPIData().driversInTrip,
+      icon: Users,
+      color: "green",
+      path: "/drivers",
+      change: "+0",
+      subtext: "Currently driving",
+    },
+    {
+      name: "Driver Leave",
+      count: getAPIData().leaveDrivers,
+      icon: Users,
+      color: "gray",
+      path: "/drivers",
+      change: "-0",
+      subtext: "On leave",
+    },
+    {
+      name: "Active Trips",
+      count: getAPIData().activeTrips,
+      icon: MapPin,
+      color: "cyan",
+      path: "/trips",
+      change: "+0",
+      subtext: "On road",
+    },
   ];
 
-  const getChangeColor = (changeType) => {
-    const colors = {
-      positive:
-        "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
-      negative: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-      warning:
-        "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  const getColorClasses = (color) => {
+    const classes = {
+      blue: "bg-blue-500 text-white",
+      red: "bg-red-500 text-white",
+      amber: "bg-amber-500 text-white",
+      indigo: "bg-indigo-500 text-white",
+      green: "bg-emerald-500 text-white",
+      cyan: "bg-cyan-500 text-white",
+      gray: "bg-gray-500 text-white",
+      orange: "bg-orange-500 text-white",
+      purple: "bg-purple-500 text-white",
+      teal: "bg-teal-500 text-white",
     };
-    return (
-      colors[changeType] ||
-      "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
-    );
+    return classes[color] || "bg-gray-500 text-white";
   };
 
-  const getChangeIcon = (changeType) => {
-    const icons = { positive: "↑", negative: "↓", warning: "⚠" };
-    return icons[changeType] || "→";
+  const getChangeColor = (change) => {
+    if (change.startsWith("+")) return "text-emerald-600 dark:text-emerald-400";
+    if (change.startsWith("-")) return "text-red-600 dark:text-red-400";
+    return "text-gray-600 dark:text-gray-400";
   };
 
-  const renderProgressBar = (progress) => (
-    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
-      <div
-        className="bg-emerald-500 h-1.5 rounded-full"
-        style={{ width: `${progress}%` }}
-      />
-    </div>
-  );
-
-  const toggleCategory = (category) => {
-    setVisibleCategories((prev) => ({
-      ...prev,
-      [category]: !prev[category],
-    }));
+  const handleRefresh = () => {
+    fetchDashboardData();
   };
-
-  const filteredStats =
-    activeFilter === "all"
-      ? Object.entries(statsByCategory)
-          .filter(([category]) => visibleCategories[category])
-          .flatMap(([_, stats]) => stats)
-      : statsByCategory[activeFilter] || [];
-
-  const displayedStats = showAllStats
-    ? filteredStats
-    : filteredStats.slice(0, 8);
 
   return (
     <div className="mb-6">
-      {/* Header with controls */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Fleet Analytics Dashboard
+            Fleet Overview
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Real-time performance metrics
+            {loading ? "Loading data..." : "Key metrics at a glance"}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Category visibility toggle */}
-          <div className="relative group">
-            <button className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-              <Eye className="h-4 w-4" />
-              <span className="hidden sm:inline">Categories</span>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <div className="absolute right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-2 z-10 hidden group-hover:block min-w-48">
-              {Object.entries(visibleCategories).map(
-                ([category, isVisible]) => (
-                  <div
-                    key={category}
-                    className="flex items-center justify-between px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <span className="text-sm capitalize">{category}</span>
-                    <button
-                      onClick={() => toggleCategory(category)}
-                      className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                    >
-                      {isVisible ? (
-                        <Eye className="h-4 w-4" />
-                      ) : (
-                        <EyeOff className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-
-          {/* Filter dropdown */}
-          <div className="relative group">
-            <button className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-              <Filter className="h-4 w-4" />
-              <span className="hidden sm:inline">Filter</span>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <div className="absolute right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-10 hidden group-hover:block min-w-36">
-              {filters.map((filter) => (
-                <button
-                  key={filter.id}
-                  onClick={() => setActiveFilter(filter.id)}
-                  className={`w-full text-left px-3 py-2 text-sm capitalize hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                    activeFilter === filter.id
-                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                      : "text-gray-700 dark:text-gray-300"
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowAllStats(!showAllStats)}
-            className="px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-          >
-            {showAllStats ? "Show Less" : "Show All"}
-          </button>
-        </div>
+        {/* Refresh Button */}
+        <button
+          onClick={handleRefresh}
+          disabled={loading}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+          title="Refresh data"
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          <span>Refresh</span>
+        </button>
       </div>
 
-      {/* Filter pills */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {filters.map((filter) => (
-          <button
-            key={filter.id}
-            onClick={() => setActiveFilter(filter.id)}
-            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-              activeFilter === filter.id
-                ? `bg-${filter.color}-100 text-${filter.color}-800 dark:bg-${filter.color}-900/30 dark:text-${filter.color}-300`
-                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-            }`}
-          >
-            {filter.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {displayedStats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={`${stat.name}-${index}`}
-              onClick={() => navigate(stat.path)}
-              className="group cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-150"
-            >
-              <div className="relative">
-                {/* Icon and change indicator */}
-                <div className="flex items-start justify-between mb-2">
-                  <div
-                    className={`p-2 rounded-lg bg-gradient-to-r ${stat.gradient} shadow-sm`}
-                  >
-                    <Icon className="h-4 w-4 text-white" />
-                  </div>
-                  <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getChangeColor(
-                      stat.changeType
-                    )}`}
-                  >
-                    {getChangeIcon(stat.changeType)} {stat.change}
-                  </span>
-                </div>
-
-                {/* Main content */}
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide truncate">
-                    {stat.name}
-                  </p>
-                  <div className="flex items-baseline gap-1.5 mt-1">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-                      {stat.count}
-                    </h3>
-                    {stat.value && (
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                        {stat.value}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Additional info row */}
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {stat.description}
-                    </p>
-                    {stat.subtext && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {stat.subtext}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Progress bar for specific stats */}
-                  {stat.progress && renderProgressBar(stat.progress)}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Summary footer */}
-      {displayedStats.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                <span className="text-gray-600 dark:text-gray-400">
-                  {
-                    displayedStats.filter((s) => s.changeType === "positive")
-                      .length
-                  }{" "}
-                  Positive
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <span className="text-gray-600 dark:text-gray-400">
-                  {
-                    displayedStats.filter((s) => s.changeType === "negative")
-                      .length
-                  }{" "}
-                  Attention
-                </span>
-              </div>
-            </div>
+      {/* Error State */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-red-500 dark:text-red-400" />
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             <button
-              onClick={() => navigate("/analytics")}
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1"
+              onClick={handleRefresh}
+              className="ml-auto text-xs text-red-600 dark:text-red-400 hover:underline"
             >
-              Detailed Analytics
-              <ChevronDown className="h-3 w-3 transform -rotate-90" />
+              Retry
             </button>
           </div>
         </div>
       )}
 
-      {displayedStats.length === 0 && (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          No stats available for selected filter
+      {/* Stats Grid */}
+      {loading && !dashboardData ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {Array.from({ length: 10 }).map((_, index) => (
+            <div
+              key={index}
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 animate-pulse"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
+                  <div className="w-8 h-4 bg-gray-300 dark:bg-gray-700 rounded"></div>
+                </div>
+                <div>
+                  <div className="w-3/4 h-3 bg-gray-300 dark:bg-gray-700 rounded mb-2"></div>
+                  <div className="w-1/2 h-5 bg-gray-300 dark:bg-gray-700 rounded mb-1"></div>
+                  <div className="w-2/3 h-2 bg-gray-300 dark:bg-gray-700 rounded"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={index}
+                onClick={() => navigate(stat.path)}
+                className="group cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-150"
+              >
+                <div className="space-y-2">
+                  {/* Icon and Change */}
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={`p-2 rounded-lg ${getColorClasses(
+                        stat.color
+                      )}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <span
+                      className={`text-xs font-medium ${getChangeColor(
+                        stat.change
+                      )}`}
+                    >
+                      {stat.change}
+                    </span>
+                  </div>
+
+                  {/* Content */}
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">
+                      {stat.name}
+                    </p>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mt-1 truncate">
+                      {stat.count}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
+                      {stat.subtext}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

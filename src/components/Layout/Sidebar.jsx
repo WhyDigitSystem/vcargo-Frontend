@@ -77,7 +77,7 @@ const Sidebar = () => {
       roles: ["Transporter", "FleetManager", "Admin"],
       color: "text-red-500",
       bgColor: "bg-red-100 dark:bg-red-900/30",
-      completed: true, // Completed module
+      completed: false, // Completed module
     },
     // Core Modules - Priority 2
     {
@@ -87,7 +87,7 @@ const Sidebar = () => {
       roles: ["Transporter", "FleetManager", "Admin"],
       color: "text-cyan-500",
       bgColor: "bg-cyan-100 dark:bg-cyan-900/30",
-      completed: true, // Completed module
+      completed: false, // Completed module
     },
 
     {
@@ -97,7 +97,7 @@ const Sidebar = () => {
       roles: ["Transporter", "FleetManager", "Admin"],
       color: "text-orange-500",
       bgColor: "bg-orange-100 dark:bg-orange-900/30",
-      completed: true, // Completed module
+      completed: false, // Completed module
     },
 
     {
@@ -107,7 +107,7 @@ const Sidebar = () => {
       roles: ["Transporter", "FleetManager", "Admin"],
       color: "text-orange-500",
       bgColor: "bg-orange-100 dark:bg-orange-900/30",
-      completed: true, // Completed module
+      completed: false, // Completed module
     },
 
     {
@@ -190,17 +190,6 @@ const Sidebar = () => {
         </div>
 
         {/* Module Status Indicator - Only show when sidebar is open */}
-        {sidebarOpen && !isAdmin && (
-          <div className="px-2 py-1 mb-2">
-            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span>Development Status</span>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                <span className="text-[10px]">Ready for Testing</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Main Navigation - No scrolling */}
         {!isAdmin && (
@@ -271,7 +260,7 @@ const Sidebar = () => {
         )}
 
         {/* Completed modules summary - Only show when sidebar is open */}
-        {sidebarOpen && !isAdmin && completedModules.length > 0 && (
+        {/* {sidebarOpen && !isAdmin && completedModules.length > 0 && (
           <div className="px-2 py-1 border-t border-gray-100 dark:border-gray-800">
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
               Testing Modules ({completedModules.length})
@@ -288,7 +277,7 @@ const Sidebar = () => {
               ))}
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Optional: Quick access to secondary items (only when sidebar is open) */}
 
@@ -296,7 +285,7 @@ const Sidebar = () => {
         {sidebarOpen && (
           <div className="px-2 py-1 border-t border-gray-100 dark:border-gray-800">
             <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-              v2.0 • 4 modules ready for testing
+              v2.0
             </div>
           </div>
         )}

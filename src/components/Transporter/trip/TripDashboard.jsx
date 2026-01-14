@@ -1,14 +1,14 @@
-import { Navigation, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { tripAPI } from "../../../api/TtripAPI";
+import { toast } from "../../../utils/toast";
 import { TripFilters } from "./TripFilters";
 import { TripForm } from "./TripForm";
 import { TripList } from "./TripList";
 import { TripMapView } from "./TripMapView";
 import { TripStats } from "./TripStats";
 import { TripTimeline } from "./TripTimeline";
-import { tripAPI } from "../../../api/TtripAPI";
-import { useSelector } from "react-redux";
-import { toast } from "../../../utils/toast";
 
 export const TripDashboard = () => {
   const [trips, setTrips] = useState([]);
@@ -26,7 +26,7 @@ export const TripDashboard = () => {
     currentPage: 1,
     totalPages: 1,
     pageSize: 10,
-    totalCount: 0
+    totalCount: 0,
   });
   const [filters, setFilters] = useState({
     search: "",
@@ -53,7 +53,7 @@ export const TripDashboard = () => {
         orgId,
       });
 
-      const apiTrips = response?.paramObjectsMap?.trip?.data || [];
+      const apiTrips = response?.paramObjectsMap?.trip?.data.reverse() || [];
 
       const mappedTrips = apiTrips.map((trip) => ({
         id: trip.id,
@@ -93,10 +93,10 @@ export const TripDashboard = () => {
       const uniqueCustomers = Array.from(
         new Map(
           mappedTrips
-            .filter(t => t.customerId)
-            .map(t => [
+            .filter((t) => t.customerId)
+            .map((t) => [
               t.customerId,
-              { id: t.customerId, name: t.customerName }
+              { id: t.customerId, name: t.customerName },
             ])
         ).values()
       );
@@ -104,21 +104,22 @@ export const TripDashboard = () => {
       const uniqueDrivers = Array.from(
         new Map(
           mappedTrips
-            .filter(t => t.driverId)
-            .map(t => [
-              t.driverId,
-              { id: t.driverId, name: t.driverName }
-            ])
+            .filter((t) => t.driverId)
+            .map((t) => [t.driverId, { id: t.driverId, name: t.driverName }])
         ).values()
       );
 
       const uniqueVehicles = Array.from(
         new Map(
           mappedTrips
-            .filter(t => t.vehicleId)
-            .map(t => [
+            .filter((t) => t.vehicleId)
+            .map((t) => [
               t.vehicleId,
-              { id: t.vehicleId, registrationNumber: t.vehicleName, name: t.vehicleName }
+              {
+                id: t.vehicleId,
+                registrationNumber: t.vehicleName,
+                name: t.vehicleName,
+              },
             ])
         ).values()
       );
@@ -126,7 +127,6 @@ export const TripDashboard = () => {
       setFilterCustomers(uniqueCustomers);
       setFilterDrivers(uniqueDrivers);
       setFilterVehicles(uniqueVehicles);
-
     } catch (error) {
       console.error("Failed to load trips:", error);
       setError(error.message);
@@ -141,7 +141,9 @@ export const TripDashboard = () => {
       const userId = storedUser.usersId || storedUser.userId || "";
 
       const payload = {
-        ...(editingTrip && { id: editingTrip.id ? parseInt(editingTrip.id, 10) : 0 }),
+        ...(editingTrip && {
+          id: editingTrip.id ? parseInt(editingTrip.id, 10) : 0,
+        }),
         orgId: parseInt(orgId, 10) || 0,
         branchCode: "MAIN",
         branchName: "Main Branch",
@@ -166,14 +168,17 @@ export const TripDashboard = () => {
         tollCharges: parseFloat(tripData.tollCharges || 0),
         otherExpenses: parseFloat(tripData.otherExpenses || 0),
         startDate: tripData.startDate || new Date().toISOString().split("T")[0],
-        endDate: tripData.endDate || tripData.startDate || new Date().toISOString().split("T")[0],
+        endDate:
+          tripData.endDate ||
+          tripData.startDate ||
+          new Date().toISOString().split("T")[0],
         startTime: tripData.startTime,
         endTime: tripData.endTime,
         notes: tripData.notes || "",
         waypoints: (tripData.waypoints || []).map((wp, index) => ({
           location: wp.location || "",
-          sequenceNo: index + 1
-        }))
+          sequenceNo: index + 1,
+        })),
       };
 
       if (editingTrip) {
@@ -182,8 +187,16 @@ export const TripDashboard = () => {
 
       const response = await tripAPI.createUpdateTrip(payload);
 
-      if (response?.statusFlag === "Ok" || response?.success === true || response?.status === 200) {
-        toast.success(editingTrip ? "Trip updated successfully!" : "Trip created successfully!");
+      if (
+        response?.statusFlag === "Ok" ||
+        response?.success === true ||
+        response?.status === 200
+      ) {
+        toast.success(
+          editingTrip
+            ? "Trip updated successfully!"
+            : "Trip created successfully!"
+        );
         setShowForm(false);
         setEditingTrip(null);
         await fetchTrips(); // Refresh the list
@@ -241,10 +254,11 @@ export const TripDashboard = () => {
           waypoints: apiTrip.waypoints || [],
           active: apiTrip.active,
 
-          waypoints: apiTrip.waypoints?.map(wp => ({
-            location: wp.location,
-            sequenceNo: wp.sequenceNo
-          })) || []
+          waypoints:
+            apiTrip.waypoints?.map((wp) => ({
+              location: wp.location,
+              sequenceNo: wp.sequenceNo,
+            })) || [],
         };
 
         setEditingTrip(tripForEdit);
@@ -263,40 +277,28 @@ export const TripDashboard = () => {
     setShowMap(true);
   };
 
-  const handleStatusChange = async (id, status) => {
-    setTrips(
-      trips.map((trip) =>
-        trip.id === id
-          ? {
-            ...trip,
-            status,
-            endDate:
-              status === "completed"
-                ? new Date().toISOString().split("T")[0]
-                : trip.endDate,
-            endTime:
-              status === "completed"
-                ? new Date().toTimeString().slice(0, 5)
-                : trip.endTime,
-          }
-          : trip
+  const handleTripStatusChange = (tripId, newStatus) => {
+    // Update local trips state
+    setTrips((prevTrips) =>
+      prevTrips.map((trip) =>
+        trip.id === tripId ? { ...trip, status: newStatus } : trip
       )
     );
   };
 
   const handleStartTrip = (id) => {
-    const tripToUpdate = trips.find(t => t.id === id);
+    const tripToUpdate = trips.find((t) => t.id === id);
     if (tripToUpdate) {
       setTrips(
         trips.map((trip) =>
           trip.id === id
             ? {
-              ...trip,
-              status: "in_progress",
-              startDate: new Date().toISOString().split("T")[0],
-              startTime: new Date().toTimeString().slice(0, 5),
-              currentLocation: trip.source,
-            }
+                ...trip,
+                status: "in_progress",
+                startDate: new Date().toISOString().split("T")[0],
+                startTime: new Date().toTimeString().slice(0, 5),
+                currentLocation: trip.source,
+              }
             : trip
         )
       );
@@ -308,19 +310,19 @@ export const TripDashboard = () => {
       trips.map((trip) =>
         trip.id === id
           ? {
-            ...trip,
-            status: "completed",
-            endDate: new Date().toISOString().split("T")[0],
-            endTime: new Date().toTimeString().slice(0, 5),
-            currentLocation: trip.destination,
-          }
+              ...trip,
+              status: "completed",
+              endDate: new Date().toISOString().split("T")[0],
+              endTime: new Date().toTimeString().slice(0, 5),
+              currentLocation: trip.destination,
+            }
           : trip
       )
     );
   };
 
   const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, currentPage: newPage }));
+    setPagination((prev) => ({ ...prev, currentPage: newPage }));
   };
 
   const filteredTrips = trips.filter((trip) => {
@@ -334,11 +336,14 @@ export const TripDashboard = () => {
     const matchesStatus =
       filters.status === "all" || trip.status === filters.status;
     const matchesVehicle =
-      filters.vehicleId === "all" || trip.vehicleId.toString() === filters.vehicleId.toString();
+      filters.vehicleId === "all" ||
+      trip.vehicleId.toString() === filters.vehicleId.toString();
     const matchesDriver =
-      filters.driverId === "all" || trip.driverId.toString() === filters.driverId.toString();
+      filters.driverId === "all" ||
+      trip.driverId.toString() === filters.driverId.toString();
     const matchesCustomer =
-      filters.customerId === "all" || trip.customerId.toString() === filters.customerId.toString();
+      filters.customerId === "all" ||
+      trip.customerId.toString() === filters.customerId.toString();
 
     let matchesDate = true;
     if (filters.dateRange !== "all") {
@@ -380,7 +385,9 @@ export const TripDashboard = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading trips...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">
+            Loading trips...
+          </p>
         </div>
       </div>
     );
@@ -391,11 +398,23 @@ export const TripDashboard = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="text-red-600 dark:text-red-400 mb-4">
-            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-12 h-12 mx-auto"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
-          <p className="text-red-600 dark:text-red-400 font-medium">Error loading trips</p>
+          <p className="text-red-600 dark:text-red-400 font-medium">
+            Error loading trips
+          </p>
           <p className="text-gray-600 dark:text-gray-400 mt-2">{error}</p>
           <button
             onClick={fetchTrips}
@@ -467,7 +486,7 @@ export const TripDashboard = () => {
             onEdit={handleEditTrip}
             onDelete={handleDeleteTrip}
             onViewMap={handleViewMap}
-            onStatusChange={handleStatusChange}
+            onStatusChange={handleTripStatusChange}
             onStartTrip={handleStartTrip}
             onCompleteTrip={handleCompleteTrip}
             selectedTrips={selectedTrips}
@@ -479,10 +498,7 @@ export const TripDashboard = () => {
 
         {/* Trip Timeline */}
         <div className="lg:col-span-1">
-          <TripTimeline
-            trips={trips.filter((t) => t.status === "in_progress")}
-            onStatusChange={handleStatusChange}
-          />
+          <TripTimeline trips={trips} onStatusChange={handleTripStatusChange} />
         </div>
       </div>
 

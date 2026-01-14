@@ -6,6 +6,7 @@ import { tyreAPI } from "../../../api/tyreAPI";
 // import { DeleteModal } from "./DeleteModal";
 import { useSelector } from "react-redux";
 import { LoadingSpinner } from "../../../utils/LoadingSpinner";
+import { toast } from "../../../utils/toast";
 import { TyreForm } from "./TyreForm";
 import { TyreList } from "./TyreList";
 import { TyreStats } from "./TyreStats";
@@ -426,8 +427,9 @@ export const TyreDashboard = ({ vehicles = [] }) => {
         setShowForm(false);
         setEditingTyre(null);
 
-        // Show success message
-        alert(`Tyre ${editingTyre ? "updated" : "added"} successfully!`);
+        toast.success(
+          `Tyre ${editingTyre ? "updated" : "added"} successfully!`
+        );
       } else {
         throw new Error(response.message || "Failed to save tyre");
       }

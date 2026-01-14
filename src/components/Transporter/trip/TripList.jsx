@@ -1,23 +1,23 @@
 import {
-  Edit,
-  Trash2,
-  Eye,
-  Navigation,
-  MapPin,
-  MoreVertical,
-  ChevronRight,
-  Car,
-  User,
-  Calendar,
-  Clock,
-  CheckCircle,
   AlertCircle,
+  Calendar,
+  Car,
+  CheckCircle,
+  ChevronRight,
+  Clock,
+  Edit,
+  IndianRupee,
+  Loader2,
+  MapPin,
+  Navigation,
+  Package,
   Play,
   StopCircle,
-  IndianRupee,
-  Package
+  User,
 } from "lucide-react";
 import { useState } from "react";
+import apiClient from "../../../api/apiClient";
+import { toast } from "../../../utils/toast";
 import AddressDisplay from "../../QuortsView/AddressDisplay";
 
 export const TripList = ({
@@ -29,69 +29,171 @@ export const TripList = ({
   onStartTrip,
   onCompleteTrip,
   selectedTrips,
-  onSelectTrip
+  onSelectTrip,
+  onRefresh, // Add refresh callback to update trip list
 }) => {
   const [expandedId, setExpandedId] = useState(null);
+  const [loadingTripId, setLoadingTripId] = useState(null);
+  const [loadingAction, setLoadingAction] = useState(null); // 'start' or 'complete'
 
   const handleSelectAll = () => {
     if (selectedTrips.length === trips.length) {
       onSelectTrip([]);
     } else {
-      onSelectTrip(trips.map(t => t.id));
+      onSelectTrip(trips.map((t) => t.id));
     }
   };
 
   const handleSelectTrip = (id) => {
     if (selectedTrips.includes(id)) {
-      onSelectTrip(selectedTrips.filter(tId => tId !== id));
+      onSelectTrip(selectedTrips.filter((tId) => tId !== id));
     } else {
       onSelectTrip([...selectedTrips, id]);
     }
   };
 
+  // API function to update trip status
+  const updateTripStatus = async (tripId, status) => {
+    try {
+      setLoadingTripId(tripId);
+      setLoadingAction(status === "START" ? "start" : "complete");
+
+      const response = await apiClient.put(
+        `/api/trip/trip/${tripId}/status`,
+        null,
+        {
+          params: { status },
+        }
+      );
+
+      console.log("Trip status update response:", response);
+
+      if (response?.status) {
+        const successMessage =
+          response?.paramObjectsMap?.message ||
+          (status === "START"
+            ? "Trip started successfully"
+            : "Trip completed successfully");
+
+        toast.success(successMessage, {
+          autoClose: 5000,
+        });
+
+        // Call the parent callback to update the trip status in the UI
+        if (status === "START" && onStartTrip) {
+          onStartTrip(tripId);
+        } else if (status === "END" && onCompleteTrip) {
+          onCompleteTrip(tripId);
+        }
+
+        // Call onStatusChange if provided
+        if (onStatusChange) {
+          onStatusChange(
+            tripId,
+            status === "START" ? "in_progress" : "COMPLETED"
+          );
+        }
+
+        // Refresh the trip list
+        if (onRefresh) {
+          onRefresh();
+        }
+
+        return true;
+      } else {
+        const errorMessage =
+          response?.paramObjectsMap?.message || "Failed to update trip status";
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error(`Error updating trip status to ${status}:`, error);
+
+      toast.error(
+        error.message ||
+          `Failed to ${status === "START" ? "start" : "complete"} trip`,
+        {
+          position: "top-right",
+          autoClose: 4000,
+        }
+      );
+
+      return false;
+    } finally {
+      setLoadingTripId(null);
+      setLoadingAction(null);
+    }
+  };
+
+  // Handle start trip
+  const handleStartTrip = async (tripId) => {
+    const success = await updateTripStatus(tripId, "START");
+    if (success) {
+      setExpandedId(null); // Collapse the expanded view
+    }
+  };
+
+  // Handle complete trip
+  const handleCompleteTrip = async (tripId) => {
+    const success = await updateTripStatus(tripId, "END");
+    if (success) {
+      setExpandedId(null); // Collapse the expanded view
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed': return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300';
-      case 'in_progress': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
-      case 'scheduled': return 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300';
-      case 'pending': return 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300';
-      case 'cancelled': return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300';
-      default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300';
+      case "COMPLETED":
+        return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300";
+      case "in_progress":
+        return "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300";
+      case "scheduled":
+        return "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300";
+      case "pending":
+        return "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300";
+      case "cancelled":
+        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300";
+      default:
+        return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300";
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'completed': return <CheckCircle className="h-3 w-3" />;
-      case 'in_progress': return <Clock className="h-3 w-3" />;
-      case 'scheduled': return <Calendar className="h-3 w-3" />;
-      case 'pending': return <AlertCircle className="h-3 w-3" />;
-      default: return <AlertCircle className="h-3 w-3" />;
+      case "COMPLETED":
+        return <CheckCircle className="h-3 w-3" />;
+      case "in_progress":
+        return <Clock className="h-3 w-3" />;
+      case "scheduled":
+        return <Calendar className="h-3 w-3" />;
+      case "pending":
+        return <AlertCircle className="h-3 w-3" />;
+      default:
+        return <AlertCircle className="h-3 w-3" />;
     }
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short'
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
     });
   };
 
   const formatTime = (timeString) => {
-    if (!timeString) return '';
+    if (!timeString) return "";
     return timeString;
   };
 
   const getProgressPercentage = (trip) => {
-    if (trip.status === 'completed') return 100;
-    if (trip.status === 'in_progress') return 50;
-    if (trip.status === 'scheduled') return 10;
+    if (trip.status === "COMPLETED") return 100;
+    if (trip.status === "in_progress") return 50;
+    if (trip.status === "scheduled") return 10;
     return 0;
   };
 
   const calculateTimeRemaining = (trip) => {
-    if (trip.status !== 'in_progress') return null;
+    if (trip.status !== "in_progress") return null;
 
     const start = new Date(`${trip.startDate}T${trip.startTime}`);
     const now = new Date();
@@ -99,7 +201,7 @@ export const TripList = ({
     const estimatedMs = parseFloat(trip.estimatedDuration) * 60 * 60 * 1000;
     const remainingMs = estimatedMs - elapsed;
 
-    if (remainingMs <= 0) return 'Overdue';
+    if (remainingMs <= 0) return "Overdue";
 
     const hours = Math.floor(remainingMs / (1000 * 60 * 60));
     const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -107,17 +209,28 @@ export const TripList = ({
     return `${hours}h ${minutes}m`;
   };
 
+  // Check if trip can be started
+  const canStartTrip = (trip) => {
+    return trip.status === "scheduled" || trip.status === "pending";
+  };
+
+  // Check if trip can be COMPLETED
+  const canCompleteTrip = (trip) => {
+    return trip.status === "STARTED";
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* Table Header */}
-      {/* Table Header - UPDATED */}
       <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
         <div className="flex items-center justify-between">
           {/* Left Side - matches body structure */}
           <div className="flex items-center gap-4">
             <input
               type="checkbox"
-              checked={trips.length > 0 && selectedTrips.length === trips.length}
+              checked={
+                trips.length > 0 && selectedTrips.length === trips.length
+              }
               onChange={handleSelectAll}
               className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
             />
@@ -171,12 +284,16 @@ export const TripList = ({
           trips.map((trip) => {
             const timeRemaining = calculateTimeRemaining(trip);
             const progress = getProgressPercentage(trip);
+            const isTripLoading = loadingTripId === trip.id;
 
             return (
               <div
                 key={trip.id}
-                className={`px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors ${selectedTrips.includes(trip.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                  }`}
+                className={`px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors ${
+                  selectedTrips.includes(trip.id)
+                    ? "bg-blue-50 dark:bg-blue-900/20"
+                    : ""
+                }`}
               >
                 <div className="flex items-center justify-between">
                   {/* Left Side */}
@@ -190,16 +307,28 @@ export const TripList = ({
 
                     {/* Trip Info */}
                     <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl ${trip.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/20' :
-                        trip.status === 'in_progress' ? 'bg-blue-100 dark:bg-blue-900/20' :
-                          trip.status === 'scheduled' ? 'bg-cyan-100 dark:bg-cyan-900/20' :
-                            'bg-amber-100 dark:bg-amber-900/20'
-                        }`}>
-                        <Navigation className={`h-5 w-5 ${trip.status === 'completed' ? 'text-emerald-600 dark:text-emerald-400' :
-                          trip.status === 'in_progress' ? 'text-blue-600 dark:text-blue-400' :
-                            trip.status === 'scheduled' ? 'text-cyan-600 dark:text-cyan-400' :
-                              'text-amber-600 dark:text-amber-400'
-                          }`} />
+                      <div
+                        className={`p-3 rounded-xl ${
+                          trip.status === "COMPLETED"
+                            ? "bg-emerald-100 dark:bg-emerald-900/20"
+                            : trip.status === "in_progress"
+                            ? "bg-blue-100 dark:bg-blue-900/20"
+                            : trip.status === "scheduled"
+                            ? "bg-cyan-100 dark:bg-cyan-900/20"
+                            : "bg-amber-100 dark:bg-amber-900/20"
+                        }`}
+                      >
+                        <Navigation
+                          className={`h-5 w-5 ${
+                            trip.status === "COMPLETED"
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : trip.status === "in_progress"
+                              ? "text-blue-600 dark:text-blue-400"
+                              : trip.status === "scheduled"
+                              ? "text-cyan-600 dark:text-cyan-400"
+                              : "text-amber-600 dark:text-amber-400"
+                          }`}
+                        />
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -207,16 +336,24 @@ export const TripList = ({
                           <h4 className="font-medium text-gray-900 dark:text-white">
                             {trip.tripNumber}
                           </h4>
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(trip.status)}`}>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                              trip?.status
+                            )}`}
+                          >
                             {getStatusIcon(trip.status)}
-                            {trip.status.charAt(0).toUpperCase() + trip.status.slice(1).replace('_', ' ')}
+                            {trip?.status.charAt(0).toUpperCase() +
+                              trip?.status.slice(1).replace("_", " ")}
                           </span>
                         </div>
 
                         {/* Route Info - Using AddressDisplay */}
                         <div className="space-y-2 mb-2 max-w-[300px]">
                           <AddressDisplay label="From" address={trip.source} />
-                          <AddressDisplay label="To" address={trip.destination} />
+                          <AddressDisplay
+                            label="To"
+                            address={trip.destination}
+                          />
                         </div>
 
                         {/* Trip Details */}
@@ -233,7 +370,8 @@ export const TripList = ({
                           <span>•</span>
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {formatDate(trip.startDate)} {formatTime(trip.startTime)}
+                            {formatDate(trip.startDate)}{" "}
+                            {formatTime(trip.startTime)}
                           </span>
                           {trip.goodsType && (
                             <>
@@ -258,10 +396,13 @@ export const TripList = ({
                           </div>
                           <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div
-                              className={`h-full rounded-full ${trip.status === 'completed' ? 'bg-emerald-500' :
-                                trip.status === 'in_progress' ? 'bg-blue-500' :
-                                  'bg-cyan-500'
-                                }`}
+                              className={`h-full rounded-full ${
+                                trip.status === "COMPLETED"
+                                  ? "bg-emerald-500"
+                                  : trip.status === "in_progress"
+                                  ? "bg-blue-500"
+                                  : "bg-cyan-500"
+                              }`}
                               style={{ width: `${progress}%` }}
                             />
                           </div>
@@ -301,9 +442,13 @@ export const TripList = ({
                     {timeRemaining && (
                       <div className="hidden xl:block">
                         <div className="text-right">
-                          <div className={`text-sm font-medium ${timeRemaining === 'Overdue' ? 'text-red-600 dark:text-red-400' :
-                            'text-gray-900 dark:text-white'
-                            }`}>
+                          <div
+                            className={`text-sm font-medium ${
+                              timeRemaining === "Overdue"
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-gray-900 dark:text-white"
+                            }`}
+                          >
                             {timeRemaining}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -315,28 +460,39 @@ export const TripList = ({
 
                     {/* Actions */}
                     <div className="flex items-center gap-0">
-                      {/* Start Trip (keeps alignment even when hidden) */}
+                      {/* Start Trip */}
                       <div className="w-[20px] flex justify-center">
-                        {trip.status === "scheduled" && (
+                        {canStartTrip(trip) && (
                           <button
-                            onClick={() => onStartTrip(trip.id)}
-                            className="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"
+                            onClick={() => handleStartTrip(trip.id)}
+                            disabled={isTripLoading}
+                            className="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Start trip"
                           >
-                            <Play className="h-4 w-4" />
+                            {isTripLoading && loadingAction === "start" ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
                           </button>
                         )}
                       </div>
 
-                      {trip.status === 'in_progress' ? (
+                      {/* Complete Trip */}
+                      {canCompleteTrip(trip) && (
                         <button
-                          onClick={() => onCompleteTrip(trip.id)}
-                          className="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"
+                          onClick={() => handleCompleteTrip(trip.id)}
+                          disabled={isTripLoading}
+                          className="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Complete trip"
                         >
-                          <StopCircle className="h-4 w-4" />
+                          {isTripLoading && loadingAction === "complete" ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <StopCircle className="h-4 w-4" />
+                          )}
                         </button>
-                      ) : ''}
+                      )}
 
                       <button
                         onClick={() => onViewMap(trip)}
@@ -355,10 +511,16 @@ export const TripList = ({
                       </button>
 
                       <button
-                        onClick={() => setExpandedId(expandedId === trip.id ? null : trip.id)}
+                        onClick={() =>
+                          setExpandedId(expandedId === trip.id ? null : trip.id)
+                        }
                         className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                       >
-                        <ChevronRight className={`h-4 w-4 transition-transform ${expandedId === trip.id ? 'rotate-90' : ''}`} />
+                        <ChevronRight
+                          className={`h-4 w-4 transition-transform ${
+                            expandedId === trip.id ? "rotate-90" : ""
+                          }`}
+                        />
                       </button>
                     </div>
                   </div>
@@ -370,39 +532,56 @@ export const TripList = ({
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {/* Customer Details */}
                       <div>
-                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Customer Details</h5>
+                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                          Customer Details
+                        </h5>
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-900 dark:text-white">{trip.customerName}</span>
+                            <span className="text-sm text-gray-900 dark:text-white">
+                              {trip.customerName}
+                            </span>
                           </div>
                           <div className="text-sm text-gray-600 dark:text-gray-400">
                             {trip.customerContact}
                           </div>
                           <div className="text-sm text-gray-600 dark:text-gray-400">
-                            Trip Type: {trip.tripType?.replace('_', ' ')}
+                            Trip Type: {trip.tripType?.replace("_", " ")}
                           </div>
                         </div>
                       </div>
 
                       {/* Trip Details */}
                       <div>
-                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Trip Details</h5>
+                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                          Trip Details
+                        </h5>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Start:</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Start:
+                            </span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
-                              {formatDate(trip.startDate)} {formatTime(trip.startTime)}
+                              {formatDate(trip.startDate)}{" "}
+                              {formatTime(trip.startTime)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">End:</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              End:
+                            </span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
-                              {trip.endDate ? `${formatDate(trip.endDate)} ${formatTime(trip.endTime)}` : 'Ongoing'}
+                              {trip.endDate
+                                ? `${formatDate(trip.endDate)} ${formatTime(
+                                    trip.endTime
+                                  )}`
+                                : "Ongoing"}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Duration:</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Duration:
+                            </span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {trip.actualDuration || trip.estimatedDuration}
                             </span>
@@ -412,22 +591,30 @@ export const TripList = ({
 
                       {/* Financial Summary */}
                       <div>
-                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Financial Summary</h5>
+                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                          Financial Summary
+                        </h5>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Trip Cost:</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Trip Cost:
+                            </span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                               ₹{trip.tripCost?.toLocaleString()}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Revenue:</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Revenue:
+                            </span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                               ₹{trip.revenue?.toLocaleString()}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Profit:</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Profit:
+                            </span>
                             <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                               ₹{trip.profit?.toLocaleString()}
                             </span>
@@ -437,21 +624,35 @@ export const TripList = ({
                     </div>
 
                     {/* Goods Details */}
-                    {trip.goodsType && trip.goodsType !== 'Empty' && (
+                    {trip.goodsType && trip.goodsType !== "Empty" && (
                       <div className="mt-6">
-                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Goods Information</h5>
+                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                          Goods Information
+                        </h5>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                            <div className="text-sm text-gray-600 dark:text-gray-400">Type</div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">{trip.goodsType}</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              Type
+                            </div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {trip.goodsType}
+                            </div>
                           </div>
                           <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                            <div className="text-sm text-gray-600 dark:text-gray-400">Weight</div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">{trip.goodsWeight} tons</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              Weight
+                            </div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {trip.goodsWeight} tons
+                            </div>
                           </div>
                           <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                            <div className="text-sm text-gray-600 dark:text-gray-400">Value</div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">₹{trip.goodsValue?.toLocaleString()}</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              Value
+                            </div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              ₹{trip.goodsValue?.toLocaleString()}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -466,24 +667,37 @@ export const TripList = ({
                         <MapPin className="h-4 w-4" />
                         View on Map
                       </button>
-                      {trip.status === 'scheduled' && (
+
+                      {canStartTrip(trip) && (
                         <button
-                          onClick={() => onStartTrip(trip.id)}
-                          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                          onClick={() => handleStartTrip(trip.id)}
+                          disabled={isTripLoading}
+                          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Play className="h-4 w-4" />
+                          {isTripLoading && loadingAction === "start" ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Play className="h-4 w-4" />
+                          )}
                           Start Trip
                         </button>
                       )}
-                      {trip.status === 'in_progress' && (
+
+                      {canCompleteTrip(trip) && (
                         <button
-                          onClick={() => onCompleteTrip(trip.id)}
-                          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                          onClick={() => handleCompleteTrip(trip.id)}
+                          disabled={isTripLoading}
+                          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <StopCircle className="h-4 w-4" />
+                          {isTripLoading && loadingAction === "complete" ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <StopCircle className="h-4 w-4" />
+                          )}
                           Complete Trip
                         </button>
                       )}
+
                       <button
                         onClick={() => onEdit(trip)}
                         className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"

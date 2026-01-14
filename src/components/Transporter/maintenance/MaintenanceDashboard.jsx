@@ -8,6 +8,7 @@ import { MaintenanceForm } from "./MaintenanceForm";
 import { MaintenanceList } from "./MaintenanceList";
 import { MaintenanceSchedule } from "./MaintenanceSchedule";
 import { MaintenanceStats } from "./MaintenanceStats";
+import { useSelector } from "react-redux";
 
 export const MaintenanceDashboard = () => {
   const [maintenanceRecords, setMaintenanceRecords] = useState([]);
@@ -36,7 +37,8 @@ export const MaintenanceDashboard = () => {
   });
 
   // Organization ID - should come from auth context or props
-  const orgId = "1000000001";
+   const { user } = useSelector((state) => state.auth);
+  const orgId = user.orgId;
 
   // Fetch maintenance records
   // useEffect(() => {

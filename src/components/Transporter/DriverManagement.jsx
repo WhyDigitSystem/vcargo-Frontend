@@ -404,7 +404,6 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
 
       // Get user info
       const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
-      const orgId = localStorage.getItem("orgId") || 1001;
       const userName = localStorage.getItem("userName") || "Admin User";
 
       // Prepare the driver data object
@@ -1587,6 +1586,7 @@ const DriverManagement = () => {
   const [itemsPerPage] = useState(10);
   const [notification, setNotification] = useState({ type: "", message: "" });
   const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
+
   const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
   // Show notification
@@ -2331,7 +2331,9 @@ const DriverManagement = () => {
           <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl max-h-[85vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
-              <h2 className="text-lg font-semibold">Driver Details</h2>
+              <h2 className="text-lg font-semibold dark:text-white">
+                Driver Details
+              </h2>
               <button
                 onClick={() => setViewDriver(null)}
                 className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
@@ -2435,7 +2437,7 @@ const DriverManagement = () => {
             <div className="flex justify-end gap-2 px-4 py-3 border-t dark:border-gray-700">
               <button
                 onClick={() => setViewDriver(null)}
-                className="px-3 py-1.5 border rounded text-sm"
+                className="px-3 py-1.5 border rounded text-sm dark:text-white"
               >
                 Close
               </button>

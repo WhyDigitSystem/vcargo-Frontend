@@ -7,18 +7,19 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { driverAPI } from "../../api/driverAPI";
 import { fuelAPI } from "../../api/fuelAPI";
+import vehicleAPI from "../../api/TvehicleAPI";
 import { LoadingSpinner } from "../../utils/LoadingSpinner";
+import { toast } from "../../utils/toast";
 import { FuelAnalytics } from "./fuel/FuelAnalytics";
 import { FuelEntriesGrid } from "./fuel/FuelEntriesGrid";
 import { FuelEntriesList } from "./fuel/FuelEntriesList";
 import { DeleteModal, EmptyState, FuelEntryModal } from "./fuel/FuelModals";
 import { FuelReports } from "./fuel/FuelReports";
 import { FuelStats } from "./fuel/FuelStats";
-import { useSelector } from "react-redux";
-import vehicleAPI from "../../api/TvehicleAPI";
 
 const FuelManagement = () => {
   const navigate = useNavigate();
@@ -98,7 +99,7 @@ const FuelManagement = () => {
       setLoading(true);
 
       // Load vehicles from API
-      const vehiclesResponse = await vehicleAPI.getAllVehicles(1, 100,orgId);
+      const vehiclesResponse = await vehicleAPI.getAllVehicles(1, 100, orgId);
       const vehicleList = vehiclesResponse.vehicles.map((vehicle) => ({
         id: vehicle.id,
         vehicleId: vehicle.vehicleNumber,
@@ -139,7 +140,7 @@ const FuelManagement = () => {
   const loadFuel = async () => {
     try {
       setLoading(true);
-      const response = await fuelAPI.getAllFuel(1, 100,orgId);
+      const response = await fuelAPI.getAllFuel(1, 100, orgId);
       console.log("Fuel API response:", response);
 
       if (response.fuelEntries && response.fuelEntries.length > 0) {
@@ -185,9 +186,6 @@ const FuelManagement = () => {
         calculateStats(formattedEntries);
       } else {
         // Use sample data if no entries
-        setFuelEntries(sampleData.fuelEntries);
-        setFilteredEntries(sampleData.fuelEntries);
-        calculateStats(sampleData.fuelEntries);
       }
     } catch (error) {
       console.error("Error loading fuel entries:", error);
@@ -462,9 +460,8 @@ const FuelManagement = () => {
         setShowFuelModal(false);
         setSelectedForEdit(null);
 
-        // Show success message
-        alert(
-          `Fuel entry ${mode === "add" ? "added" : "updated"} successfully!`
+        toast.success(
+          `Fuel entry ${mode === "add" ? "added" : "updated"} successfully`
         );
       } else {
         throw new Error(response.message || "Failed to save fuel entry");

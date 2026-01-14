@@ -136,7 +136,6 @@ createUpdateFuel: async (fuelData) => {
 
     // Get user info
     const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
-    const orgId = localStorage.getItem("orgId") || 1001;
     const userName = localStorage.getItem("userName") || "Admin User";
 
     // Prepare the payload
@@ -170,7 +169,7 @@ createUpdateFuel: async (fuelData) => {
       notes: fuelData.notes || "",
       branchCode: fuelData.branchCode || "MAIN",
       branchName: fuelData.branchName || "Main Branch",
-      orgId: parseInt(orgId),
+      orgId: fuelData.orgId,
       createdBy: userId,
       userName: userName,
     };

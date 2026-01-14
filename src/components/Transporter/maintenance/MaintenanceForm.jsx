@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { maintananceAPI } from "../../../api/maintananceAPI";
+import { useSelector } from "react-redux";
 
 export const MaintenanceForm = ({
   record = null,
@@ -40,7 +41,8 @@ export const MaintenanceForm = ({
   const [loading, setLoading] = useState(false);
 
   // Organization ID - should come from context
-  const orgId = "1000000001";
+    const { user } = useSelector((state) => state.auth);
+    const orgId = user.orgId;
   const branchCode = "BLR";
   const branchName = "Bangalore";
   const createdBy = "Justin"; // Should come from user context
