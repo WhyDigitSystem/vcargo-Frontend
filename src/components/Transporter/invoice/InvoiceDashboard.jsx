@@ -68,6 +68,7 @@ export const InvoiceDashboard = () => {
         vehicleId: inv.vehicleId,
         vehicleNumber: inv.vehicleNumber,
         driverId: inv.driverId,
+        driverName: inv.driverName,
         driverNumber: inv.driverNumber,
         tripId: inv.tripId,
         tripDetails: inv.tripDetails,

@@ -195,10 +195,12 @@ export const InvoiceForm = ({
   });
 
   const handleTripSelect = (tripId) => {
-    const selectedTrip = tripsDetails.find(trip => trip.id === parseInt(tripId));
+    const selectedTrip = tripsDetails.find(
+      (trip) => trip.id === parseInt(tripId)
+    );
 
     if (selectedTrip) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         tripId: selectedTrip.id,
         tripDetails: `${selectedTrip.source} to ${selectedTrip.destination}`,
@@ -208,7 +210,7 @@ export const InvoiceForm = ({
         items: [
           {
             id: "ITEM-001",
-            description: `Transportation from ${selectedTrip.source} to ${selectedTrip.destination}`,
+            description: "",
             quantity: 1,
             unit: "trip",
             rate: selectedTrip.revenue || 0,

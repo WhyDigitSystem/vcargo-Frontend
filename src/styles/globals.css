@@ -26,7 +26,32 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-out forwards;
-}
+@layer utilities {
+  /* Invoice-only override for AddressDisplay */
+  .invoice-trip-details {
+    background-color: white;
+  }
 
+  /* Force text color */
+  .invoice-trip-details p,
+  .invoice-trip-details span,
+  .invoice-trip-details div {
+    color: #111827 !important; /* text-gray-900 */
+  }
+
+  /* Fix lucide icons */
+  .invoice-trip-details svg {
+    stroke: #111827 !important;
+  }
+
+  /* Fix dark backgrounds inside AddressDisplay */
+  .dark .invoice-trip-details .bg-gray-800,
+  .dark .invoice-trip-details [class*="bg-gray-800"] {
+    background-color: #f9fafb !important;
+  }
+
+  /* Fix dark borders */
+  .dark .invoice-trip-details [class*="border-gray-700"] {
+    border-color: #e5e7eb !important;
+  }
+}

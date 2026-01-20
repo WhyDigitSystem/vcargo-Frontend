@@ -12,13 +12,18 @@ import {
 } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
+import { companyProfileAPI } from "../../../api/companyProfileAPI";
+import AddressDisplay from "../../QuortsView/AddressDisplay";
 
 export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
   const { user } = useSelector((state) => state.auth);
   const organizationName = user.organizationName;
   const pdfRef = useRef();
+  const [companyProfile, setCompanyProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-IN", {
@@ -43,40 +48,206 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
     }
   };
 
+  useEffect(() => {
+    loadCompanyProfile();
+  }, []);
+
+  const loadCompanyProfile = async () => {
+    setLoading(true);
+    try {
+      const res = await companyProfileAPI.getAllCompanyProfile({
+        count: 10,
+        page: 1,
+        orgId: user.orgId
+      });
+
+      const profileData = res?.paramObjectsMap?.companyProfile?.data?.[0];
+      if (profileData) {
+        setCompanyProfile(profileData);
+      }
+    } catch (err) {
+      console.error("Failed to load company profile", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getPrimaryAddress = () => {
+    if (!companyProfile?.companyAddresses || companyProfile.companyAddresses.length === 0) {
+      return null;
+    }
+    // First try to find primary address, otherwise use first address
+    return companyProfile.companyAddresses.find(addr => addr.primary) || companyProfile.companyAddresses[0];
+  };
+
+  const getBillingAddress = () => {
+    const primaryAddress = getPrimaryAddress();
+    return primaryAddress?.billingAddress || "";
+  };
+
+  const getShippingAddress = () => {
+    const primaryAddress = getPrimaryAddress();
+    return primaryAddress?.shippingAddress || "";
+  };
+
+  const getPrimaryBankDetails = () => {
+    // Check if bank details exist in the API response structure
+    if (companyProfile?.companyBankDetailsResponseDTO?.length > 0) {
+      return companyProfile.companyBankDetailsResponseDTO.find(
+        (bank) => bank.primary
+      ) || companyProfile.companyBankDetailsResponseDTO[0];
+    }
+
+    // Fallback to main company profile bank details if separate bank details not available
+    if (companyProfile?.bankName) {
+      return {
+        bankName: companyProfile.bankName,
+        accountHolderName: companyProfile.accountHolderName || companyProfile.ownerName,
+        accountNumber: companyProfile.accountNumber,
+        ifscCode: companyProfile.ifscCode,
+        branch: companyProfile.branch || "Chennai"
+      };
+    }
+
+    return null;
+  };
+
+  const renderTermsAndConditions = () => {
+    if (!companyProfile?.termsAndConditions) {
+      // Return default terms
+      return (
+        <>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 font-bold mt-0.5">•</span>
+            <span>Payment due within 30 days of invoice date</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 font-bold mt-0.5">•</span>
+            <span>1.5% monthly late fee on overdue payments</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-600 font-bold mt-0.5">•</span>
+            <span>Disputes must be raised within 7 days</span>
+          </li>
+        </>
+      );
+    }
+
+    return companyProfile.termsAndConditions.split('\n').map((term, index) => (
+      <li key={index} className="flex items-start gap-2">
+        <span className="text-blue-600 font-bold mt-0.5">•</span>
+        <span>{term.trim()}</span>
+      </li>
+    ));
+  };
+
   const handleDownloadPDF = async () => {
     const element = pdfRef.current;
 
-    const canvas = await html2canvas(element, {
-      scale: 2,                // HIGH QUALITY
-      useCORS: true,
-      backgroundColor: "#ffffff",
-    });
+    // Save original styles
+    const originalPadding = element.style.padding;
+    const originalBoxSizing = element.style.boxSizing;
 
-    const imgData = canvas.toDataURL("image/png");
+    // Hide action buttons
+    const actionButtons = element.querySelector(".action-buttons-container");
+    const headerButtons = element.querySelector(".header-action-buttons");
 
-    const pdf = new jsPDF("p", "mm", "a4");
+    const originalActionDisplay = actionButtons?.style.display || "";
+    const originalHeaderDisplay = headerButtons?.style.display || "";
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+    if (actionButtons) actionButtons.style.display = "none";
+    if (headerButtons) headerButtons.style.display = "none";
 
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    // ✅ ADD PADDING ONLY FOR PDF
+    element.style.padding = "8px"; // p-2
+    element.style.boxSizing = "border-box";
 
-    let heightLeft = imgHeight;
-    let position = 0;
+    try {
+      element.classList.add("pdf-mode");
 
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        ignoreElements: (el) =>
+          el.classList?.contains("ignore-in-pdf") ||
+          el.classList?.contains("action-buttons-container") ||
+          el.classList?.contains("header-action-buttons"),
+      });
 
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
       pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
-    }
 
-    pdf.save(`Invoice_${invoice.invoiceNumber || invoice.id}.pdf`);
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`Invoice_${invoice.invoiceNumber || invoice.id}.pdf`);
+    } finally {
+      element.classList.remove("pdf-mode");
+      // 🔁 RESTORE STYLES
+      element.style.padding = originalPadding;
+      element.style.boxSizing = originalBoxSizing;
+
+      if (actionButtons) actionButtons.style.display = originalActionDisplay;
+      if (headerButtons) headerButtons.style.display = originalHeaderDisplay;
+    }
   };
+
+  const formatTripDetails = (tripDetails = "") => {
+    if (!tripDetails) return "N/A";
+
+    // Normalize different separators to arrow
+    return tripDetails
+      .replace(/\s+to\s+/i, " → ")
+      .replace(/\s*->\s*/g, " → ")
+      .replace(/\s*→\s*/g, " → ");
+  };
+
+  const splitTripDetails = (tripDetails = "") => {
+    if (!tripDetails) return { from: "", to: "" };
+
+    const normalized = tripDetails
+      .replace(/\s+to\s+/i, " → ")
+      .replace(/\s*->\s*/g, " → ");
+
+    const [from, to] = normalized.split("→").map(s => s?.trim());
+
+    return { from, to };
+  };
+
+  const { from, to } = splitTripDetails(invoice.tripDetails);
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-5xl bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading company details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Get primary bank details
+  const primaryBank = getPrimaryBankDetails();
 
   return (
     <div ref={pdfRef} className="relative w-full max-w-5xl bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100">
@@ -88,23 +259,23 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
               <FileText className="h-4 w-4 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">
+              <h2 className="text-lg font-bold text-white tracking-tight">
                 INVOICE #{invoice.invoiceNumber}
               </h2>
-              <p className="text-blue-100 text-sm">Preview • {organizationName}</p>
+              <p className="text-blue-100 text-xs">Preview • {companyProfile?.companyName || organizationName}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="header-action-buttons flex items-center gap-2 ignore-in-pdf">
             <button
               onClick={onPrint}
-              className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all duration-200 border border-white/20 hover:border-white/40"
+              className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all duration-200 border border-white/20 hover:border-white/40 ignore-in-pdf"
               title="Print"
             >
               <Printer className="h-4 w-4" />
             </button>
             <button
               onClick={onClose}
-              className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all duration-200 border border-white/20 hover:border-white/40"
+              className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all duration-200 border border-white/20 hover:border-white/40 ignore-in-pdf"
               title="Close"
             >
               <X className="h-4 w-4" />
@@ -114,7 +285,7 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
       </div>
 
       {/* Invoice Content */}
-      <div className="p-6">
+      <div className="p-4">
         {/* Company & Status Header */}
         <div className="flex justify-between items-start mb-2 pb-2 border-b border-gray-100">
           <div className="space-y-3">
@@ -123,25 +294,25 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
                 <Building className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{organizationName}</h1>
+                <h1 className="text-xl font-bold text-gray-900">{companyProfile?.companyName || organizationName}</h1>
                 <p className="text-gray-600 text-sm">Professional Transportation & Logistics</p>
               </div>
             </div>
             <div className="space-y-1.5 text-gray-600 text-sm">
               <p className="flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5 text-gray-500" />
-                123 Business Street, Mumbai, Maharashtra 400001
+                {getBillingAddress()}
               </p>
               <p className="flex items-center gap-2">
                 <Phone className="h-3.5 w-3.5 text-gray-500" />
-                +91 98765 43210
+                {companyProfile?.phoneNo || "+91 98765 43210"}
               </p>
               <p className="flex items-center gap-2">
                 <Mail className="h-3.5 w-3.5 text-gray-500" />
-                accounts@transportsolutions.com
+                {companyProfile?.emailAddress || "accounts@transportsolutions.com"}
               </p>
               <p className="text-gray-500 text-xs mt-2 tracking-wide">
-                GSTIN: 27ABCDE1234F1Z5 | PAN: ABCDE1234F
+                GSTIN: {companyProfile?.gstNo || "27ABCDE1234F1Z5"} | PAN: {companyProfile?.panNo || "ABCDE1234F"}
               </p>
             </div>
           </div>
@@ -218,16 +389,29 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
                 </p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Driver</p>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+                  Driver
+                </p>
                 <p className="font-semibold text-gray-900 text-sm bg-gray-50 px-3 py-2 rounded-lg border">
-                  {invoice.driverNumber}
+                  {invoice.driverName || ""}
                 </p>
               </div>
-              <div className="col-span-2 space-y-1">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Trip Details</p>
-                <p className="font-medium text-gray-900 text-sm bg-gray-50 px-3 py-2 rounded-lg border">
-                  {invoice.tripDetails}
+
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+                  Driver No.
                 </p>
+                <p className="font-semibold text-gray-900 text-sm bg-gray-50 px-3 py-2 rounded-lg border">
+                  {invoice.driverNumber || ""}
+                </p>
+              </div>
+              <div className="col-span-2 space-y-3 invoice-trip-details">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+                  Trip Details
+                </p>
+
+                {from && <AddressDisplay label="From" address={from} />}
+                {to && <AddressDisplay label="To" address={to} />}
               </div>
             </div>
           </div>
@@ -235,7 +419,7 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
 
         {/* Items Table - Modern Design */}
         <div className="mb-2 overflow-hidden rounded-xl border border-gray-200 shadow-sm">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-6 py-4">
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-6 py-2">
             <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
               Invoice Items
             </h3>
@@ -243,19 +427,19 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
           <table className="w-full">
             <thead className="bg-white border-b border-gray-200">
               <tr>
-                <th className="py-4 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="py-2 px-6 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Description
                 </th>
-                <th className="py-4 px-6 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="py-2 px-6 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Quantity
                 </th>
-                <th className="py-4 px-6 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="py-2 px-6 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Unit
                 </th>
-                <th className="py-4 px-6 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="py-2 px-18 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Rate (₹)
                 </th>
-                <th className="py-4 px-6 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="py-2 px-18 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Amount (₹)
                 </th>
               </tr>
@@ -264,7 +448,7 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
               {invoice.items &&
                 invoice.items.map((item, index) => (
                   <tr key={index} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="py-3.5 px-6 text-gray-900 text-sm font-medium">{item.description}</td>
+                    <td className="py-3.5 px-6 text-gray-900 text-sm font-medium">{formatTripDetails(item.description)}</td>
                     <td className="py-3.5 px-6 text-center text-gray-700 text-sm">{item.quantity}</td>
                     <td className="py-3.5 px-6 text-center text-gray-600 text-sm font-medium">{item.unit}</td>
                     <td className="py-3.5 px-6 text-right text-gray-900 text-sm font-semibold">
@@ -335,14 +519,18 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
         </div>
 
         {/* Payment & Notes Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-2">
           <div>
             <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Payment Information</h4>
-            <div className="bg-gradient-to-b from-gray-50 to-white rounded-xl border border-gray-200 p-5">
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Payment Method</p>
-                  <p className="font-semibold text-gray-900 text-sm mt-1">{invoice.paymentMethod}</p>
+            <div className="bg-gradient-to-b from-gray-50 to-white rounded-xl border border-gray-200 p-3">
+              <div className="space-y-0">
+                <div className="flex items-center gap-4">
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+                    Payment Method
+                  </p> -
+                  <p className="text-sm font-semibold text-gray-900 capitalize">
+                    {invoice.paymentMethod?.replace("_", " ")}
+                  </p>
                 </div>
                 {invoice.paymentDate && (
                   <div>
@@ -374,57 +562,59 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
         </div>
 
         {/* Footer with Company Details */}
-        <div className="pt-4 border-t border-gray-200">
+        <div className="pt-2 border-t border-gray-200">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <h5 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">Terms & Conditions</h5>
               <ul className="text-xs text-gray-600 space-y-2">
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 font-bold mt-0.5">•</span>
-                  <span>Payment due within 30 days of invoice date</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 font-bold mt-0.5">•</span>
-                  <span>1.5% monthly late fee on overdue payments</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 font-bold mt-0.5">•</span>
-                  <span>Disputes must be raised within 7 days</span>
-                </li>
+                {renderTermsAndConditions()}
               </ul>
             </div>
             <div>
-              <h5 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">Bank Details</h5>
-              <div className="text-xs text-gray-600 space-y-1.5">
-                <p className="font-bold text-gray-900">State Bank of India</p>
-                <p>Account Name: Transport Solutions Ltd.</p>
-                <p>Account No: 1234 5678 9012</p>
-                <p>IFSC Code: SBIN0001234</p>
-                <p>Branch: Nariman Point, Mumbai - 400021</p>
-              </div>
+              <h5 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">
+                Bank Details
+              </h5>
+
+              {primaryBank ? (
+                <div className="text-xs text-gray-600 space-y-1.5">
+                  <p className="font-bold text-gray-900">{primaryBank.bankName}</p>
+                  <p>Account Name: {primaryBank.accountHolderName}</p>
+                  <p>Account No: {primaryBank.accountNumber}</p>
+                  <p>IFSC Code: {primaryBank.ifscCode}</p>
+                  <p>Branch: {primaryBank.branch}</p>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">No bank details available</p>
+              )}
             </div>
             <div>
               <h5 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">Contact Information</h5>
               <div className="text-xs text-gray-600 space-y-2">
                 <div className="flex items-center gap-2">
                   <Phone className="h-3.5 w-3.5 text-gray-500" />
-                  <span>+91 98765 43210 (Accounts)</span>
+                  <span>{companyProfile?.phoneNo || "+91 98765 43210"} (Accounts)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="h-3.5 w-3.5 text-gray-500" />
-                  <span>accounts@transportsolutions.com</span>
+                  <span>{companyProfile?.emailAddress || "accounts@transportsolutions.com"}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="h-3.5 w-3.5 text-gray-500" />
-                  <span>123 Business Street, Mumbai 400001</span>
+                  <span>{getBillingAddress()}</span>
                 </div>
+                {companyProfile?.website && (
+                  <div className="flex items-center gap-2">
+                    <span className="h-3.5 w-3.5 text-gray-500">🌐</span>
+                    <span>{companyProfile.website}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+          <div className="mt-8 pt-4 border-t border-gray-200 text-center">
             <p className="text-sm text-gray-600 font-medium">
-              Thank you for choosing Transport Solutions Ltd. We appreciate your business.
+              Thank you for choosing {companyProfile?.companyName || "Transport Solutions Ltd."}. We appreciate your business.
             </p>
             <p className="text-xs text-gray-400 mt-2">
               This is a system-generated invoice and is valid without signature.
@@ -433,13 +623,13 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
         </div>
       </div>
 
-      {/* Action Buttons - Sticky Bottom */}
-      <div className="sticky bottom-0 bg-gradient-to-r from-gray-50 to-white border-t border-gray-200 p-5 shadow-lg">
+      {/* Action Buttons - Sticky Bottom - Will be hidden in PDF */}
+      <div className="action-buttons-container sticky bottom-0 bg-gradient-to-r from-gray-50 to-white border-t border-gray-200 p-5 shadow-lg ignore-in-pdf">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-5 py-2.5 text-gray-700 hover:text-gray-900 text-sm font-medium hover:bg-gray-100 rounded-lg transition-all duration-200 border border-gray-300"
+              className="px-5 py-2.5 text-gray-700 hover:text-gray-900 text-sm font-medium hover:bg-gray-100 rounded-lg transition-all duration-200 border border-gray-300 ignore-in-pdf"
             >
               Close Preview
             </button>
@@ -449,24 +639,17 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
               onClick={() => {
                 /* Send email logic */
               }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-all duration-200 font-semibold shadow-sm hover:shadow"
+              className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-all duration-200 font-semibold shadow-sm hover:shadow ignore-in-pdf"
             >
               <Mail className="h-4 w-4" />
               Send Invoice
             </button>
             <button
               onClick={handleDownloadPDF}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition-all duration-200 font-semibold shadow-sm hover:shadow"
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-sm hover:shadow ignore-in-pdf"
             >
               <Download className="h-4 w-4" />
               Download PDF
-            </button>
-            <button
-              onClick={onPrint}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-sm hover:shadow"
-            >
-              <Printer className="h-4 w-4" />
-              Print Invoice
             </button>
           </div>
         </div>
