@@ -21,6 +21,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fasttagAPI } from "../../../api/fasttagAPI";
 import { useGoogleMaps } from "../../../hooks/useGoogleMaps";
 import AddressDisplay from "../../QuortsView/AddressDisplay";
 
@@ -44,19 +45,12 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
   const [lastUpdate, setLastUpdate] = useState(null);
   const [apiError, setApiError] = useState(null);
+  const [geocodingCache, setGeocodingCache] = useState({});
 
   const mapRef = useRef(null);
   const directionsServiceRef = useRef(null);
   const { isLoaded: mapsLoaded, loadError } = useGoogleMaps();
 
-  // Masters India API Configuration
-  const MASTERS_API_BASE = "https://api-platform.mastersindia.co/api/v2";
-  const AUTH_ENDPOINT = "/token-auth/";
-  const FASTAG_ENDPOINT = "/sbt/FASTAG/";
-
-  // API Credentials (Replace with your actual credentials)
-  const API_USERNAME = "info@whydigit.com";
-  const API_PASSWORD = "Masters@12345";
   const SUB_ID = process.env.REACT_APP_MASTERS_SUB_ID || "286413";
   const PRODUCT_ID = process.env.REACT_APP_MASTERS_PRODUCT_ID || "arap";
   const MODE = process.env.REACT_APP_MASTERS_MODE || "Buyer";
@@ -86,7 +80,6 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
   useEffect(() => {
     if (trip) {
       setSelectedTrip(trip);
-
       console.log("TRIP=>", trip);
     } else if (trips.length > 0) {
       setSelectedTrip(trips[0]);
@@ -121,175 +114,149 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
     setApiError(null);
 
     try {
-      const response = await fetch(`${MASTERS_API_BASE}${AUTH_ENDPOINT}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: API_USERNAME,
-          password: API_PASSWORD,
-        }),
-      });
+      const response = await fasttagAPI.getToken();
+      console.log("Token API Response =>", response);
 
-      if (!response.ok) {
-        throw new Error(`Authentication failed: ${response.status}`);
+      const accessToken = response?.paramObjectsMap?.token?.token;
+
+      if (!accessToken) {
+        throw new Error("Token not received");
       }
 
-      const data = await response.json();
+      setAuthToken(accessToken);
+      setConnectionStatus("authenticated");
 
-      if (data.token) {
-        setAuthToken(data.token);
-        console.log("Authentication successful");
-        setConnectionStatus("authenticated");
-      } else {
-        throw new Error("No token received");
-      }
+      return accessToken;
     } catch (error) {
-      console.error("Authentication error:", error);
-      setApiError(`Authentication failed: ${error.message}`);
+      console.error("FastTag auth error:", error);
+      setApiError("FastTag authentication failed");
       setConnectionStatus("auth_error");
+      return null;
     } finally {
       setIsAuthenticating(false);
     }
   };
 
-  const MOCK_FASTAG_RESPONSE = {
-    result: "SUCCESS",
-    respCode: "000",
-    ts: "2024-12-10T09:15:00",
-    vehicle: {
-      errCode: "000",
-      vehltxnList: {
-        totalTagsInMsg: "3",
-        msgNum: "1",
-        totalTagsInresponse: "3",
-        totalMsg: "1",
-        txn: [
-          {
-            readerReadTime: "2024-12-09 08:10:35.0",
-            seqNo: "bnglr-hsr-001",
-            laneDirection: "S",
-            tollPlazaGeocode: "12.865600,77.658900",
-            tollPlazaName: "ATTIBELE TOLL PLAZA",
-            vehicleType: "VC11",
-            vehicleRegNo: "KA01MQ0633",
-          },
-          {
-            readerReadTime: "2024-12-09 18:40:22.0",
-            seqNo: "tn-salem-003",
-            laneDirection: "S",
-            tollPlazaGeocode: "11.664300,78.146000",
-            tollPlazaName: "OMALUR TOLL PLAZA",
-            vehicleType: "VC11",
-            vehicleRegNo: "KA01MQ0633",
-          },
-          {
-            readerReadTime: "2024-12-09 21:55:47.0",
-            seqNo: "tn-trichy-004",
-            laneDirection: "S",
-            tollPlazaGeocode: "10.790500,78.704700",
-            tollPlazaName: "SAMAYAPURAM TOLL PLAZA",
-            vehicleType: "VC11",
-            vehicleRegNo: "KA01MQ0633",
-          },
-        ],
-      },
-    },
+  // Fallback coordinates for major toll plazas
+  const getFallbackCoordinates = (tollPlazaName) => {
+    const plazaCoordinates = {
+      "Pullur Toll Plaza": { lat: 17.385, lng: 78.4867 },
+      "Etturvattam Toll Plaza": { lat: 10.8505, lng: 76.2711 },
+      "Nanguneri Toll Plaza": { lat: 8.4967, lng: 77.695 },
+      "Salaipudur": { lat: 11.1271, lng: 78.6569 },
+      "Kappalur": { lat: 10.0985, lng: 78.07 },
+      "Omalur Toll Plaza": { lat: 11.7401, lng: 78.0406 },
+      "Kozhinjiipatti Plaza": { lat: 11.1085, lng: 78.0901 },
+      "Velanchettiyur": { lat: 10.9985, lng: 78.0901 },
+      "Rasampalayam Plaza": { lat: 11.2085, lng: 77.0901 },
+      "L&T Krishnagiri Thopur Toll P": { lat: 12.5186, lng: 78.2137 },
+      "ATTIBELLE": { lat: 12.9716, lng: 77.5946 },
+      "ELECTRONIC CITY Phase 1": { lat: 12.8456, lng: 77.6632 },
+      "Devanahalli Toll Plaza": { lat: 13.2333, lng: 77.6833 },
+      "Sakapur Toll plaza": { lat: 17.385, lng: 78.4867 },
+      "Raikal Toll Plaza": { lat: 17.685, lng: 78.2867 },
+      "Thirupathisaram Toll Plaza": { lat: 8.4061, lng: 77.0892 },
+      "Krishnagiri Plaza": { lat: 12.5186, lng: 78.2137 },
+      "Bagepalli Toll Plaza": { lat: 13.7833, lng: 77.7833 },
+      "Marur Toll Plaza": { lat: 14.0833, lng: 77.1667 },
+      "Kasepalli Toll Plaza": { lat: 17.125, lng: 79.3333 },
+      "Amakthadu Toll Plaza": { lat: 17.185, lng: 79.4333 },
+    };
+
+    // Try to find a match
+    for (const [key, coords] of Object.entries(plazaCoordinates)) {
+      if (tollPlazaName.includes(key) || key.includes(tollPlazaName)) {
+        return coords;
+      }
+    }
+
+    // Default fallback
+    return { lat: 20.5937, lng: 78.9629 };
   };
 
-  // Fetch Fastag data for a vehicle
-  const fetchFastagData = useCallback(
-    async (vehicleName) => {
-      if (!authToken || !vehicleName) {
-        setApiError("Authentication token or vehicle number missing");
-        return null;
-      }
+  // Geocode toll plaza names to get coordinates
+  const geocodeTollPlazas = useCallback(async (transactions) => {
+    if (!window.google || !window.google.maps || !window.google.maps.Geocoder) {
+      console.error("Google Maps Geocoder not available");
+      return transactions.map((toll) => ({
+        position: getFallbackCoordinates(toll.tollPlazaName),
+        title: toll.tollPlazaName,
+        type: "toll_plaza",
+        data: {
+          name: toll.tollPlazaName,
+          time: toll.readerReadTime,
+          direction: toll.laneDirection,
+          vehicleType: toll.vehicleType,
+          vehicleRegNo: toll.vehicleRegNo,
+        },
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          fillColor: "#8b5cf6",
+          fillOpacity: 0.7,
+          strokeColor: "#ffffff",
+          strokeWeight: 2,
+          scale: 7,
+        },
+      }));
+    }
 
-      setConnectionStatus("fetching");
-      setApiError(null);
+    const geocoder = new window.google.maps.Geocoder();
+    const markersWithCoords = [];
+
+    for (const toll of transactions) {
+      if (!toll.tollPlazaName) continue;
+
+      // Check cache first
+      if (geocodingCache[toll.tollPlazaName]) {
+        markersWithCoords.push({
+          position: geocodingCache[toll.tollPlazaName],
+          title: toll.tollPlazaName,
+          type: "toll_plaza",
+          data: {
+            name: toll.tollPlazaName,
+            time: toll.readerReadTime,
+            direction: toll.laneDirection,
+            vehicleType: toll.vehicleType,
+            vehicleRegNo: toll.vehicleRegNo,
+          },
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            fillColor: "#8b5cf6",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+            scale: 7,
+          },
+        });
+        continue;
+      }
 
       try {
-        const response = await fetch(`${MASTERS_API_BASE}${FASTAG_ENDPOINT}`, {
-          method: "POST",
-          headers: {
-            Authorization: `JWT ${authToken}`,
-            "Content-Type": "application/json",
-            Subid: SUB_ID,
-            Productid: PRODUCT_ID,
-            mode: MODE,
-          },
-          body: JSON.stringify({
-            vehiclenumber: vehicleName.toUpperCase().replace(/[-\s]/g, ""),
-          }),
+        const results = await new Promise((resolve, reject) => {
+          geocoder.geocode(
+            { address: `${toll.tollPlazaName}, India` },
+            (results, status) => {
+              if (status === "OK") {
+                resolve(results);
+              } else {
+                reject(new Error(`Geocoding failed: ${status}`));
+              }
+            }
+          );
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP Error: ${response.status}`);
-        }
+        if (results && results[0] && results[0].geometry) {
+          const location = results[0].geometry.location;
+          const position = { lat: location.lat(), lng: location.lng() };
+          
+          // Update cache
+          setGeocodingCache(prev => ({
+            ...prev,
+            [toll.tollPlazaName]: position
+          }));
 
-        const apiJson = await response.json();
-
-        // ✅ CORRECT PATH
-        const wrapper = apiJson?.data;
-        const responseBlock = wrapper?.response?.[0];
-        const fastagResponse = responseBlock?.response;
-
-        // ✅ REAL SUCCESS CASE
-        if (
-          wrapper?.error === "false" &&
-          responseBlock?.responseStatus === "SUCCESS" &&
-          fastagResponse?.result === "SUCCESS" &&
-          fastagResponse?.vehicle?.vehltxnList
-        ) {
-          setFastagData(fastagResponse);
-          setLastUpdate(new Date().toISOString());
-          setConnectionStatus("connected");
-          createTollPlazaMarkers(fastagResponse);
-          return fastagResponse;
-        }
-
-        // ⚠️ BUSINESS FAILURE (errCode 740 etc.)
-        console.warn(
-          "FASTag business failure:",
-          fastagResponse?.vehicle?.errCode
-        );
-
-        return applyMockFallback();
-      } catch (error) {
-        console.error("FASTag API technical error:", error);
-        return applyMockFallback();
-      }
-    },
-    [authToken, SUB_ID, PRODUCT_ID, MODE]
-  );
-
-  const applyMockFallback = () => {
-    setFastagData(MOCK_FASTAG_RESPONSE);
-    setLastUpdate(new Date().toISOString());
-    setConnectionStatus("mock_connected");
-    createTollPlazaMarkers(MOCK_FASTAG_RESPONSE);
-    return MOCK_FASTAG_RESPONSE;
-  };
-
-  // 🔁 Centralized mock handler
-
-  // Create toll plaza markers from API response
-  const createTollPlazaMarkers = (fastagResponse) => {
-    if (!fastagResponse?.vehicle?.vehltxnList?.txn) return;
-
-    const tollMarkers = [];
-    const tollPolylines = [];
-
-    fastagResponse.vehicle.vehltxnList.txn.forEach((toll, index) => {
-      if (toll.tollPlazaGeocode) {
-        const [latStr, lngStr] = toll.tollPlazaGeocode.split(",");
-        const lat = parseFloat(latStr.trim());
-        const lng = parseFloat(lngStr.trim());
-
-        if (!isNaN(lat) && !isNaN(lng)) {
-          tollMarkers.push({
-            position: { lat, lng },
+          markersWithCoords.push({
+            position,
             title: toll.tollPlazaName,
             type: "toll_plaza",
             data: {
@@ -297,7 +264,7 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
               time: toll.readerReadTime,
               direction: toll.laneDirection,
               vehicleType: toll.vehicleType,
-              sequence: index + 1,
+              vehicleRegNo: toll.vehicleRegNo,
             },
             icon: {
               path: window.google.maps.SymbolPath.CIRCLE,
@@ -309,17 +276,58 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
             },
           });
         }
+      } catch (error) {
+        console.warn(`Failed to geocode ${toll.tollPlazaName}:`, error);
+        // Create a marker with fallback position
+        const fallbackCoords = getFallbackCoordinates(toll.tollPlazaName);
+        markersWithCoords.push({
+          position: fallbackCoords,
+          title: toll.tollPlazaName,
+          type: "toll_plaza",
+          data: {
+            name: toll.tollPlazaName,
+            time: toll.readerReadTime,
+            direction: toll.laneDirection,
+            vehicleType: toll.vehicleType,
+            vehicleRegNo: toll.vehicleRegNo,
+          },
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            fillColor: "#8b5cf6",
+            fillOpacity: 0.7,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+            scale: 7,
+          },
+        });
       }
-    });
+    }
 
-    // Create path connecting toll plazas in chronological order
-    if (tollMarkers.length > 1) {
-      const sortedMarkers = [...tollMarkers].sort(
-        (a, b) => new Date(a.data.time) - new Date(b.data.time)
-      );
+    return markersWithCoords;
+  }, [geocodingCache]);
 
-      const path = sortedMarkers.map((marker) => marker.position);
+  // Create toll plaza markers from API response
+  const createTollPlazaMarkers = useCallback(async (transactions) => {
+    if (!transactions || !Array.isArray(transactions)) {
+      console.warn("No valid Fastag data received for markers");
+      return;
+    }
 
+    // Sort transactions chronologically
+    const sortedTransactions = [...transactions].sort(
+      (a, b) => new Date(a.readerReadTime) - new Date(b.readerReadTime)
+    );
+
+    // Geocode toll plazas to get coordinates
+    const tollMarkers = await geocodeTollPlazas(sortedTransactions);
+
+    // Create polylines if we have enough markers with coordinates
+    const tollPolylines = [];
+    const validMarkers = tollMarkers.filter(m => m.position !== null);
+    
+    if (validMarkers.length > 1) {
+      const path = validMarkers.map(marker => marker.position);
+      
       tollPolylines.push({
         path: path,
         options: {
@@ -333,22 +341,78 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
     }
 
     setTollPlazaMarkers(tollMarkers);
-
+    
     // Add toll polylines to existing polylines
     setPolylines((prev) => [...prev, ...tollPolylines]);
 
     // Center map on toll plazas if they exist
-    if (tollMarkers.length > 0) {
-      const bounds = new window.google.maps.LatLngBounds();
-      tollMarkers.forEach((marker) => {
-        bounds.extend(marker.position);
-      });
+    if (validMarkers.length > 0) {
+      setTimeout(() => {
+        if (mapRef.current && validMarkers.length > 0) {
+          const bounds = new window.google.maps.LatLngBounds();
+          validMarkers.forEach((marker) => {
+            bounds.extend(marker.position);
+          });
 
-      if (mapRef.current) {
-        mapRef.current.fitBounds(bounds);
-      }
+          mapRef.current.fitBounds(bounds);
+        }
+      }, 500);
     }
-  };
+
+    console.log(`Created ${tollMarkers.length} toll markers from Fastag data`);
+  }, [geocodeTollPlazas]);
+
+  // Fetch Fastag data for a vehicle
+  const fetchFastagData = useCallback(
+    async (vehicleNumber) => {
+      if (!authToken || !vehicleNumber) {
+        setApiError("Authentication token or vehicle number missing");
+        return null;
+      }
+
+      setConnectionStatus("fetching");
+      setApiError(null);
+
+      try {
+        const payload = {
+          mode: MODE,
+          productid: PRODUCT_ID,
+          subid: SUB_ID,
+          token: authToken,
+          vehiclenumber: vehicleNumber.toUpperCase().replace(/[-\s]/g, ""),
+        };
+
+        const data = await fasttagAPI.getFastagDetails(payload);
+        console.log("Fastag API Response =>", data);
+
+        const transactions = data?.paramObjectsMap?.fastagResponse?.transactions;
+
+        // ✅ SUCCESS CASE
+        if (data?.status === true && Array.isArray(transactions)) {
+          setFastagData(transactions);
+          setLastUpdate(new Date().toISOString());
+          setConnectionStatus("connected");
+          
+          // Create markers from transactions
+          if (transactions.length > 0) {
+            await createTollPlazaMarkers(transactions);
+          }
+          
+          return transactions;
+        }
+
+        console.warn("FASTag business failure:", data);
+        setConnectionStatus("no_data");
+        return null;
+      } catch (error) {
+        console.error("FASTag API technical error:", error);
+        setApiError(`Fastag API error: ${error.message}`);
+        setConnectionStatus("error");
+        return null;
+      }
+    },
+    [authToken, SUB_ID, PRODUCT_ID, MODE, createTollPlazaMarkers],
+  );
 
   // Map Zoom Functions
   const handleZoomIn = () => {
@@ -417,7 +481,7 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
       setApiError(`Tracking failed: ${error.message}`);
       setIsTrackingActive(false);
     }
-  }, [selectedTrip?.vehicleName, authToken, POLLING_INTERVAL, fetchFastagData]);
+  }, [selectedTrip?.vehicleName, authToken, POLLING_INTERVAL, fetchFastagData, authenticateWithMastersAPI]);
 
   // Stop tracking
   const stopTracking = useCallback(() => {
@@ -720,7 +784,7 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
       case "connecting":
         return "bg-yellow-500 animate-pulse";
       case "auth_error":
-      case "api_error":
+      case "error":
         return "bg-red-500";
       default:
         return "bg-gray-400";
@@ -739,8 +803,10 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
         return "Connecting...";
       case "auth_error":
         return "Auth Error";
-      case "api_error":
+      case "error":
         return "API Error";
+      case "no_data":
+        return "No Data";
       default:
         return "Disconnected";
     }
@@ -970,7 +1036,7 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
                       </div>
 
                       {/* Fastag Stats */}
-                      {fastagData && (
+                      {fastagData && fastagData.length > 0 && (
                         <div className="space-y-3">
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div className="col-span-2 p-2 bg-white dark:bg-gray-800 rounded">
@@ -978,8 +1044,7 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
                                 Vehicle Number
                               </div>
                               <div className="font-semibold text-gray-900 dark:text-white">
-                                {fastagData.vehicle?.vehltxnList?.txn?.[0]
-                                  ?.vehicleRegNo || selectedTrip.vehicleName}
+                                {fastagData[0]?.vehicleRegNo || "N/A"}
                               </div>
                             </div>
 
@@ -988,8 +1053,7 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
                                 Total Passes
                               </div>
                               <div className="font-semibold text-gray-900 dark:text-white">
-                                {fastagData.vehicle?.vehltxnList
-                                  ?.totalTagsInresponse || 0}
+                                {fastagData.length}
                               </div>
                             </div>
 
@@ -1006,30 +1070,28 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
                           </div>
 
                           {/* Recent Toll Passes */}
-                          {fastagData.vehicle?.vehltxnList?.txn && (
-                            <div className="mt-3">
-                              <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Recent Toll Passes:
-                              </div>
-                              <div className="space-y-2 max-h-32 overflow-y-auto pr-2">
-                                {fastagData.vehicle.vehltxnList.txn
-                                  .slice(0, 3)
-                                  .map((toll, index) => (
-                                    <div
-                                      key={index}
-                                      className="text-xs p-2 bg-white dark:bg-gray-800 rounded"
-                                    >
-                                      <div className="font-medium text-gray-900 dark:text-white">
-                                        {toll.tollPlazaName}
-                                      </div>
-                                      <div className="text-gray-500 dark:text-gray-400">
-                                        {formatDateTime(toll.readerReadTime)}
-                                      </div>
-                                    </div>
-                                  ))}
-                              </div>
+                          <div className="mt-3">
+                            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Recent Toll Passes:
                             </div>
-                          )}
+                            <div className="space-y-2 max-h-32 overflow-y-auto pr-2">
+                              {fastagData
+                                .slice(0, 3)
+                                .map((toll, index) => (
+                                  <div
+                                    key={index}
+                                    className="text-xs p-2 bg-white dark:bg-gray-800 rounded"
+                                  >
+                                    <div className="font-medium text-gray-900 dark:text-white">
+                                      {toll.tollPlazaName}
+                                    </div>
+                                    <div className="text-gray-500 dark:text-gray-400">
+                                      {formatDateTime(toll.readerReadTime)}
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
                         </div>
                       )}
 
@@ -1168,13 +1230,9 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
                           ></div>
                         </div>
 
-                        {fastagData?.vehicle?.vehltxnList?.txn?.[0] && (
+                        {fastagData && fastagData[0] && (
                           <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                            📍 Last toll:{" "}
-                            {
-                              fastagData.vehicle.vehltxnList.txn[0]
-                                .tollPlazaName
-                            }
+                            📍 Last toll: {fastagData[0].tollPlazaName}
                           </div>
                         )}
                       </div>
@@ -1437,8 +1495,8 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
                               <div>
                                 Vehicle Type: {selectedMarker.data.vehicleType}
                               </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                Sequence: #{selectedMarker.data.sequence}
+                              <div>
+                                Vehicle: {selectedMarker.data.vehicleRegNo}
                               </div>
                             </div>
                           )}
@@ -1541,7 +1599,7 @@ export const TripMapView = ({ trip, trips = [], onClose }) => {
                 <div className="space-y-3 max-h-40 overflow-y-auto pr-2">
                   {tollPlazaMarkers
                     .sort(
-                      (a, b) => new Date(b.data.time) - new Date(a.data.time)
+                      (a, b) => new Date(b.data.time) - new Date(a.data.time),
                     )
                     .map((marker, index) => (
                       <div
