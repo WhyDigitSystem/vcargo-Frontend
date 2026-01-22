@@ -37,7 +37,7 @@ export const InvoiceStats = ({ invoices }) => {
       value: stats.totalInvoices,
       icon: FileText,
       color: "blue",
-      change: "+12%",
+      // change: "+12%",
       trend: "up",
     },
     {
@@ -45,7 +45,7 @@ export const InvoiceStats = ({ invoices }) => {
       value: stats.paid,
       icon: CheckCircle,
       color: "emerald",
-      change: "+5",
+      // change: "+5",
       trend: "up",
     },
     {
@@ -53,7 +53,7 @@ export const InvoiceStats = ({ invoices }) => {
       value: stats.pending,
       icon: Clock,
       color: "amber",
-      change: "3",
+      // change: "3",
       trend: "neutral",
     },
     {
@@ -61,7 +61,7 @@ export const InvoiceStats = ({ invoices }) => {
       value: stats.overdue,
       icon: AlertCircle,
       color: "red",
-      change: "1",
+      // change: "1",
       trend: "down",
       urgent: stats.overdue > 0,
     },
@@ -70,7 +70,7 @@ export const InvoiceStats = ({ invoices }) => {
       value: `₹${stats.totalRevenue.toLocaleString()}`,
       icon: IndianRupee,
       color: "purple",
-      change: "+18%",
+      // change: "+18%",
       trend: "up",
     },
     {
@@ -78,7 +78,7 @@ export const InvoiceStats = ({ invoices }) => {
       value: `₹${stats.pendingAmount.toLocaleString()}`,
       icon: DollarSign,
       color: "orange",
-      change: "-2%",
+      // change: "-2%",
       trend: "down",
     },
   ];

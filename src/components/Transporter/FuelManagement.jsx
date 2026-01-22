@@ -202,11 +202,11 @@ const FuelManagement = () => {
   const formatIndianCurrency = (amount) => {
     const numAmount = parseFloat(amount) || 0;
     if (numAmount >= 10000000) {
-      return `₹${(numAmount / 10000000).toFixed(2)} Cr`;
+      return `${(numAmount / 10000000).toFixed(2)} `;
     } else if (numAmount >= 100000) {
-      return `₹${(numAmount / 100000).toFixed(2)} L`;
+      return `${(numAmount / 100000).toFixed(2)} `;
     } else if (numAmount >= 1000) {
-      return `₹${numAmount} K`;
+      return `${numAmount} `;
     }
     return `₹${numAmount.toFixed(2)}`;
   };

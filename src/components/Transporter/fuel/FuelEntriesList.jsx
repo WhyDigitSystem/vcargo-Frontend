@@ -160,6 +160,17 @@ export const FuelEntriesList = ({
     );
   }
 
+  const formatIndianNumber = (value) => {
+    const num =
+      typeof value === "string"
+        ? parseFloat(value.replace(/[₹,]/g, ""))
+        : value;
+
+    if (isNaN(num)) return "0";
+
+    return num.toLocaleString("en-IN");
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* Filters and Search Bar */}
@@ -183,13 +194,13 @@ export const FuelEntriesList = ({
               filters.vehicle ||
               filters.driver ||
               filters.fuelType) && (
-              <button
-                onClick={clearFilters}
-                className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              >
-                Clear filters
-              </button>
-            )}
+                <button
+                  onClick={clearFilters}
+                  className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                >
+                  Clear filters
+                </button>
+              )}
             <span className="text-sm text-gray-500 dark:text-gray-400">
               {filteredAndSortedEntries.length} of {entries.length} entries
             </span>
@@ -300,7 +311,7 @@ export const FuelEntriesList = ({
                   type="checkbox"
                   checked={
                     selectedEntries.length ===
-                      filteredAndSortedEntries.length &&
+                    filteredAndSortedEntries.length &&
                     filteredAndSortedEntries.length > 0
                   }
                   onChange={() => handleSelectEntry("all")}
@@ -366,7 +377,7 @@ export const FuelEntriesList = ({
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
                             <span>📏</span>
-                            {entry.odometerReading.toLocaleString()} km
+                            {formatIndianNumber(entry.odometerReading)} km
                           </p>
                         </div>
                       </div>
@@ -396,7 +407,7 @@ export const FuelEntriesList = ({
                     <td className="py-4 px-6">
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {entry.quantity}{" "}
+                          {formatIndianNumber(entry.quantity)}{" "}
                           <span className="text-sm">{entry.unit}</span>
                         </p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -407,11 +418,11 @@ export const FuelEntriesList = ({
                     <td className="py-4 px-6">
                       <div>
                         <p className="font-medium text-lg text-gray-900 dark:text-white">
-                          {entry.cost}
+                          ₹{formatIndianNumber(entry.costValue)}
                         </p>
                         {efficiencyValue > 0 && (
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {entry.distance} km travelled
+                            {formatIndianNumber(entry.distance)} km travelled
                           </p>
                         )}
                       </div>
@@ -488,10 +499,12 @@ export const FuelEntriesList = ({
                   Total Cost:{" "}
                 </span>
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  ₹
-                  {filteredAndSortedEntries
-                    .reduce((sum, entry) => sum + entry.costValue, 0)
-                    .toLocaleString("en-IN")}
+                  ₹{formatIndianNumber(
+                    filteredAndSortedEntries.reduce(
+                      (sum, entry) => sum + entry.costValue,
+                      0
+                    )
+                  )}
                 </span>
               </div>
               <div className="text-sm">
@@ -499,10 +512,12 @@ export const FuelEntriesList = ({
                   Total Quantity:{" "}
                 </span>
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  {filteredAndSortedEntries.reduce(
-                    (sum, entry) => sum + entry.quantity,
-                    0
-                  )}{" "}
+                  {formatIndianNumber(
+                    filteredAndSortedEntries.reduce(
+                      (sum, entry) => sum + entry.quantity,
+                      0
+                    )
+                  )}
                   liters
                 </span>
               </div>

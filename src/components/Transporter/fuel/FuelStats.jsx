@@ -34,11 +34,30 @@ export const FuelStats = ({
     };
   };
 
-  const formatCost = (num) => {
-    if (typeof num !== "number") return `₹${num}`;
-    if (num >= 1000000) return `₹${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `₹${(num / 1000).toFixed(1)}K`;
-    return `₹${num}`;
+  const formatCost = (value) => {
+    if (value === null || value === undefined) return "₹0";
+
+    const number =
+      typeof value === "string"
+        ? parseFloat(value.replace(/[₹,]/g, ""))
+        : value;
+
+    if (isNaN(number)) return "₹0";
+
+    return `₹${number.toLocaleString("en-IN")}`;
+  };
+
+  const formatIndianNumber = (value) => {
+    if (value === null || value === undefined) return "0";
+
+    const number =
+      typeof value === "string"
+        ? parseFloat(value.replace(/[₹,]/g, ""))
+        : value;
+
+    if (isNaN(number)) return "0";
+
+    return number.toLocaleString("en-IN");
   };
 
   const statCards = [
@@ -56,7 +75,7 @@ export const FuelStats = ({
     {
       id: "totalCost",
       label: "Total Cost",
-      value: formatCost(stats.totalCost || 0),
+      value: formatCost(stats.totalCost),
       icon: IndianRupee,
       color: "text-purple-600 dark:text-purple-400",
       bg: "bg-purple-50 dark:bg-purple-900/20",
@@ -79,7 +98,7 @@ export const FuelStats = ({
     {
       id: "fuelEconomy",
       label: "Economy",
-      value: `${stats.fuelEconomy || 0}%`,
+      value: `${formatIndianNumber(stats.fuelEconomy || 0)}%`,
       icon: Zap,
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-50 dark:bg-amber-900/20",
@@ -155,11 +174,9 @@ export const FuelStats = ({
         {statCards.map((stat) => (
           <div
             key={stat.id}
-            className={`bg-white dark:bg-gray-800 rounded-lg border ${
-              stat.border
-            } p-4 transition-all ${
-              hoveredStat === stat.id ? "ring-1 ring-blue-500" : ""
-            } ${stat.warning ? "ring-1 ring-red-500" : ""}`}
+            className={`bg-white dark:bg-gray-800 rounded-lg border ${stat.border
+              } p-4 transition-all ${hoveredStat === stat.id ? "ring-1 ring-blue-500" : ""
+              } ${stat.warning ? "ring-1 ring-red-500" : ""}`}
             onMouseEnter={() => setHoveredStat(stat.id)}
             onMouseLeave={() => setHoveredStat(null)}
           >
@@ -181,14 +198,13 @@ export const FuelStats = ({
                 {stat.trend && (
                   <div className="flex items-center gap-1 mt-1">
                     <div
-                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
-                        stat.trend.direction === "up" && !stat.trend.positive
-                          ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
-                          : stat.trend.direction === "down" &&
-                            stat.trend.positive
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${stat.trend.direction === "up" && !stat.trend.positive
+                        ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
+                        : stat.trend.direction === "down" &&
+                          stat.trend.positive
                           ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                           : "bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-300"
-                      }`}
+                        }`}
                     >
                       {stat.trend.direction === "up" ? (
                         <TrendingUp className="h-2.5 w-2.5" />
