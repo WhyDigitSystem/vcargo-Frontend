@@ -73,7 +73,7 @@ export const InvoiceForm = ({
       customerId: invoice.customerId ?? "",
       vehicleId: Number(invoice.vehicleId) || "",
       driverId: String(invoice.driverId ?? ""),
-      tripId: String(invoice.tripId ?? ""),
+      tripId: Number(invoice.tripId) || "",
       tripDetails: invoice.tripDetails ?? "",
       issueDate: invoice.issueDate ?? "",
       dueDate: invoice.dueDate ?? "",
@@ -251,7 +251,7 @@ export const InvoiceForm = ({
     if (!validateForm()) return;
 
     const selectedTrip = tripsDetails.find(
-      trip => trip.id === formData.tripId
+      trip => trip.id === Number(formData.tripId)
     );
 
     if (!selectedTrip) {

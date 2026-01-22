@@ -144,55 +144,55 @@ const FuelManagement = () => {
       console.log("Fuel API response:", response);
 
       if (response.fuelEntries && response.fuelEntries.length > 0) {
-        // Format API data for UI
-        const formattedEntries = response.fuelEntries.map((entry) => ({
-          id: entry.id,
-          entryId: entry.id,
-          vehicleId: entry.vehicleId,
-          vehicle: entry.vehicle,
-          driverId: entry.driverId,
-          driver: entry.driver,
-          fuelType: (entry.fuelType || "diesel").toLowerCase(),
-          quantity: parseFloat(entry.quantity) || 0,
-          unit: "liters",
-          cost: formatIndianCurrency(entry.cost),
-          costValue: parseFloat(entry.cost) || 0,
-          costPerUnit: entry.unitPrice
-            ? `₹${parseFloat(entry.unitPrice).toFixed(2)}`
-            : entry.cost && entry.quantity
-            ? `₹${(entry.cost / entry.quantity).toFixed(2)}`
-            : "₹0",
-          odometerReading: parseFloat(entry.odometerReading) || 0,
-          previousOdometer: parseFloat(entry.previousOdometer) || 0,
-          distance:
-            entry.distance ||
-            (entry.odometerReading && entry.previousOdometer
-              ? entry.odometerReading - entry.previousOdometer
-              : 0),
-          efficiency: entry.efficiency
-            ? `${parseFloat(entry.efficiency).toFixed(2)} km/l`
-            : entry.distance && entry.quantity
-            ? `${(entry.distance / entry.quantity).toFixed(2)} km/l`
-            : "0 km/l",
-          station: entry.station || "Unknown Station",
-          date: entry.date || new Date().toISOString().split("T")[0],
-          time: entry.time || "00:00",
-          receiptNumber: entry.receiptNumber || "N/A",
-          notes: entry.notes || "",
-        }));
+        const formattedEntries = response.fuelEntries.map((entry) => {
+          const odometerReading = parseFloat(entry.odometerReading) || 0;
+          const previousOdometer = parseFloat(entry.previousOdometer) || 0;
+          const quantity = parseFloat(entry.quantity) || 0;
+
+          const distance =
+            odometerReading > 0 && previousOdometer > 0
+              ? odometerReading - previousOdometer
+              : 0;
+
+          const efficiencyValue =
+            parseFloat(entry.efficiency) ||
+            (distance > 0 && quantity > 0 ? distance / quantity : 0);
+
+          return {
+            id: entry.id,
+            entryId: entry.id,
+            vehicleId: entry.vehicleId,
+            vehicle: entry.vehicle,
+            driverId: entry.driverId,
+            driver: entry.driver,
+            fuelType: (entry.fuelType || "diesel").toLowerCase(),
+            quantity,
+            unit: "liters",
+            cost: formatIndianCurrency(entry.cost),
+            costValue: parseFloat(entry.cost) || 0,
+            costPerUnit:
+              quantity > 0
+                ? `₹${(parseFloat(entry.cost) / quantity).toFixed(2)}`
+                : "₹0",
+            odometerReading,
+            previousOdometer,
+            distance,
+            efficiencyValue: parseFloat(efficiencyValue.toFixed(2)),
+            efficiency: `${parseFloat(efficiencyValue).toFixed(2)} km/l`,
+            station: entry.station || "Unknown Station",
+            date: entry.date || new Date().toISOString().split("T")[0],
+            time: entry.time || "00:00",
+            receiptNumber: entry.receiptNumber || "N/A",
+            notes: entry.notes || "",
+          };
+        });
 
         setFuelEntries(formattedEntries);
         setFilteredEntries(formattedEntries);
         calculateStats(formattedEntries);
-      } else {
-        // Use sample data if no entries
       }
     } catch (error) {
       console.error("Error loading fuel entries:", error);
-      // Fallback to sample data
-      setFuelEntries(sampleData.fuelEntries);
-      setFilteredEntries(sampleData.fuelEntries);
-      calculateStats(sampleData.fuelEntries);
     } finally {
       setLoading(false);
     }
@@ -213,52 +213,59 @@ const FuelManagement = () => {
 
   // Calculate statistics
   const calculateStats = (entries) => {
-    const totalFuel = entries.reduce((sum, entry) => sum + entry.quantity, 0);
-    const totalCost = entries.reduce((sum, entry) => {
-      return sum + (entry.costValue || 0);
-    }, 0);
+    const totalFuel = entries.reduce(
+      (sum, entry) => sum + (entry.quantity || 0),
+      0
+    );
 
-    const avgCost = entries.length > 0 ? totalCost / entries.length : 0;
+    const totalCost = entries.reduce(
+      (sum, entry) => sum + (entry.costValue || 0),
+      0
+    );
 
-    // Calculate average efficiency
-    const efficiencies = entries.map((entry) => {
-      if (entry.efficiency) {
-        const match = entry.efficiency.match(/(\d+\.?\d*)/);
-        return match ? parseFloat(match[0]) : 0;
-      }
-      return 0;
-    });
+    const avgCost =
+      entries.length > 0 ? totalCost / entries.length : 0;
+
+    // ✅ Collect valid efficiency values
+    const efficiencies = entries
+      .map((entry) => entry.efficiencyValue)
+      .filter((val) => val && val > 0);
 
     const avgEfficiency =
       efficiencies.length > 0
-        ? efficiencies.reduce((sum, eff) => sum + eff, 0) / efficiencies.length
+        ? efficiencies.reduce((a, b) => a + b, 0) / efficiencies.length
         : 0;
 
-    // Calculate monthly cost (current month)
+    // ✅ Monthly cost calculation
     const currentMonth = new Date().toISOString().slice(0, 7);
+
     const monthlyCost = entries
-      .filter((entry) => entry.date && entry.date.startsWith(currentMonth))
+      .filter((entry) => entry.date?.startsWith(currentMonth))
       .reduce((sum, entry) => sum + (entry.costValue || 0), 0);
 
-    // Get previous month for trend comparison
+    // ✅ Previous month for trend
     const previousMonth = new Date();
     previousMonth.setMonth(previousMonth.getMonth() - 1);
     const prevMonthStr = previousMonth.toISOString().slice(0, 7);
+
     const previousMonthlyCost = entries
-      .filter((entry) => entry.date && entry.date.startsWith(prevMonthStr))
+      .filter((entry) => entry.date?.startsWith(prevMonthStr))
       .reduce((sum, entry) => sum + (entry.costValue || 0), 0);
 
-    // Calculate trends
     const monthlyTrend =
       monthlyCost > previousMonthlyCost
         ? "up"
         : monthlyCost < previousMonthlyCost
-        ? "down"
-        : "stable";
+          ? "down"
+          : "stable";
 
-    // Efficiency trend (compare with threshold)
+    // ✅ Efficiency trend logic
     const efficiencyTrend =
-      avgEfficiency > 6.5 ? "up" : avgEfficiency > 4 ? "stable" : "down";
+      avgEfficiency > 6.5
+        ? "up"
+        : avgEfficiency > 4
+          ? "stable"
+          : "down";
 
     setStats({
       totalFuel: totalFuel.toFixed(1),
@@ -354,15 +361,15 @@ const FuelManagement = () => {
     // Could implement a detailed view modal
     alert(
       `Fuel Entry Details:\n\n` +
-        `ID: ${entry.id}\n` +
-        `Vehicle: ${entry.vehicle}\n` +
-        `Driver: ${entry.driver}\n` +
-        `Date: ${entry.date} ${entry.time}\n` +
-        `Fuel Type: ${entry.fuelType}\n` +
-        `Quantity: ${entry.quantity} L\n` +
-        `Cost: ${entry.cost}\n` +
-        `Station: ${entry.station}\n` +
-        `Efficiency: ${entry.efficiency}`
+      `ID: ${entry.id}\n` +
+      `Vehicle: ${entry.vehicle}\n` +
+      `Driver: ${entry.driver}\n` +
+      `Date: ${entry.date} ${entry.time}\n` +
+      `Fuel Type: ${entry.fuelType}\n` +
+      `Quantity: ${entry.quantity} L\n` +
+      `Cost: ${entry.cost}\n` +
+      `Station: ${entry.station}\n` +
+      `Efficiency: ${entry.efficiency}`
     );
   };
 
@@ -421,6 +428,15 @@ const FuelManagement = () => {
       // Prepare payload for API
       const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
 
+      const distance =
+        parseFloat(formData.odometerReading) -
+        parseFloat(formData.previousOdometer);
+
+      const efficiency =
+        distance > 0 && parseFloat(formData.quantity) > 0
+          ? parseFloat((distance / parseFloat(formData.quantity)).toFixed(2))
+          : 0;
+
       const fuelPayload = {
         date: formData.date,
         time:
@@ -435,6 +451,7 @@ const FuelManagement = () => {
         receiptNumber: formData.receiptNumber,
         odometerReading: parseFloat(formData.odometerReading),
         previousOdometer: parseFloat(formData.previousOdometer),
+        efficiency: efficiency, // ✅ NOW DEFINED
         notes: formData.notes,
         branchCode: "MAIN",
         branchName: "Main Branch",
@@ -683,11 +700,10 @@ const FuelManagement = () => {
             <div className="flex items-center space-x-1 overflow-x-auto">
               <button
                 onClick={() => setActiveTab("entries")}
-                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                  activeTab === "entries"
-                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
-                }`}
+                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "entries"
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
               >
                 <Fuel className="h-4 w-4" />
                 Fuel Entries
@@ -697,22 +713,20 @@ const FuelManagement = () => {
               </button>
               <button
                 onClick={() => setActiveTab("analytics")}
-                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                  activeTab === "analytics"
-                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
-                }`}
+                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "analytics"
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
               >
                 <BarChart3 className="h-4 w-4" />
                 Analytics
               </button>
               <button
                 onClick={() => setActiveTab("reports")}
-                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                  activeTab === "reports"
-                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
-                }`}
+                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "reports"
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
               >
                 <FileText className="h-4 w-4" />
                 Reports
@@ -723,21 +737,19 @@ const FuelManagement = () => {
             <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  viewMode === "grid"
-                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${viewMode === "grid"
+                  ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  }`}
               >
                 Grid
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  viewMode === "list"
-                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${viewMode === "list"
+                  ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  }`}
               >
                 List
               </button>

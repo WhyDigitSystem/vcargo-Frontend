@@ -31,7 +31,7 @@ export const fuelAPI = {
           time: fuel.time,
           vehicle: fuel.vehicle,
           driver: fuel.driver,
-           vehicleId: fuel.vehicleId,
+          vehicleId: fuel.vehicleId,
           driverId: fuel.driverId,
           fuelType: fuel.fuelType,
           quantity: parseFloat(fuel.quantity) || 0,
@@ -128,186 +128,196 @@ export const fuelAPI = {
     }
   },
 
-createUpdateFuel: async (fuelData) => {
-  console.log("Fuel data to API:", fuelData);
+  createUpdateFuel: async (fuelData) => {
+    console.log("Fuel data to API:", fuelData);
 
-  try {
-    console.log("Saving fuel entry with JSON...");
-
-    // Get user info
-    const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
-    const userName = localStorage.getItem("userName") || "Admin User";
-
-    // Prepare the payload
-    const formatDate = (dateString) => {
-      if (!dateString) return null;
-      try {
-        const date = new Date(dateString);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      } catch (e) {
-        console.error("Error formatting date:", dateString, e);
-        return null;
-      }
-    };
-
-    // Create payload
-    const payload = {
-      date: formatDate(fuelData.date) || formatDate(new Date().toISOString().split("T")[0]),
-      time: fuelData.time || new Date().toTimeString().split(" ")[0].substring(0, 5),
-      vehicle: fuelData.vehicle || "",
-      driver: fuelData.driver || "",
-      fuelType: fuelData.fuelType || "Diesel",
-      quantity: parseFloat(fuelData.quantity) || 0,
-      cost: parseFloat(fuelData.cost) || 0,
-      station: fuelData.station || "",
-      receiptNumber: fuelData.receiptNumber || "",
-      odometerReading: parseFloat(fuelData.odometerReading) || 0,
-      previousOdometer: parseFloat(fuelData.previousOdometer) || 0,
-      notes: fuelData.notes || "",
-      branchCode: fuelData.branchCode || "MAIN",
-      branchName: fuelData.branchName || "Main Branch",
-      orgId: fuelData.orgId,
-      createdBy: userId,
-      userName: userName,
-    };
-
-    // Add ID if editing
-    if (fuelData.id && fuelData.id !== 0) {
-      payload.id = fuelData.id;
-      payload.updatedBy = userId;
-    }
-
-    console.log("Sending fuel payload:", JSON.stringify(payload, null, 2));
-
-    // Send as JSON
-    const response = await apiClient.put(
-      "/api/fuel/createUpdateFuel",
-      payload,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    console.log("Save response:", response);
-
-    if (response && response.statusFlag === "Ok") {
-      return response;
-    } else {
-      throw new Error(
-        response?.paramObjectsMap?.message || "Failed to save fuel entry"
-      );
-    }
-  } catch (error) {
-    console.error("Error saving fuel entry:", error);
-
-    // Log more details if available
-    if (error.response) {
-      console.error("Response error:", error.response.data);
-      console.error("Response status:", error.response.status);
-    }
-
-    // Fallback to localStorage if API fails
     try {
-      console.warn("API failed, falling back to localStorage");
+      console.log("Saving fuel entry with JSON...");
 
-      // Get existing fuel entries from localStorage
-      const fuelEntries = JSON.parse(
-        localStorage.getItem("fuelEntries") || "[]"
-      );
-      let newFuelEntry;
-      let updatedFuelEntries = [...fuelEntries];
+      // Get user info
+      const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
+      const userName = localStorage.getItem("userName") || "Admin User";
 
-      const formatDateForStorage = (dateString) => {
-        if (!dateString) return new Date().toISOString().split("T")[0];
+      // Prepare the payload
+      const formatDate = (dateString) => {
+        if (!dateString) return null;
         try {
-          return new Date(dateString).toISOString().split("T")[0];
+          const date = new Date(dateString);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          return `${year}-${month}-${day}`;
         } catch (e) {
-          return new Date().toISOString().split("T")[0];
+          console.error("Error formatting date:", dateString, e);
+          return null;
         }
       };
 
-      const formatTimeForStorage = (timeString) => {
-        if (!timeString)
-          return new Date().toTimeString().split(" ")[0].substring(0, 5);
-        return timeString;
+      // Create payload
+      const payload = {
+        date: formatDate(fuelData.date) ||
+          formatDate(new Date().toISOString().split("T")[0]),
+        time: fuelData.time ||
+          new Date().toTimeString().split(" ")[0].substring(0, 5),
+
+        vehicle: fuelData.vehicle || "",
+        driver: fuelData.driver || "",
+        fuelType: fuelData.fuelType || "Diesel",
+
+        quantity: parseFloat(fuelData.quantity) || 0,
+        cost: parseFloat(fuelData.cost) || 0,
+
+        station: fuelData.station || "",
+        receiptNumber: fuelData.receiptNumber || "",
+
+        odometerReading: parseFloat(fuelData.odometerReading) || 0,
+        previousOdometer: parseFloat(fuelData.previousOdometer) || 0,
+
+        // ✅ ADD THIS LINE
+        efficiency: parseFloat(fuelData.efficiency) || 0,
+
+        notes: fuelData.notes || "",
+        branchCode: fuelData.branchCode || "MAIN",
+        branchName: fuelData.branchName || "Main Branch",
+        orgId: fuelData.orgId,
+        createdBy: userId,
+        userName: userName,
       };
 
+      // Add ID if editing
       if (fuelData.id && fuelData.id !== 0) {
-        // Update existing fuel entry
-        const index = updatedFuelEntries.findIndex(
-          (f) => f.id === fuelData.id
-        );
-        if (index === -1) {
-          throw new Error("Fuel entry not found in localStorage");
-        }
-
-        newFuelEntry = {
-          ...updatedFuelEntries[index],
-          ...fuelData,
-          date: formatDateForStorage(fuelData.date),
-          time: formatTimeForStorage(fuelData.time),
-          // Ensure numeric fields
-          quantity: parseFloat(fuelData.quantity) || 0,
-          cost: parseFloat(fuelData.cost) || 0,
-          odometerReading: parseFloat(fuelData.odometerReading) || 0,
-          previousOdometer: parseFloat(fuelData.previousOdometer) || 0,
-          orgId: parseInt(fuelData.orgId) || 1001,
-          updatedAt: new Date().toISOString(),
-        };
-        updatedFuelEntries[index] = newFuelEntry;
-      } else {
-        // Create new fuel entry
-        const newId =
-          Math.max(0, ...updatedFuelEntries.map((f) => f.id || 0)) + 1;
-        newFuelEntry = {
-          id: newId,
-          ...fuelData,
-          date: formatDateForStorage(fuelData.date),
-          time: formatTimeForStorage(fuelData.time),
-          // Ensure numeric fields
-          quantity: parseFloat(fuelData.quantity) || 0,
-          cost: parseFloat(fuelData.cost) || 0,
-          odometerReading: parseFloat(fuelData.odometerReading) || 0,
-          previousOdometer: parseFloat(fuelData.previousOdometer) || 0,
-          orgId: parseInt(fuelData.orgId) || 1001,
-          // Default values
-          branchCode: fuelData.branchCode || "MAIN",
-          branchName: fuelData.branchName || "Main Branch",
-          fuelType: fuelData.fuelType || "Diesel",
-          station: fuelData.station || "",
-          vehicle: fuelData.vehicle || "",
-          driver: fuelData.driver || "",
-          receiptNumber: fuelData.receiptNumber || "",
-          notes: fuelData.notes || "",
-          createdBy:
-            fuelData.createdBy ||
-            JSON.parse(localStorage.getItem("user"))?.usersId ||
-            "",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        updatedFuelEntries.push(newFuelEntry);
+        payload.id = fuelData.id;
+        payload.updatedBy = userId;
       }
 
-      localStorage.setItem("fuelEntries", JSON.stringify(updatedFuelEntries));
+      console.log("Sending fuel payload:", JSON.stringify(payload, null, 2));
 
-      return {
-        statusFlag: "Ok",
-        status: true,
-        message: "Fuel entry saved to local storage (API unavailable)",
-        data: newFuelEntry,
-      };
-    } catch (fallbackError) {
-      console.error("LocalStorage fallback also failed:", fallbackError);
-      throw new Error(`Failed to save fuel entry: ${error.message}`);
+      // Send as JSON
+      const response = await apiClient.put(
+        "/api/fuel/createUpdateFuel",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Save response:", response);
+
+      if (response && response.statusFlag === "Ok") {
+        return response;
+      } else {
+        throw new Error(
+          response?.paramObjectsMap?.message || "Failed to save fuel entry"
+        );
+      }
+    } catch (error) {
+      console.error("Error saving fuel entry:", error);
+
+      // Log more details if available
+      if (error.response) {
+        console.error("Response error:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+
+      // Fallback to localStorage if API fails
+      try {
+        console.warn("API failed, falling back to localStorage");
+
+        // Get existing fuel entries from localStorage
+        const fuelEntries = JSON.parse(
+          localStorage.getItem("fuelEntries") || "[]"
+        );
+        let newFuelEntry;
+        let updatedFuelEntries = [...fuelEntries];
+
+        const formatDateForStorage = (dateString) => {
+          if (!dateString) return new Date().toISOString().split("T")[0];
+          try {
+            return new Date(dateString).toISOString().split("T")[0];
+          } catch (e) {
+            return new Date().toISOString().split("T")[0];
+          }
+        };
+
+        const formatTimeForStorage = (timeString) => {
+          if (!timeString)
+            return new Date().toTimeString().split(" ")[0].substring(0, 5);
+          return timeString;
+        };
+
+        if (fuelData.id && fuelData.id !== 0) {
+          // Update existing fuel entry
+          const index = updatedFuelEntries.findIndex(
+            (f) => f.id === fuelData.id
+          );
+          if (index === -1) {
+            throw new Error("Fuel entry not found in localStorage");
+          }
+
+          newFuelEntry = {
+            ...updatedFuelEntries[index],
+            ...fuelData,
+            date: formatDateForStorage(fuelData.date),
+            time: formatTimeForStorage(fuelData.time),
+            // Ensure numeric fields
+            quantity: parseFloat(fuelData.quantity) || 0,
+            cost: parseFloat(fuelData.cost) || 0,
+            odometerReading: parseFloat(fuelData.odometerReading) || 0,
+            previousOdometer: parseFloat(fuelData.previousOdometer) || 0,
+            orgId: parseInt(fuelData.orgId) || 1001,
+            updatedAt: new Date().toISOString(),
+          };
+          updatedFuelEntries[index] = newFuelEntry;
+        } else {
+          // Create new fuel entry
+          const newId =
+            Math.max(0, ...updatedFuelEntries.map((f) => f.id || 0)) + 1;
+          newFuelEntry = {
+            id: newId,
+            ...fuelData,
+            date: formatDateForStorage(fuelData.date),
+            time: formatTimeForStorage(fuelData.time),
+            // Ensure numeric fields
+            quantity: parseFloat(fuelData.quantity) || 0,
+            cost: parseFloat(fuelData.cost) || 0,
+            odometerReading: parseFloat(fuelData.odometerReading) || 0,
+            previousOdometer: parseFloat(fuelData.previousOdometer) || 0,
+            orgId: parseInt(fuelData.orgId) || 1001,
+            // Default values
+            branchCode: fuelData.branchCode || "MAIN",
+            branchName: fuelData.branchName || "Main Branch",
+            fuelType: fuelData.fuelType || "Diesel",
+            station: fuelData.station || "",
+            vehicle: fuelData.vehicle || "",
+            driver: fuelData.driver || "",
+            receiptNumber: fuelData.receiptNumber || "",
+            notes: fuelData.notes || "",
+            createdBy:
+              fuelData.createdBy ||
+              JSON.parse(localStorage.getItem("user"))?.usersId ||
+              "",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          updatedFuelEntries.push(newFuelEntry);
+        }
+
+        localStorage.setItem("fuelEntries", JSON.stringify(updatedFuelEntries));
+
+        return {
+          statusFlag: "Ok",
+          status: true,
+          message: "Fuel entry saved to local storage (API unavailable)",
+          data: newFuelEntry,
+        };
+      } catch (fallbackError) {
+        console.error("LocalStorage fallback also failed:", fallbackError);
+        throw new Error(`Failed to save fuel entry: ${error.message}`);
+      }
     }
-  }
-},
+  },
 
   // Helper function to get fuel by ID
   getFuelById: async (fuelId) => {

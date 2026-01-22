@@ -305,6 +305,12 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
         ...prev,
         [fileType]: [...prev[fileType], ...newFiles],
       }));
+
+      setErrors((prev) => ({
+        ...prev,
+        [fileType]: "",
+      }));
+
     } catch (error) {
       console.error("Error uploading files:", error);
       // You might want to show an error toast here
@@ -356,29 +362,66 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
-    if (!formData.licenseNumber.trim())
-      newErrors.licenseNumber = "License number is required";
-    if (!formData.licenseExpiry)
-      newErrors.licenseExpiry = "License expiry is required";
-    if (!formData.aadharNumber.trim())
-      newErrors.aadharNumber = "Aadhar number is required";
-    if (!formData.experience.trim())
-      newErrors.experience = "Experience is required";
-
-    // Phone validation
-    const phoneRegex = /^[0-9]{10}$/;
-    if (formData.phone && !phoneRegex.test(formData.phone.replace(/\D/g, ""))) {
-      newErrors.phone = "Enter a valid 10-digit phone number";
+    if (!formData.name?.trim()) {
+      newErrors.name = "Name is required";
     }
 
-    // Email validation
+    if (!formData.phone?.trim()) {
+      newErrors.phone = "Phone number is required";
+    } else {
+      const phoneDigits = formData.phone.replace(/\D/g, "");
+      if (!/^[0-9]{10}$/.test(phoneDigits)) {
+        newErrors.phone = "Enter a valid 10-digit phone number";
+      }
+    }
+
     if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Enter a valid email address";
     }
 
-    setErrors(newErrors);
+    if (!formData.aadharNumber?.trim()) {
+      newErrors.aadharNumber = "Aadhar number is required";
+    }
+
+    if (!formData.experience?.trim()) {
+      newErrors.experience = "Experience is required";
+    }
+
+    if (!formData.licenseNumber?.trim()) {
+      newErrors.licenseNumber = "License number is required";
+    }
+
+    if (!formData.licenseExpiry) {
+      newErrors.licenseExpiry = "License expiry date is required";
+    } else {
+      const expiryDate = new Date(formData.licenseExpiry);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (expiryDate < today) {
+        newErrors.licenseExpiry = "License expiry cannot be in the past";
+      }
+    }
+
+    if (!files.driverLicense || files.driverLicense.length === 0) {
+      newErrors.driverLicense = "Driver License document is required";
+    }
+
+    if (!files.aadharCard || files.aadharCard.length === 0) {
+      newErrors.aadharCard = "Aadhar Card document is required";
+    }
+
+    if (!files.passportPhoto || files.passportPhoto.length === 0) {
+      newErrors.passportPhoto = "Passport Photo is required";
+    }
+
+    if (
+      newErrors.driverLicense ||
+      newErrors.aadharCard ||
+      newErrors.passportPhoto
+    )
+
+      setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -566,35 +609,32 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
               <button
                 type="button"
                 onClick={() => setActiveTab("personal")}
-                className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "personal"
-                    ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                }`}
+                className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "personal"
+                  ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                  }`}
               >
                 Personal Details
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab("documents")}
-                className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "documents"
-                    ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                }`}
+                onClick={() => setActiveTab("employment")}
+                className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "employment"
+                  ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                  }`}
               >
-                Documents
+                Employment
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab("employment")}
-                className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "employment"
-                    ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                }`}
+                onClick={() => setActiveTab("documents")}
+                className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "documents"
+                  ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                  }`}
               >
-                Employment
+                Documents
               </button>
             </div>
           </div>
@@ -617,9 +657,8 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                       type="text"
                       value={formData.name}
                       onChange={(e) => handleChange("name", e.target.value)}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.name ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.name ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="Enter driver's full name"
                       disabled={isSubmitting}
                     />
@@ -636,9 +675,8 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                       type="tel"
                       value={formatPhone(formData.phone)}
                       onChange={(e) => handleChange("phone", e.target.value)}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.phone ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.phone ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="987 654 3210"
                       maxLength="14"
                       disabled={isSubmitting}
@@ -658,9 +696,8 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                       type="email"
                       value={formData.email}
                       onChange={(e) => handleChange("email", e.target.value)}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.email ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.email ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="driver@example.com"
                       disabled={isSubmitting}
                     />
@@ -713,11 +750,10 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                         );
                         handleChange("aadharNumber", formatted);
                       }}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.aadharNumber
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.aadharNumber
+                        ? "border-red-500"
+                        : "border-gray-300"
+                        }`}
                       placeholder="1234 5678 9012"
                       maxLength="14"
                       disabled={isSubmitting}
@@ -807,9 +843,8 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                       onChange={(e) =>
                         handleChange("experience", e.target.value)
                       }
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.experience ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.experience ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="e.g., 5 years"
                       disabled={isSubmitting}
                     />
@@ -883,11 +918,10 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                       onChange={(e) =>
                         handleChange("licenseNumber", e.target.value)
                       }
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.licenseNumber
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.licenseNumber
+                        ? "border-red-500"
+                        : "border-gray-300"
+                        }`}
                       placeholder="DL0420190001234"
                       disabled={isSubmitting}
                     />
@@ -908,11 +942,10 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                       onChange={(e) =>
                         handleChange("licenseExpiry", e.target.value)
                       }
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.licenseExpiry
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.licenseExpiry
+                        ? "border-red-500"
+                        : "border-gray-300"
+                        }`}
                       disabled={isSubmitting}
                     />
                     {errors.licenseExpiry && (
@@ -1047,6 +1080,11 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                         disabled={uploading || isSubmitting}
                       />
                     </label>
+                    {errors.driverLicense && (
+                      <p className="text-xs text-red-500 mt-2 text-center">
+                        {errors.driverLicense}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1137,6 +1175,11 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                         disabled={uploading || isSubmitting}
                       />
                     </label>
+                    {errors.aadharCard && (
+                      <p className="text-xs text-red-500 mt-2 text-center">
+                        {errors.aadharCard}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1313,6 +1356,11 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                         disabled={uploading || isSubmitting}
                       />
                     </label>
+                    {errors.passportPhoto && (
+                      <p className="text-xs text-red-500 mt-2 text-center">
+                        {errors.passportPhoto}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1335,7 +1383,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
 
                     <div className="flex-1">
                       {files.experienceCertificate &&
-                      files.experienceCertificate.length > 0 ? (
+                        files.experienceCertificate.length > 0 ? (
                         <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
                           {files.experienceCertificate.map((file) => (
                             <div
@@ -1427,7 +1475,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
 
                     <div className="flex-1">
                       {files.medicalCertificate &&
-                      files.medicalCertificate.length > 0 ? (
+                        files.medicalCertificate.length > 0 ? (
                         <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
                           {files.medicalCertificate.map((file) => (
                             <div
@@ -1715,8 +1763,8 @@ const DriverManagement = () => {
   // Calculate stats
   const stats = {
     total: totalCount,
-    active: drivers.filter((d) => d.status === "active").length,
-    onLeave: drivers.filter((d) => d.status === "on_leave").length,
+    active: drivers.filter((d) => d.status === "Active").length,
+    onLeave: drivers.filter((d) => d.status === "Leave").length,
     licensesExpiring: drivers.filter((d) => {
       if (!d.licenseExpiry) return false;
       const expiryDate = new Date(d.licenseExpiry);
@@ -1746,14 +1794,21 @@ const DriverManagement = () => {
         icon: CheckCircle,
         label: "Available",
       },
-      "on trip": {
+      "ontrip": {
         color:
           "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
         icon: Clock,
         label: "On Trip",
       },
+      leave: {
+        color:
+          "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+        icon: Clock,
+        label: "Leave",
+      },
       inactive: {
-        color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+        color:
+          "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
         icon: XCircle,
         label: "Inactive",
       },
@@ -1770,7 +1825,8 @@ const DriverManagement = () => {
         label: "Active",
       },
       false: {
-        color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+        color:
+          "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
         icon: XCircle,
         label: "Inactive",
       },
@@ -1885,13 +1941,12 @@ const DriverManagement = () => {
       {/* Notification */}
       {notification.message && (
         <div
-          className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg ${
-            notification.type === "error"
-              ? "bg-red-100 text-red-800 border border-red-200"
-              : notification.type === "success"
+          className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg ${notification.type === "error"
+            ? "bg-red-100 text-red-800 border border-red-200"
+            : notification.type === "success"
               ? "bg-green-100 text-green-800 border border-green-200"
               : "bg-blue-100 text-blue-800 border border-blue-200"
-          }`}
+            }`}
         >
           {notification.message}
         </div>
@@ -1959,7 +2014,7 @@ const DriverManagement = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                On Leave
+                Leave
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 {stats.onLeave}
@@ -2119,16 +2174,15 @@ const DriverManagement = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div
-                      className={`text-sm font-medium ${
-                        !driver.licenseExpiry
-                          ? "text-gray-500"
-                          : new Date(driver.licenseExpiry) < new Date()
+                      className={`text-sm font-medium ${!driver.licenseExpiry
+                        ? "text-gray-500"
+                        : new Date(driver.licenseExpiry) < new Date()
                           ? "text-red-600 dark:text-red-400"
                           : new Date(driver.licenseExpiry) <
                             new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                          ? "text-orange-600 dark:text-orange-400"
-                          : "text-green-600 dark:text-green-400"
-                      }`}
+                            ? "text-orange-600 dark:text-orange-400"
+                            : "text-green-600 dark:text-green-400"
+                        }`}
                     >
                       {driver.licenseExpiry
                         ? formatDate(driver.licenseExpiry)
@@ -2240,11 +2294,10 @@ const DriverManagement = () => {
                     <button
                       key={pageNum}
                       onClick={() => handlePageChange(pageNum)}
-                      className={`w-8 h-8 rounded-lg ${
-                        currentPage === pageNum
-                          ? "bg-blue-600 text-white"
-                          : "border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      }`}
+                      className={`w-8 h-8 rounded-lg ${currentPage === pageNum
+                        ? "bg-blue-600 text-white"
+                        : "border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
                     >
                       {pageNum}
                     </button>

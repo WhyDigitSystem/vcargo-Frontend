@@ -14,10 +14,10 @@ import {
 export const TripStats = ({ trips }) => {
   const stats = {
     totalTrips: trips.length,
-    inProgress: trips.filter(t => t.status === 'in_progress').length,
+    inProgress: trips.filter(t => t.status === 'IN_PROGRESS').length,
     completed: trips.filter(t => t.status === 'COMPLETED').length,
-    scheduled: trips.filter(t => t.status === 'scheduled').length,
-    pending: trips.filter(t => t.status === 'pending').length,
+    scheduled: trips.filter(t => t.status === 'SCHEDULED').length,
+    pending: trips.filter(t => t.status === 'PENDING').length,
     totalDistance: trips.reduce((sum, trip) => sum + (trip.distance || 0), 0),
     totalRevenue: trips.reduce((sum, trip) => sum + (trip.revenue || 0), 0),
     totalProfit: trips.reduce((sum, trip) => sum + (trip.profit || 0), 0),

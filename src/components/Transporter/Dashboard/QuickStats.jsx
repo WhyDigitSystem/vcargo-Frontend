@@ -75,6 +75,8 @@ const QuickStats = () => {
       // Upcoming Maintenance Vehicles
       upcomingMaintenance: apiData.upcomingMaintenanceVehicle || 0,
 
+      driversInTrip: apiData.onTripDriverCount || 0,
+
       // Driver data
       activeDrivers: apiData.tDriver?.activeDriver || 0,
       inactiveDrivers: apiData.tDriver?.inActiveDriver || 0,
@@ -98,7 +100,7 @@ const QuickStats = () => {
 
       // For drivers in trip, we can assume some percentage of active drivers are in trip
       // Since API doesn't provide this, we'll calculate as 75% of active drivers (round up)
-      driversInTrip: Math.ceil((apiData.tDriver?.activeDriver || 0) * 0.75),
+      // driversInTrip: Math.ceil((apiData.tDriver?.activeDriver || 0) * 0.75),
     };
   };
 

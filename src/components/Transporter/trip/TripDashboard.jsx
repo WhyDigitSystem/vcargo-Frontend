@@ -72,7 +72,7 @@ export const TripDashboard = () => {
         startTime: trip.startTime?.slice(0, 5),
         endDate: trip.endDate,
         endTime: trip.endTime?.slice(0, 5),
-        status: trip.status,
+        status: trip.status?.toUpperCase(),
         tripType: trip.tripType,
         goodsType: trip.goodsType,
         goodsWeight: trip.goodsWeight,

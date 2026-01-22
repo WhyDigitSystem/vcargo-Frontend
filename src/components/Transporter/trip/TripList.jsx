@@ -107,13 +107,13 @@ export const TripList = ({
     switch (status) {
       case "COMPLETED":
         return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300";
-      case "in_progress":
+      case "IN_PROGRESS":
         return "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300";
-      case "scheduled":
+      case "SCHEDULED":
         return "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300";
-      case "pending":
+      case "PENDING":
         return "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300";
-      case "cancelled":
+      case "CANCELLED":
         return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300";
       default:
         return "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300";
@@ -124,11 +124,11 @@ export const TripList = ({
     switch (status) {
       case "COMPLETED":
         return <CheckCircle className="h-3 w-3" />;
-      case "in_progress":
+      case "IN_PROGRESS":
         return <Clock className="h-3 w-3" />;
-      case "scheduled":
+      case "SCHEDULED":
         return <Calendar className="h-3 w-3" />;
-      case "pending":
+      case "PENDING":
         return <AlertCircle className="h-3 w-3" />;
       default:
         return <AlertCircle className="h-3 w-3" />;
@@ -150,8 +150,8 @@ export const TripList = ({
 
   const getProgressPercentage = (trip) => {
     if (trip.status === "COMPLETED") return 100;
-    if (trip.status === "in_progress") return 50;
-    if (trip.status === "scheduled") return 10;
+    if (trip.status === "IN_PROGRESS") return 50;
+    if (trip.status === "SCHEDULED") return 10;
     return 0;
   };
 
@@ -173,7 +173,7 @@ export const TripList = ({
   };
 
   // Check if trip can be started
-  const canStartTrip = (trip) => trip.status === "scheduled";
+  const canStartTrip = (trip) => trip.status === "SCHEDULED";
 
   const canCompleteTrip = (trip) => trip.status === "STARTED";
 
@@ -267,9 +267,9 @@ export const TripList = ({
                       <div
                         className={`p-3 rounded-xl ${trip.status === "COMPLETED"
                           ? "bg-emerald-100 dark:bg-emerald-900/20"
-                          : trip.status === "in_progress"
+                          : trip.status === "IN_PROGRESS"
                             ? "bg-blue-100 dark:bg-blue-900/20"
-                            : trip.status === "scheduled"
+                            : trip.status === "SCHEDULED"
                               ? "bg-cyan-100 dark:bg-cyan-900/20"
                               : "bg-amber-100 dark:bg-amber-900/20"
                           }`}
@@ -277,9 +277,9 @@ export const TripList = ({
                         <Navigation
                           className={`h-5 w-5 ${trip.status === "COMPLETED"
                             ? "text-emerald-600 dark:text-emerald-400"
-                            : trip.status === "in_progress"
+                            : trip.status === "IN_PROGRESS"
                               ? "text-blue-600 dark:text-blue-400"
-                              : trip.status === "scheduled"
+                              : trip.status === "SCHEDULED"
                                 ? "text-cyan-600 dark:text-cyan-400"
                                 : "text-amber-600 dark:text-amber-400"
                             }`}

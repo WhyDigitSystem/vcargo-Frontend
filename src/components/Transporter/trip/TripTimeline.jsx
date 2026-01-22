@@ -179,22 +179,34 @@ export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
                     }`}
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
+                      {/* Trip Number */}
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-gray-900 dark:text-white">
+                        <h4 className="font-medium text-gray-900 dark:text-white truncate">
                           {trip.tripNumber}
                         </h4>
+
                         {timeRemaining && (
                           <span
-                            className={`text-xs font-medium px-2 py-1 rounded-full ${timeRemaining.bgColor} ${timeRemaining.color}`}
+                            className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full ${timeRemaining.bgColor} ${timeRemaining.color}`}
                           >
                             {timeRemaining.text}
                           </span>
                         )}
                       </div>
+
+                      {/* Addresses */}
                       <div className="space-y-2 mt-2">
-                        <AddressDisplay label="From" address={trip.source} />
-                        <AddressDisplay label="To" address={trip.destination} />
+                        <AddressDisplay
+                          label="From"
+                          address={trip.source}
+                          className="line-clamp-2"
+                        />
+                        <AddressDisplay
+                          label="To"
+                          address={trip.destination}
+                          className="line-clamp-2"
+                        />
                       </div>
                     </div>
                   </div>

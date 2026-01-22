@@ -10,12 +10,12 @@ export const TripFilters = ({
   onBulkAction
 }) => {
   const statusOptions = [
-    { id: "all", name: "All Status" },
-    { id: "scheduled", name: "Scheduled" },
-    { id: "pending", name: "Pending" },
-    { id: "in_progress", name: "In Progress" },
-    { id: "completed", name: "Completed" },
-    { id: "cancelled", name: "Cancelled" },
+    { id: "all", name: "ALL STATUS" },
+    { id: "SCHEDULED", name: "SCHEDULED" },
+    { id: "PENDING", name: "PENDING" },
+    { id: "IN_PROGRESS", name: "IN_PROGRESS" },
+    { id: "COMPLETED", name: "COMPLETED" },
+    { id: "CANCELLED", name: "CANCELLED" },
   ];
 
   const dateRangeOptions = [

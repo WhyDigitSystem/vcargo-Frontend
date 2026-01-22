@@ -184,7 +184,8 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
     fitnessExpiry: "",
     lastService: "",
     nextService: "",
-    driver: "",
+    driverId: "",
+    driverName: "",
     driverPhone: "",
     currentLocation: "",
     fuelEfficiency: "",
@@ -216,6 +217,8 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [drivers, setDrivers] = useState([]);
+
+  const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
     console.log("Current formData status:", formData.status);
@@ -261,7 +264,8 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
         fitnessExpiry: vehicleData.fitnessExpiry || "",
         lastService: vehicleData.lastService || "",
         nextService: vehicleData.nextService || "",
-        driver: vehicleData.driver || "",
+        driverId: vehicleData.driverId || "",
+        driverName: vehicleData.driver || "",
         driverPhone: vehicleData.driverPhone || "",
         currentLocation: vehicleData.currentLocation || "",
         fuelEfficiency: vehicleData.fuelEfficiency || "",
@@ -364,14 +368,47 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.vehicleNumber)
-      newErrors.vehicleNumber = "Vehicle number is required";
-    if (!formData.model) newErrors.model = "Model is required";
-    if (!formData.capacity) newErrors.capacity = "Capacity is required";
-    if (!formData.insuranceExpiry)
-      newErrors.insuranceExpiry = "Insurance expiry is required";
-    if (!formData.fitnessExpiry)
-      newErrors.fitnessExpiry = "Fitness expiry is required";
+    // Vehicle Number
+    const vehicleNumberError = validateVehicleNumber(formData.vehicleNumber);
+    if (vehicleNumberError) newErrors.vehicleNumber = vehicleNumberError;
+
+    // Model
+    if (!formData.model.trim()) {
+      newErrors.model = "Model is required";
+    }
+
+    // Capacity
+    if (!formData.capacity.trim()) {
+      newErrors.capacity = "Capacity is required";
+    }
+
+    // Insurance Expiry
+    if (!formData.insuranceExpiry) {
+      newErrors.insuranceExpiry = "Insurance expiry date is required";
+    }
+
+    // Fitness Expiry
+    if (!formData.fitnessExpiry) {
+      newErrors.fitnessExpiry = "Fitness expiry date is required";
+    }
+
+    // Status
+    if (!formData.status) {
+      newErrors.status = "Vehicle status is required";
+    }
+
+    // 🔴 DOCUMENT VALIDATION
+    if (files.rc.length === 0) {
+      newErrors.rc = "RC document is required";
+    }
+
+    if (files.insurance.length === 0) {
+      newErrors.insurance = "Insurance document is required";
+    }
+
+    if (files.fitness.length === 0) {
+      newErrors.fitness = "Fitness certificate is required";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -429,11 +466,15 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
   const loadDrivers = async () => {
     try {
       const response = await driverAPI.getDrivers(1, 10, orgId);
-      setDrivers(response.drivers);
-      console.log("Test===>", response.drivers);
+
+      const normalizedDrivers = response.drivers.map((d) => ({
+        ...d,
+        active: d.status?.toLowerCase() === "active",
+      }));
+
+      setDrivers(normalizedDrivers);
     } catch (error) {
       console.error("Error loading drivers:", error);
-    } finally {
     }
   };
 
@@ -469,108 +510,110 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (validateForm()) {
-      setSaving(true);
-      try {
-        // Prepare the vehicle data object with correct date formatting
-        const formatDateForAPI = (dateString) => {
-          if (!dateString) return null;
-          try {
-            const date = new Date(dateString);
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, "0");
-            const day = String(date.getDate()).padStart(2, "0");
-            return `${year}-${month}-${day}`;
-          } catch (e) {
-            return null;
-          }
-        };
-
-        const vehicleData = {
-          vehicleNumber: formData.vehicleNumber,
-          type: formData.type,
-          model: formData.model,
-          capacity: formData.capacity,
-          active: formData.status,
-          insuranceExpiry: formatDateForAPI(formData.insuranceExpiry),
-          fitnessExpiry: formatDateForAPI(formData.fitnessExpiry),
-          lastService: formatDateForAPI(formData.lastService),
-          nextService: formatDateForAPI(formData.nextService),
-          driver: formData.driver || "",
-          driverPhone: formData.driverPhone || "",
-          currentLocation: formData.currentLocation || "",
-          fuelEfficiency: formData.fuelEfficiency || "",
-          maintenanceRequired: formData.maintenanceRequired || false,
-          year: parseInt(formData.year) || new Date().getFullYear(),
-          chassisNumber: formData.chassisNumber || "",
-          engineNumber: formData.engineNumber || "",
-          permitType: formData.permitType || "National",
-          registrationType: formData.registrationType || "",
-          ownerName: formData.ownerName || "Self",
-          userId: userId,
-          orgId: orgId,
-          branchCode: "CHE001",
-          branchName: "Chennai",
-          createdBy: "Admin",
-        };
-
-        // Add ID if editing
-        if (vehicle?.id) {
-          vehicleData.id = vehicle.id;
+    if (!validateForm()) {
+      return;
+    }
+    setSaving(true);
+    try {
+      // Prepare the vehicle data object with correct date formatting
+      const formatDateForAPI = (dateString) => {
+        if (!dateString) return null;
+        try {
+          const date = new Date(dateString);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          return `${year}-${month}-${day}`;
+        } catch (e) {
+          return null;
         }
+      };
 
-        // Create FormData
-        const formDataToSend = new FormData();
+      const vehicleData = {
+        vehicleNumber: formData.vehicleNumber,
+        type: formData.type,
+        model: formData.model,
+        capacity: formData.capacity,
+        active: formData.status,
+        insuranceExpiry: formatDateForAPI(formData.insuranceExpiry),
+        fitnessExpiry: formatDateForAPI(formData.fitnessExpiry),
+        lastService: formatDateForAPI(formData.lastService),
+        nextService: formatDateForAPI(formData.nextService),
+        driverId: formData.driverId,
+        driver: formData.driverName,
+        driverPhone: formData.driverPhone || "",
+        currentLocation: formData.currentLocation || "",
+        fuelEfficiency: formData.fuelEfficiency || "",
+        maintenanceRequired: formData.maintenanceRequired || false,
+        year: parseInt(formData.year) || new Date().getFullYear(),
+        chassisNumber: formData.chassisNumber || "",
+        engineNumber: formData.engineNumber || "",
+        permitType: formData.permitType || "National",
+        registrationType: formData.registrationType || "",
+        ownerName: formData.ownerName || "Self",
+        userId: userId,
+        orgId: orgId,
+        branchCode: "CHE001",
+        branchName: "Chennai",
+        createdBy: "Admin",
+      };
 
-        // Add vehicle data as tvehicleDTO binary blob
-        const vehicleDataJSON = JSON.stringify(vehicleData);
-        const vehicleDataBlob = new Blob([vehicleDataJSON], {
-          type: "application/json",
-        });
-
-        formDataToSend.append(
-          "tvehicleDTO",
-          vehicleDataBlob,
-          "tvehicleDTO.json"
-        );
-
-        // Add files to delete if any
-        if (filesToDelete.length > 0) {
-          formDataToSend.append("filesToDelete", JSON.stringify(filesToDelete));
-        }
-
-        // Add files according to API parameter names
-        const apiFileMappings = {
-          rc: "RC",
-          insurance: "INSURANCE",
-          fitness: "FC",
-          permit: "PERMIT",
-          puc: "PUC",
-          other: "OTHER",
-        };
-
-        // Append each file to the correct API parameter
-        Object.keys(files).forEach((fileType) => {
-          const apiParamName = apiFileMappings[fileType];
-
-          if (apiParamName && files[fileType].length > 0) {
-            files[fileType].forEach((file) => {
-              // Only upload new files (with originalFile)
-              if (file.originalFile) {
-                formDataToSend.append(
-                  apiParamName,
-                  file.originalFile,
-                  file.name
-                );
-              }
-            });
-          }
-        });
-
-        await onSave(formDataToSend);
-      } finally {
-        setSaving(false);
+      // Add ID if editing
+      if (vehicle?.id) {
+        vehicleData.id = vehicle.id;
       }
+
+      // Create FormData
+      const formDataToSend = new FormData();
+
+      // Add vehicle data as tvehicleDTO binary blob
+      const vehicleDataJSON = JSON.stringify(vehicleData);
+      const vehicleDataBlob = new Blob([vehicleDataJSON], {
+        type: "application/json",
+      });
+
+      formDataToSend.append(
+        "tvehicleDTO",
+        vehicleDataBlob,
+        "tvehicleDTO.json"
+      );
+
+      // Add files to delete if any
+      if (filesToDelete.length > 0) {
+        formDataToSend.append("filesToDelete", JSON.stringify(filesToDelete));
+      }
+
+      // Add files according to API parameter names
+      const apiFileMappings = {
+        rc: "RC",
+        insurance: "INSURANCE",
+        fitness: "FC",
+        permit: "PERMIT",
+        puc: "PUC",
+        other: "OTHER",
+      };
+
+      // Append each file to the correct API parameter
+      Object.keys(files).forEach((fileType) => {
+        const apiParamName = apiFileMappings[fileType];
+
+        if (apiParamName && files[fileType].length > 0) {
+          files[fileType].forEach((file) => {
+            // Only upload new files (with originalFile)
+            if (file.originalFile) {
+              formDataToSend.append(
+                apiParamName,
+                file.originalFile,
+                file.name
+              );
+            }
+          });
+        }
+      });
+
+      await onSave(formDataToSend);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -638,30 +681,29 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
     // Remove dashes for validation
     const cleaned = value.replace(/-/g, "");
 
-    // Should be exactly 10 characters
-    if (cleaned.length !== 10) {
-      return "Vehicle number must be 10 characters (e.g., TN-10-AB-7878)";
-    }
+    // if (cleaned.length !== 10) {
+    //   return "Vehicle number must be 10 characters (e.g., TN-10-AB-7878)";
+    // }
 
     // First 2 should be letters (state code)
-    if (!/^[A-Z]{2}$/.test(cleaned.substring(0, 2))) {
-      return "First 2 characters should be state code letters";
-    }
+    // if (!/^[A-Z]{2}$/.test(cleaned.substring(0, 2))) {
+    //   return "First 2 characters should be state code letters";
+    // }
 
     // Next 2 should be numbers (district code)
-    if (!/^[0-9]{2}$/.test(cleaned.substring(2, 4))) {
-      return "District code should be 2 digits";
-    }
+    // if (!/^[0-9]{2}$/.test(cleaned.substring(2, 4))) {
+    //   return "District code should be 2 digits";
+    // }
 
     // Next 2 should be letters (series)
-    if (!/^[A-Z]{2}$/.test(cleaned.substring(4, 6))) {
-      return "Series should be 2 letters";
-    }
+    // if (!/^[A-Z]{2}$/.test(cleaned.substring(4, 6))) {
+    //   return "Series should be 2 letters";
+    // }
 
     // Last 4 should be numbers
-    if (!/^[0-9]{4}$/.test(cleaned.substring(6, 10))) {
-      return "Last 4 characters should be numbers";
-    }
+    // if (!/^[0-9]{4}$/.test(cleaned.substring(6, 10))) {
+    //   return "Last 4 characters should be numbers";
+    // }
 
     return null; // No error
   };
@@ -740,11 +782,10 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
             <button
               type="button"
               onClick={() => setActiveTab("details")}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                activeTab === "details"
-                  ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-              }`}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === "details"
+                ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Car className="h-4 w-4" />
@@ -754,11 +795,10 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
             <button
               type="button"
               onClick={() => setActiveTab("documents")}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                activeTab === "documents"
-                  ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
-                  : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-              }`}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === "documents"
+                ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <File className="h-4 w-4" />
@@ -798,11 +838,10 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                         );
                         handleChange("vehicleNumber", formattedValue);
                       }}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.vehicleNumber
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.vehicleNumber
+                        ? "border-red-500"
+                        : "border-gray-300"
+                        }`}
                       placeholder="TN-10-AB-7878"
                       disabled={saving}
                       maxLength={13} // TN-10-AB-7878 = 13 characters max
@@ -857,9 +896,8 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
                         handleChange("model", value);
                       }}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.model ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.model ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="Tata Prima 5530.S"
                       disabled={saving}
                     />
@@ -886,9 +924,8 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
                         handleChange("capacity", value);
                       }}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.capacity ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.capacity ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="40 FT / 25 Tons"
                       disabled={saving}
                     />
@@ -906,14 +943,14 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <input
                       type="date"
                       value={formData.insuranceExpiry}
+                      min={today}
                       onChange={(e) =>
                         handleChange("insuranceExpiry", e.target.value)
                       }
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.insuranceExpiry
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.insuranceExpiry
+                        ? "border-red-500"
+                        : "border-gray-300"
+                        }`}
                       disabled={saving}
                     />
                     {errors.insuranceExpiry && (
@@ -930,14 +967,14 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <input
                       type="date"
                       value={formData.fitnessExpiry}
+                      min={today}
                       onChange={(e) =>
                         handleChange("fitnessExpiry", e.target.value)
                       }
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                        errors.fitnessExpiry
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.fitnessExpiry
+                        ? "border-red-500"
+                        : "border-gray-300"
+                        }`}
                       disabled={saving}
                     />
                     {errors.fitnessExpiry && (
@@ -1038,30 +1075,24 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Driver Name
                     </label>
-
                     <select
-                      value={formData.driver}
+                      value={formData.driverId}
                       onChange={(e) => {
-                        const selectedDriver = drivers.find(
-                          (d) => d.id === Number(e.target.value)
-                        );
+                        const driverId = Number(e.target.value);
+                        const selectedDriver = drivers.find((d) => d.id === driverId);
 
-                        handleChange("driver", e.target.value);
-                        handleChange(
-                          "driverPhone",
-                          selectedDriver?.phone || ""
-                        );
+                        handleChange("driverId", driverId);
+                        handleChange("driverName", selectedDriver?.name || "");
+                        handleChange("driverPhone", selectedDriver?.phone || "");
                       }}
                       disabled={saving}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
-             focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500
-             dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                     >
                       <option value="">Select Driver</option>
                       {drivers
-                        ?.filter((d) => d.active)
+                        ?.filter((d) => d.status?.toLowerCase() === "active")
                         ?.map((driver) => (
-                          <option key={driver.id} value={driver.name}>
+                          <option key={driver.id} value={driver.id}>
                             {driver.name}
                           </option>
                         ))}
@@ -1075,9 +1106,6 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <input
                       type="tel"
                       value={formData.driverPhone}
-                      onChange={(e) =>
-                        handleChange("driverPhone", e.target.value)
-                      }
                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                       placeholder="+91 9876543210"
                       disabled
@@ -1107,6 +1135,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <input
                       type="date"
                       value={formData.lastService}
+                      max={today}
                       onChange={(e) =>
                         handleChange("lastService", e.target.value)
                       }
@@ -1122,6 +1151,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <input
                       type="date"
                       value={formData.nextService}
+                      min={today}
                       onChange={(e) =>
                         handleChange("nextService", e.target.value)
                       }
@@ -1272,7 +1302,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
                       <div className="flex-1">
                         {files[fileType.key] &&
-                        files[fileType.key].length > 0 ? (
+                          files[fileType.key].length > 0 ? (
                           <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
                             {files[fileType.key].map((file) => (
                               <div
@@ -1340,6 +1370,12 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                           disabled={uploading || saving}
                         />
                       </label>
+                      {/* 🔴 Document Validation Error */}
+                      {errors[fileType.key] && (
+                        <p className="text-xs text-red-500 mt-2 text-center">
+                          {errors[fileType.key]}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1691,11 +1727,10 @@ const VehicleManagement = () => {
       {/* Notification */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg ${
-            notification.type === "error"
-              ? "bg-red-100 text-red-800 border border-red-300"
-              : "bg-green-100 text-green-800 border border-green-300"
-          }`}
+          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg ${notification.type === "error"
+            ? "bg-red-100 text-red-800 border border-red-300"
+            : "bg-green-100 text-green-800 border border-green-300"
+            }`}
         >
           <div className="flex items-center gap-2">
             {notification.type === "error" ? (
@@ -1984,13 +2019,12 @@ const VehicleManagement = () => {
                           Next: {formatDate(nextServiceDate)}
                           {nextServiceDate && (
                             <div
-                              className={`text-xs mt-1 ${
-                                daysRemaining <= 0
-                                  ? "text-red-500"
-                                  : daysRemaining <= 7
+                              className={`text-xs mt-1 ${daysRemaining <= 0
+                                ? "text-red-500"
+                                : daysRemaining <= 7
                                   ? "text-orange-500"
                                   : "text-green-500"
-                              }`}
+                                }`}
                             >
                               {daysRemaining <= 0
                                 ? "Service overdue"
@@ -2068,11 +2102,10 @@ const VehicleManagement = () => {
               <button
                 onClick={() => handlePageChange(pagination.currentPage - 1)}
                 disabled={pagination.currentPage === 1}
-                className={`p-2 rounded-lg border ${
-                  pagination.currentPage === 1
-                    ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                    : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
+                className={`p-2 rounded-lg border ${pagination.currentPage === 1
+                  ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -2098,11 +2131,10 @@ const VehicleManagement = () => {
                         <span className="px-2 text-gray-500">...</span>
                         <button
                           onClick={() => handlePageChange(page)}
-                          className={`px-3 py-1 rounded-lg ${
-                            pagination.currentPage === page
-                              ? "bg-indigo-600 text-white"
-                              : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                          }`}
+                          className={`px-3 py-1 rounded-lg ${pagination.currentPage === page
+                            ? "bg-indigo-600 text-white"
+                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            }`}
                         >
                           {page}
                         </button>
@@ -2113,11 +2145,10 @@ const VehicleManagement = () => {
                     <button
                       key={page}
                       onClick={() => handlePageChange(page)}
-                      className={`px-3 py-1 rounded-lg ${
-                        pagination.currentPage === page
-                          ? "bg-indigo-600 text-white"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      }`}
+                      className={`px-3 py-1 rounded-lg ${pagination.currentPage === page
+                        ? "bg-indigo-600 text-white"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
                     >
                       {page}
                     </button>
@@ -2127,11 +2158,10 @@ const VehicleManagement = () => {
               <button
                 onClick={() => handlePageChange(pagination.currentPage + 1)}
                 disabled={pagination.currentPage === pagination.totalPages}
-                className={`p-2 rounded-lg border ${
-                  pagination.currentPage === pagination.totalPages
-                    ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                    : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
+                className={`p-2 rounded-lg border ${pagination.currentPage === pagination.totalPages
+                  ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

@@ -122,11 +122,11 @@ export const TripForm = ({
         distance: trip.distance || "",
         estimatedDuration: trip.estimatedDuration || "",
         startDate: trip.startDate || new Date().toISOString().split("T")[0],
-        startTime: trip.startTime || "08:00",
+        startTime: trip.startTime || "",
         endDate: trip.endDate || "",
         endTime: trip.endTime || "",
-        status: trip.status || "scheduled",
-        tripType: trip.tripType || "freight",
+        status: trip.status || "",
+        tripType: trip.tripType || "",
         goodsType: trip.goodsType || "",
         goodsWeight: trip.goodsWeight || "",
         goodsValue: trip.goodsValue || "",
@@ -150,23 +150,29 @@ export const TripForm = ({
 
   const loadDrivers = async () => {
     try {
-      const response = await driverAPI.getDrivers(1, 10, orgId);
-      setDrivers(response.drivers);
-      console.log("Test===>", response.drivers);
+      const response = await driverAPI.getDrivers(1, 50, orgId);
+
+      const activeDrivers = response.drivers.filter(
+        (d) => d.status === "Active" || d.isActive === true
+      );
+
+      setDrivers(activeDrivers);
     } catch (error) {
       console.error("Error loading drivers:", error);
-    } finally {
     }
   };
 
   const loadVehicles = async () => {
     try {
-      const response = await vehicleAPI.getVehicles(1, 10, orgId);
-      setVehicles(response.vehicles);
-      console.log("Test===>", response);
+      const response = await vehicleAPI.getVehicles(1, 50, orgId);
+
+      const activeVehicles = response.vehicles.filter(
+        (v) => v.status === "ACTIVE" && v.cancel !== true
+      );
+
+      setVehicles(activeVehicles);
     } catch (error) {
-      console.error("Error loading drivers:", error);
-    } finally {
+      console.error("Error loading vehicles:", error);
     }
   };
 
