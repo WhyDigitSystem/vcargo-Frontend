@@ -1,5 +1,4 @@
 import { clsx } from "clsx";
-import Lottie from "lottie-react";
 import {
   Bell,
   Car,
@@ -18,8 +17,6 @@ import {
 import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { NavLink, useNavigate } from "react-router-dom";
-
-import truckAnimation from "../../assets/lottieflow-ecommerce.json";
 
 const Sidebar = () => {
   const sidebarOpen = useSelector((state) => state.ui.sidebarOpen);
@@ -152,7 +149,7 @@ const Sidebar = () => {
 
   // Filter menu based on role
   const filteredNavigation = navigation.filter((item) =>
-    item.roles.includes(type)
+    item.roles.includes(type),
   );
 
   const isAdmin = ["Sadmin", "SuperAdmin", "Admin"].includes(type);
@@ -161,19 +158,26 @@ const Sidebar = () => {
     <aside
       className={clsx(
         "bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transition-all duration-300 h-full",
-        sidebarOpen ? "w-56" : "w-16"
+        sidebarOpen ? "w-56" : "w-16",
       )}
     >
       <nav className="h-full flex flex-col">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-2 mt-2">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
-            <div className="w-24 h-24 mx-auto">
-              <Lottie
-                animationData={truckAnimation}
-                loop
-                autoplay
-                style={{ width: "100%", height: "100%" }}
+        <div className="flex items-center justify-center gap-1 mb-2 mt-2">
+          <div className="w-16 h-16">
+            {/* Light mode logo */}
+            <img
+              src="/vcargo-logo.png"
+              alt="Vcargo Logo"
+              className="w-full h-full object-contain dark:hidden"
+            />
+
+            {/* Dark mode logo with light background */}
+            <div className="hidden dark:block w-full h-full bg-white/70 rounded-3xl p-0.2">
+              <img
+                src="/vcargo-logo-removebg-preview.png"
+                alt="Vcargo Logo"
+                className="w-full h-full object-contain"
               />
             </div>
           </div>
@@ -210,7 +214,7 @@ const Sidebar = () => {
                         : `border-transparent hover:border-gray-200 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white`,
                       sidebarOpen
                         ? "px-2 py-1.5 rounded-md"
-                        : "p-1 rounded-full justify-center"
+                        : "p-1 rounded-full justify-center",
                     )
                   }
                 >
@@ -229,7 +233,7 @@ const Sidebar = () => {
                       "rounded-md transition-colors duration-200 relative",
                       sidebarOpen
                         ? `${item.bgColor} p-1.5`
-                        : "group-hover:bg-gray-100 dark:group-hover:bg-gray-800 p-1.5"
+                        : "group-hover:bg-gray-100 dark:group-hover:bg-gray-800 p-1.5",
                     )}
                   >
                     <Icon
@@ -237,7 +241,7 @@ const Sidebar = () => {
                         "flex-shrink-0 transition-colors duration-200",
                         sidebarOpen
                           ? `h-4 w-4 ${item.color}`
-                          : "h-4 w-4 group-hover:text-gray-900 dark:group-hover:text-white"
+                          : "h-4 w-4 group-hover:text-gray-900 dark:group-hover:text-white",
                       )}
                     />
                   </div>

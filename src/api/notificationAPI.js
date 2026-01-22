@@ -1,9 +1,9 @@
 import apiClient from "./apiClient";
 
 export const notificationAPI = {
-  getAllNotificationByUserId: async ({ userId }) => {
-    return await apiClient.get("/api/notification/byUserId", {
-      params: { userId },
+  getAllNotificationByUserId: async ({ orgId }) => {
+    return await apiClient.get("/api/notification/byOrgId", {
+      params: { orgId },
     });
   },
 
@@ -11,8 +11,8 @@ export const notificationAPI = {
     return await apiClient.put(`/api/notification/clear?id=${id}`);
   },
 
-  clearAllNotificationd: async ({ userId }) => {
-    return await apiClient.put(`/api/notification/clearAll?userId=${userId}`);
+  clearAllNotificationd: async ({ orgId }) => {
+    return await apiClient.put(`/api/notification/clearAll?userId=${orgId}`);
   },
 
   markRead: async ({ id }) => {

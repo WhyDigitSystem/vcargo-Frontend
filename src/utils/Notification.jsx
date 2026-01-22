@@ -1,12 +1,13 @@
 import {
   AlertTriangle,
   Bell,
+  Car,
   CheckCheck,
   CheckCircle,
   ChevronRight,
   Clock,
   Info,
-  ThumbsUp,
+  Shield,
   Trash2,
   X,
 } from "lucide-react";
@@ -27,31 +28,47 @@ const timeAgo = (timestamp) => {
   return `${Math.floor(diff / 86400)} days ago`;
 };
 
-// Config for notification UI
+// Updated config for notification UI with all types from your API
 const notificationConfig = {
-  "Quote Accepted": {
-    icon: <ThumbsUp className="h-5 w-5 text-green-500" />,
+  INSURANCE: {
+    icon: <Shield className="h-5 w-5 text-red-500" />,
     priority: "high",
+    title: "Insurance Expiry",
+  },
+  FITNESS: {
+    icon: <Car className="h-5 w-5 text-amber-500" />,
+    priority: "high",
+    title: "Fitness Expiry",
   },
   "Quote Rejected": {
     icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
     priority: "medium",
+    title: "Quote Rejected",
   },
   Info: {
     icon: <Info className="h-5 w-5 text-blue-500" />,
     priority: "low",
+    title: "Information",
   },
   "Payment Received": {
     icon: <CheckCircle className="h-5 w-5 text-emerald-500" />,
     priority: "high",
+    title: "Payment Received",
   },
   "Trip Completed": {
     icon: <CheckCircle className="h-5 w-5 text-blue-500" />,
     priority: "medium",
+    title: "Trip Completed",
   },
   "Maintenance Due": {
     icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
     priority: "high",
+    title: "Maintenance Due",
+  },
+  DEFAULT: {
+    icon: <Info className="h-5 w-5 text-gray-400" />,
+    priority: "low",
+    title: "Notification",
   },
 };
 
@@ -80,9 +97,10 @@ const NotificationComponent = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [activeFilter, setActiveFilter] = useState("all"); // 'all', 'unread', 'high'
+  const [isLoading, setIsLoading] = useState(true);
 
   const { user } = useSelector((state) => state.auth);
-  const userId = user?.usersId;
+  const orgId = user?.orgId;
 
   // System notification handler
   const showSystemNotification = (notif) => {
@@ -99,27 +117,55 @@ const NotificationComponent = () => {
     });
   };
 
+  // Get notification config based on type
+  const getNotificationConfig = (type) => {
+    return notificationConfig[type] || notificationConfig.DEFAULT;
+  };
+
   // Fetch notifications
   const loadNotifications = async () => {
+    if (!orgId) return;
+
+    setIsLoading(true);
     try {
-      const { paramObjectsMap } =
-        await notificationAPI.getAllNotificationByUserId({ userId });
+      const response = await notificationAPI.getAllNotificationByUserId({
+        orgId,
+      });
 
-      const list = paramObjectsMap.notificationVO
+      // Check response structure - it might be direct array or wrapped
+      let notificationList = [];
+
+      if (Array.isArray(response)) {
+        notificationList = response;
+      } else if (response?.paramObjectsMap?.notificationVO) {
+        notificationList = response.paramObjectsMap.notificationVO;
+      } else if (response?.notificationVO) {
+        notificationList = response.notificationVO;
+      } else if (response?.data) {
+        // Handle if API returns { data: [...] }
+        notificationList = Array.isArray(response.data) ? response.data : [];
+      }
+
+      // Filter and transform notifications
+      const list = notificationList
         .filter((n) => !n.deleted)
-        .map((n) => ({
-          id: n.notificationId,
-          title: n.notificationType,
-          message: n.message,
-          isRead: n.read,
-          time: timeAgo(n.createdOn),
-          auctionsid: n.auctionsid,
-          icon: notificationConfig[n.notificationType]?.icon || (
-            <Info className="h-5 w-5 text-gray-400" />
-          ),
-          priority: notificationConfig[n.notificationType]?.priority || "low",
-        }));
+        .map((n) => {
+          const config = getNotificationConfig(n.notificationType);
+          return {
+            id: n.notificationId,
+            title: config.title || n.notificationType,
+            message: n.message,
+            isRead: n.read,
+            time: timeAgo(n.createdOn),
+            auctionsid: n.auctionsid,
+            icon: config.icon,
+            priority: config.priority,
+            type: n.notificationType,
+            createdOn: n.createdOn,
+          };
+        });
 
+      // Show system notifications for new unread items
       list.forEach((n) => {
         if (!n.isRead && !lastNotifiedIds.has(n.id)) {
           showSystemNotification(n);
@@ -130,26 +176,38 @@ const NotificationComponent = () => {
       setUnread(list.filter((n) => !n.isRead).length);
     } catch (error) {
       console.error("Failed to load notifications:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Initialize
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
+      Notification.requestPermission().then((permission) => {
+        console.log("Notification permission:", permission);
+      });
     }
 
-    loadNotifications();
+    if (orgId) {
+      loadNotifications();
+    }
 
-    const interval = setInterval(loadNotifications, 15000);
-    const focusHandler = () => loadNotifications();
+    const interval = setInterval(() => {
+      if (orgId) loadNotifications();
+    }, 15000);
+
+    const focusHandler = () => {
+      if (orgId) loadNotifications();
+    };
+
     window.addEventListener("focus", focusHandler);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener("focus", focusHandler);
     };
-  }, []);
+  }, [orgId]);
 
   // Filter notifications
   const filteredNotifications = notifications.filter((n) => {
@@ -164,7 +222,7 @@ const NotificationComponent = () => {
     try {
       await notificationAPI.markRead({ id });
       setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
       setUnread((prev) => Math.max(0, prev - 1));
     } catch (error) {
@@ -174,7 +232,14 @@ const NotificationComponent = () => {
 
   const markAllRead = async () => {
     try {
-      await notificationAPI.clearAllNotificationd({ userId });
+      // Get all unread notification IDs
+      const unreadIds = notifications.filter((n) => !n.isRead).map((n) => n.id);
+
+      // Mark each as read
+      for (const id of unreadIds) {
+        await notificationAPI.markRead({ id });
+      }
+
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnread(0);
     } catch (error) {
@@ -195,7 +260,7 @@ const NotificationComponent = () => {
 
   const clearAll = async () => {
     try {
-      await notificationAPI.clearAllNotificationd({ userId });
+      await notificationAPI.clearAllNotificationd({ orgId });
       setNotifications([]);
       setUnread(0);
     } catch (error) {
@@ -209,11 +274,12 @@ const NotificationComponent = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all relative"
+        aria-label={`Notifications ${unread > 0 ? `(${unread} unread)` : ""}`}
       >
         <Bell className="h-5 w-5 text-gray-700 dark:text-gray-300" />
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center border border-white dark:border-gray-900">
-            {unread}
+          <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center border border-white dark:border-gray-900 animate-pulse">
+            {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
@@ -238,7 +304,7 @@ const NotificationComponent = () => {
               <div className="relative">
                 <Bell className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 {unread > 0 && (
-                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-900" />
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 animate-ping" />
                 )}
               </div>
               <div>
@@ -264,6 +330,7 @@ const NotificationComponent = () => {
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                aria-label="Close notifications"
               >
                 <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               </button>
@@ -277,7 +344,7 @@ const NotificationComponent = () => {
               className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeFilter === "all"
                   ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-700/50"
               }`}
             >
               All
@@ -287,7 +354,7 @@ const NotificationComponent = () => {
               className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeFilter === "unread"
                   ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-700/50"
               }`}
             >
               Unread
@@ -297,7 +364,7 @@ const NotificationComponent = () => {
               className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeFilter === "high"
                   ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-700/50"
               }`}
             >
               Priority
@@ -306,7 +373,14 @@ const NotificationComponent = () => {
 
           {/* Notifications List */}
           <div className="h-[calc(100vh-200px)] overflow-y-auto">
-            {filteredNotifications.length === 0 ? (
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center h-full p-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Loading notifications...
+                </p>
+              </div>
+            ) : filteredNotifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl mb-4">
                   <Bell className="h-12 w-12 text-blue-500 dark:text-blue-400 opacity-50" />
@@ -330,15 +404,20 @@ const NotificationComponent = () => {
                     }`}
                   >
                     <div className="flex gap-3">
-                      <div className="mt-1">{n.icon}</div>
+                      <div className="mt-1 flex-shrink-0">{n.icon}</div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h4 className="font-medium text-gray-900 dark:text-white text-sm">
+                            <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1">
                               {n.title}
                             </h4>
-                            {getPriorityBadge(n.priority)}
+                            <div className="flex items-center gap-2">
+                              {getPriorityBadge(n.priority)}
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {n.type}
+                              </span>
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-2">
@@ -347,7 +426,8 @@ const NotificationComponent = () => {
                             )}
                             <button
                               onClick={() => deleteNotif(n.id)}
-                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-opacity"
+                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-all"
+                              aria-label={`Delete ${n.title} notification`}
                             >
                               <Trash2 className="h-4 w-4 text-gray-500" />
                             </button>
@@ -374,7 +454,7 @@ const NotificationComponent = () => {
                           {!n.isRead && (
                             <button
                               onClick={() => markRead(n.id)}
-                              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
+                              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
                             >
                               Mark as read
                             </button>
@@ -389,25 +469,27 @@ const NotificationComponent = () => {
           </div>
 
           {/* Footer */}
-          <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={clearAll}
-                className="flex items-center gap-2 px-4 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="text-sm font-medium">Clear All</span>
-              </button>
+          {notifications.length > 0 && (
+            <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={clearAll}
+                  className="flex items-center gap-2 px-4 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="text-sm font-medium">Clear All</span>
+                </button>
 
-              <button
-                onClick={() => (window.location.href = "/notifications")}
-                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <span className="text-sm font-medium">View All</span>
-                <ChevronRight className="h-4 w-4" />
-              </button>
+                <button
+                  onClick={() => (window.location.href = "/notifications")}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <span className="text-sm font-medium">View All</span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

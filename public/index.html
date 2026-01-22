@@ -1,58 +1,244 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta name="description" content="Smart Fleet Management System" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/truckLogo.png" />
+    <!-- SEO & Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="description" content="Vcargo - Smart Fleet Management System for efficient logistics and transportation management" />
+    <meta name="keywords" content="fleet management, logistics, transportation, cargo, vcargo" />
+    <meta name="author" content="Vcargo" />
+    
+    <!-- Open Graph Meta Tags for Social Sharing -->
+    <meta property="og:title" content="Vcargo - Smart Fleet Management" />
+    <meta property="og:description" content="Efficient logistics and transportation management system" />
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.png" />
+    <meta property="og:url" content="https://vcargo.example.com" />
+    <meta property="og:type" content="website" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Vcargo - Smart Fleet Management" />
+    <meta name="twitter:description" content="Efficient logistics and transportation management system" />
+    <meta name="twitter:image" content="%PUBLIC_URL%/twitter-image.png" />
+    
+    <!-- Favicon Configuration -->
+    <link rel="icon" href="%PUBLIC_URL%/vcargo-logo.png" type="image/png" />
+    <link rel="icon" href="%PUBLIC_URL%/vcargo-logo.png" sizes="any" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" crossorigin="use-credentials" />
+    
+    <!-- PWA Configuration -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Vcargo" />
+    
+    <!-- Font Preloading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    
+    <!-- Tailwind CSS with Custom Config -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         darkMode: "class",
+        important: true,
         theme: {
           extend: {
             colors: {
               primary: {
                 50: "#eff6ff",
+                100: "#dbeafe",
+                200: "#bfdbfe",
+                300: "#93c5fd",
+                400: "#60a5fa",
                 500: "#3b82f6",
                 600: "#2563eb",
                 700: "#1d4ed8",
+                800: "#1e40af",
+                900: "#1e3a8a",
               },
+              secondary: {
+                500: "#10b981",
+                600: "#059669",
+                700: "#047857",
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.5s ease-in-out',
+              'slide-up': 'slideUp 0.3s ease-out',
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              slideUp: {
+                '0%': { transform: 'translateY(10px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' },
+              },
+            },
+            boxShadow: {
+              'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+              'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
             },
           },
         },
-      };
+        plugins: [],
+      }
     </script>
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>Vcargo</title>
+    
+    <!-- Critical CSS for initial load -->
+    <style>
+      /* Critical styles that should load immediately */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* Loading animation for initial app load */
+      .app-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        z-index: 9999;
+      }
+      
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+    
+    <!-- Lazy load non-critical styles -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'" />
+    
+    <title>Vcargo | Smart Fleet Management System</title>
   </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+  
+  <body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <!-- Loading screen for better UX during initial load -->
+    <div id="loading" class="app-loading">
+      <div class="loading-spinner"></div>
+    </div>
+    
+    <!-- Root element for React -->
     <div id="root"></div>
+    
+    <!-- Manifest for PWA -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Service Worker Registration -->
+   <script>
+  // Remove loading screen when app is ready
+  window.addEventListener('DOMContentLoaded', () => {
+    const loading = document.getElementById('loading');
+    if (loading) {
+      setTimeout(() => {
+        loading.style.opacity = '0';
+        loading.style.transition = 'opacity 0.3s';
+        setTimeout(() => loading.remove(), 300);
+      }, 500);
+    }
+    
+    // Service Worker registration for PWA
+    // FIXED: Check for production differently since process.env is not available in browser
+    if ('serviceWorker' in navigator) {
+      // You have a few options for production detection:
+      
+      // Option 1: Check if you're on localhost (development)
+      const isLocalhost = window.location.hostname === 'localhost' || 
+                         window.location.hostname === '127.0.0.1';
+      
+      // Option 2: Check the current URL (if your production has a specific domain)
+      const isProduction = !isLocalhost && 
+                          !window.location.hostname.includes('staging');
+      
+      // Option 3: Use a global variable that gets set by your build system
+      // In your React app, you'd typically have something like:
+      // window.APP_ENV = 'production';
+      
+      // For now, let's register in all environments except localhost
+      // or you can register in all environments if that's your preference
+      if (!isLocalhost) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+              console.log('ServiceWorker registration successful:', registration.scope);
+            })
+            .catch(error => {
+              console.log('ServiceWorker registration failed:', error);
+            });
+        });
+      }
+    }
+    
+    // Theme preference detection
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  });
+</script>
+    
+    <!-- Analytics (example with Google Analytics) -->
     <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
     -->
+    
+    <!-- Error boundary fallback -->
+    <noscript>
+      <div class="noscript-message p-8 max-w-2xl mx-auto mt-20 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold text-red-600 mb-4">JavaScript Required</h1>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Vcargo requires JavaScript to function properly. Please enable JavaScript in your browser settings to continue.
+        </p>
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4">
+          <p class="text-yellow-700 dark:text-yellow-300">
+            If you're using an older browser, consider updating to a modern browser like 
+            <a href="https://www.google.com/chrome/" class="underline">Chrome</a>,
+            <a href="https://www.mozilla.org/firefox/" class="underline">Firefox</a>, or
+            <a href="https://www.microsoft.com/edge" class="underline">Edge</a>.
+          </p>
+        </div>
+      </div>
+    </noscript>
   </body>
 </html>
