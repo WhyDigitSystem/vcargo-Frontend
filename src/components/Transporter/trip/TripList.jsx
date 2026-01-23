@@ -25,12 +25,9 @@ export const TripList = ({
   onEdit,
   onDelete,
   onViewMap,
-  onStatusChange,
-  onStartTrip,
-  onCompleteTrip,
   selectedTrips,
   onSelectTrip,
-  onRefresh, // Add refresh callback to update trip list
+  onRefresh,
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [loadingTripId, setLoadingTripId] = useState(null);

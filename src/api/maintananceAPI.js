@@ -2,48 +2,26 @@ import apiClient from "./apiClient";
 
 export const maintananceAPI = {
   // Fetch all maintenance records with pagination
-  getAllMaintenance: async (page = 1, count = 10, orgId, filters = {}) => {
+  getAllMaintenance: async (orgId) => {
     try {
-      const params = {
-        orgId: orgId,
-        count: count,
-        page: page,
-        ...filters,
-      };
-
-      console.log("Fetching maintenance with params:", params);
-
       const response = await apiClient.get(
         "/api/maintenance/getAllMaintenanceByOrgId",
         {
-          params: params,
+          params: { orgId },
         }
       );
 
       const data = response.data || response;
-      console.log("Maintenance API response:", data);
 
-      // Check if API call was successful
       if (!data.status) {
         throw new Error(
-          data.paramObjectsMap?.message || "Failed to fetch maintenance records"
+          data.paramObjectsMap?.message ||
+          "Failed to fetch maintenance records"
         );
       }
 
-      // Parse maintenance records
-      const maintenanceRecords = parseMaintenanceResponse(data);
-
-      // Return formatted response
       return {
-        maintenanceRecords: maintenanceRecords,
-        pagination: {
-          isFirst: data.paramObjectsMap?.maintenance?.isFirst || true,
-          isLast: data.paramObjectsMap?.maintenance?.isLast || true,
-          totalPages: data.paramObjectsMap?.maintenance?.totalPages || 1,
-          pageSize: data.paramObjectsMap?.maintenance?.pageSize || 10,
-          currentPage: data.paramObjectsMap?.maintenance?.currentPage || page,
-          totalCount: data.paramObjectsMap?.maintenance?.totalCount || 0,
-        },
+        maintenanceRecords: parseMaintenanceResponse(data),
         message: data.paramObjectsMap?.message || "Success",
       };
     } catch (error) {
@@ -52,48 +30,32 @@ export const maintananceAPI = {
     }
   },
 
-
-// services/maintenanceService.js - Add this method
-createUpdateMaintenance: async (maintenanceData) => {
-  try {
-    console.log("Sending maintenance data:", maintenanceData);
-    
-    const response = await apiClient.put(
-      "/api/maintenance/createUpdateMaintenance",
-      maintenanceData
-    );
-
-    const data = response.data || response;
-    console.log("Create/Update response:", data);
-
-    if (!data.status) {
-      throw new Error(
-        data.paramObjectsMap?.message || "Failed to save maintenance record"
+  // services/maintenanceService.js - Add this method
+  createUpdateMaintenance: async (maintenanceData) => {
+    try {
+      const response = await apiClient.put(
+        "/api/maintenance/createUpdateMaintenance",
+        maintenanceData
       );
-    }
 
-    return {
-      success: true,
-      data: data.paramObjectsMap?.maintenance,
-      message: data.paramObjectsMap?.message || "Operation successful"
-    };
-  } catch (error) {
-    console.error("Error creating/updating maintenance:", error);
-    
-    // Handle specific error cases
-    if (error.response) {
-      const errorData = error.response.data;
-      throw new Error(
-        errorData.paramObjectsMap?.message || 
-        errorData.message || 
-        "Failed to save maintenance record"
-      );
-    }
-    
-    throw error;
-  }
-},
+      const data = response.data || response;
 
+      if (!data.status) {
+        throw new Error(
+          data.paramObjectsMap?.message ||
+          "Failed to save maintenance record"
+        );
+      }
+
+      return {
+        success: true,
+        data: data.paramObjectsMap?.maintenance,
+        message: data.paramObjectsMap?.message || "Operation successful",
+      };
+    } catch (error) {
+      throw error;
+    }
+  },
 
   // Get single maintenance record by ID
   getMaintenanceById: async (id, orgId) => {
@@ -126,20 +88,20 @@ createUpdateMaintenance: async (maintenanceData) => {
 
 // Helper function to parse maintenance response
 const parseMaintenanceResponse = (apiData) => {
-  if (!apiData.paramObjectsMap || !apiData.paramObjectsMap.maintenance) {
-    console.warn("No maintenance data found in response");
+  if (!apiData?.paramObjectsMap?.maintenance) {
+    console.warn("No maintenance data found");
     return [];
   }
 
   const maintenance = apiData.paramObjectsMap.maintenance;
 
-  // Check if data array exists
-  if (maintenance.data && Array.isArray(maintenance.data)) {
-    return maintenance.data.map((item) => ({
-      id: item.id?.toString() || `MAINT-${Date.now()}`,
+  // ✅ CASE 1: API returns array (YOUR CURRENT API)
+  if (Array.isArray(maintenance)) {
+    return maintenance.map((item) => ({
+      id: item.id?.toString(),
       title: item.title || "Maintenance",
-      vehicleId: item.vehicleId?.toString(),
-      vehicleName: item.vehicle || "N/A",
+      vehicleId: item.vehicle?.id?.toString(),
+      vehicleName: item.vehicle?.vehicleNumber || "N/A",
       type: item.type || "preventive",
       status: item.status || "pending",
       priority: item.priority || "medium",
@@ -153,22 +115,50 @@ const parseMaintenanceResponse = (apiData) => {
       description: item.description || "",
       parts: item.parts || [],
       notes: item.notes || "",
-      active: item.active !== undefined ? item.active : true,
+      active: item.active ?? true,
       createdBy: item.createdBy || "System",
-      branchCode: item.branchCode || "MAIN",
-      branchName: item.branchName || "Main Branch",
+      branchCode: item.branchCode || "",
+      branchName: item.branchName || "",
       orgId: item.orgId,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-      // For display purposes
       formattedDate: formatDate(item.scheduledDate),
       formattedCompletedDate: formatDate(item.completedDate),
     }));
   }
 
-  console.warn("Maintenance data is not an array:", maintenance);
+  // ✅ CASE 2: Old paginated structure (safety)
+  if (maintenance.data && Array.isArray(maintenance.data)) {
+    return maintenance.data.map((item) => ({
+      id: item.id?.toString(),
+      title: item.title || "Maintenance",
+      vehicleId: item.vehicle?.id?.toString(),
+      vehicleName: item.vehicle?.vehicleNumber || "N/A",
+      type: item.type || "preventive",
+      status: item.status || "pending",
+      priority: item.priority || "medium",
+      scheduledDate: item.scheduledDate,
+      completedDate: item.completedDate,
+      odometerReading: item.odometerReading || 0,
+      cost: item.totalCost || item.estimatedCost || 0,
+      estimatedCost: item.estimatedCost || 0,
+      serviceCenter: item.serviceCenter || "N/A",
+      mechanic: item.mechanic || "N/A",
+      description: item.description || "",
+      parts: item.parts || [],
+      notes: item.notes || "",
+      active: item.active ?? true,
+      createdBy: item.createdBy || "System",
+      branchCode: item.branchCode || "",
+      branchName: item.branchName || "",
+      orgId: item.orgId,
+      formattedDate: formatDate(item.scheduledDate),
+      formattedCompletedDate: formatDate(item.completedDate),
+    }));
+  }
+
+  console.warn("Unexpected maintenance format:", maintenance);
   return [];
 };
+
 
 // Helper function to parse single maintenance response
 const parseSingleMaintenanceResponse = (apiData) => {

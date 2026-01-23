@@ -457,12 +457,6 @@ export const FuelEntriesList = ({
                           color="emerald"
                           title="Edit Entry"
                         />
-                        <ActionButton
-                          onClick={() => handleDeleteClick(entry)}
-                          icon={Trash2}
-                          color="red"
-                          title="Delete Entry"
-                        />
                       </div>
                       {entry.receiptNumber && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">

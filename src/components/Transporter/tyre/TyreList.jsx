@@ -561,13 +561,6 @@ export const TyreList = ({
                       >
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button
-                        onClick={() => onDelete?.(tyre)}
-                        className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
                     </div>
                   </div>
                 </div>

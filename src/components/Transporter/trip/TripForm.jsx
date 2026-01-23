@@ -150,7 +150,7 @@ export const TripForm = ({
 
   const loadDrivers = async () => {
     try {
-      const response = await driverAPI.getDrivers(1, 50, orgId);
+      const response = await driverAPI.getDrivers(orgId);
 
       const activeDrivers = response.drivers.filter(
         (d) => d.status === "Active" || d.isActive === true
@@ -164,10 +164,10 @@ export const TripForm = ({
 
   const loadVehicles = async () => {
     try {
-      const response = await vehicleAPI.getVehicles(1, 50, orgId);
+      const response = await vehicleAPI.getVehicles(orgId);
 
       const activeVehicles = response.vehicles.filter(
-        (v) => v.status === "ACTIVE" && v.cancel !== true
+        (v) => v.status === "active" && v.cancel !== true
       );
 
       setVehicles(activeVehicles);

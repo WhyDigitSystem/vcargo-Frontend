@@ -22,12 +22,6 @@ export const TripDashboard = () => {
   const [filterCustomers, setFilterCustomers] = useState([]);
   const [filterDrivers, setFilterDrivers] = useState([]);
   const [filterVehicles, setFilterVehicles] = useState([]);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    pageSize: 10,
-    totalCount: 0,
-  });
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
@@ -42,28 +36,36 @@ export const TripDashboard = () => {
 
   useEffect(() => {
     fetchTrips();
-  }, [filters, pagination.currentPage]);
+  }, [filters]);
 
   const fetchTrips = async () => {
     try {
       setLoading(true);
-      const response = await tripAPI.getAllTrips({
-        count: 10,
-        page: 1,
-        orgId,
-      });
+      const response = await tripAPI.getAllTrips(orgId);
 
-      const apiTrips = response?.paramObjectsMap?.trip?.data.reverse() || [];
+      const apiTrips = response?.paramObjectsMap?.trip?.reverse() || [];
 
       const mappedTrips = apiTrips.map((trip) => ({
         id: trip.id,
         tripNumber: `TRIP-${trip.id}`,
         customerId: trip.customer,
         customerName: trip.customer,
-        vehicleId: trip.vehicleId,
-        vehicleName: trip.vehicle,
-        driverId: trip.driverId,
-        driverName: trip.driver,
+        vehicleId:
+          typeof trip.vehicle === "object"
+            ? trip.vehicle.id
+            : trip.vehicleId,
+        vehicleName:
+          typeof trip.vehicle === "object"
+            ? trip.vehicle.vehicleNumber
+            : trip.vehicle || "Unassigned",
+        driverId:
+          typeof trip.driver === "object"
+            ? trip.driver.id
+            : trip.driverId,
+        driverName:
+          typeof trip.driver === "object"
+            ? trip.driver.name
+            : trip.driver || "Unassigned",
         source: trip.source,
         destination: trip.destination,
         distance: trip.distance,
@@ -321,10 +323,6 @@ export const TripDashboard = () => {
   //   );
   // };
 
-  const handlePageChange = (newPage) => {
-    setPagination((prev) => ({ ...prev, currentPage: newPage }));
-  };
-
   const filteredTrips = trips.filter((trip) => {
     const matchesSearch =
       !filters.search ||
@@ -486,13 +484,8 @@ export const TripDashboard = () => {
             onEdit={handleEditTrip}
             onDelete={handleDeleteTrip}
             onViewMap={handleViewMap}
-            // onStatusChange={handleTripStatusChange}
-            // onStartTrip={handleStartTrip}
-            // onCompleteTrip={handleCompleteTrip}
             selectedTrips={selectedTrips}
             onSelectTrip={setSelectedTrips}
-            pagination={pagination}
-            onPageChange={handlePageChange}
             onRefresh={fetchTrips}
           />
         </div>

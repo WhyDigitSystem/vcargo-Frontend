@@ -531,30 +531,6 @@ export const InvoiceList = ({
                         <Eye className="h-4 w-4" />
                         Preview
                       </button>
-                      <button
-                        onClick={() => onSend(invoice.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-                      >
-                        <Mail className="h-4 w-4" />
-                        Send to Customer
-                      </button>
-                      <button
-                        onClick={() => window.print()}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                      >
-                        <Printer className="h-4 w-4" />
-                        Print
-                      </button>
-                      <button
-                        onClick={() => {
-                          // Download PDF logic
-                          console.log("Downloading PDF for", invoice.id);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download PDF
-                      </button>
                     </div>
                   </div>
                 )}

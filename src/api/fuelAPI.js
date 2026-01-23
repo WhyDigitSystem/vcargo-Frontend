@@ -1,19 +1,16 @@
 import apiClient from "./apiClient";
 
 export const fuelAPI = {
-  getAllFuel: async (page = 1, count = 10, orgId) => {
+  getAllFuel: async (orgId) => {
     try {
-      console.log(
-        `Fetching fuel entries - Page: ${page}, Count: ${count}, OrgId: ${orgId}`
-      );
+      console.log("Fetching all fuel entries for org:", orgId);
 
-      const response = await apiClient.get("/api/fuel/getAllFuelByOrgId", {
-        params: {
-          orgId: orgId,
-          count: count,
-          page: page,
-        },
-      });
+      const response = await apiClient.get(
+        "/api/fuel/getAllFuelByOrgId",
+        {
+          params: { orgId },
+        }
+      );
 
       const data = response;
 
@@ -23,108 +20,42 @@ export const fuelAPI = {
         );
       }
 
-      // Assuming API returns data in tfuelVO structure similar to tdriverVO
-      const fuelEntries =
-        data.paramObjectsMap?.fuel?.data?.map((fuel) => ({
-          id: fuel.id,
-          date: fuel.date,
-          time: fuel.time,
-          vehicle: fuel.vehicle,
-          driver: fuel.driver,
-          vehicleId: fuel.vehicleId,
-          driverId: fuel.driverId,
-          fuelType: fuel.fuelType,
-          quantity: parseFloat(fuel.quantity) || 0,
-          cost: parseFloat(fuel.cost) || 0,
-          station: fuel.station,
-          receiptNumber: fuel.receiptNumber,
-          odometerReading: parseFloat(fuel.odometerReading) || 0,
-          previousOdometer: parseFloat(fuel.previousOdometer) || 0,
-          notes: fuel.notes,
-          branchCode: fuel.branchCode || "MAIN",
-          branchName: fuel.branchName || "Main Branch",
-          orgId: fuel.orgId || orgId,
-          createdBy: fuel.createdBy,
-          updatedBy: fuel.updatedBy,
-          createdAt: fuel.commonDate?.createdon,
-          updatedAt: fuel.commonDate?.modifiedon,
-          cancel: fuel.cancel || false,
-          // Calculate derived fields
-          unitPrice:
-            fuel.cost && fuel.quantity
-              ? (fuel.cost / fuel.quantity).toFixed(2)
-              : 0,
-          // Handle receipt files if they exist
-          receipt: fuel.receipt || null,
-          receiptPath: fuel.receiptPath || null,
-        })) || [];
+      const fuelList = data.paramObjectsMap?.fuel;
 
-      return {
-        fuelEntries: fuelEntries,
-        pagination: {
-          isFirst: data.paramObjectsMap?.fuel?.isFirst || true,
-          isLast: data.paramObjectsMap?.fuel?.isLast || true,
-          totalPages: data.paramObjectsMap?.fuel?.totalPages || 1,
-          pageSize: data.paramObjectsMap?.fuel?.pageSize || fuelEntries.length,
-          currentPage: data.paramObjectsMap?.fuel?.currentPage || 1,
-          totalCount:
-            data.paramObjectsMap?.fuel?.totalCount || fuelEntries.length,
-        },
-      };
-    } catch (error) {
-      console.error("Error fetching fuel entries:", error);
-
-      // Fallback to localStorage if API fails
-      try {
-        const stored = localStorage.getItem("fuelEntries");
-        if (stored) {
-          console.warn("Using cached fuel entries from localStorage");
-          const fuelEntries = JSON.parse(stored);
-
-          // Apply pagination to localStorage data
-          const startIndex = (page - 1) * count;
-          const endIndex = startIndex + count;
-          const paginatedEntries = fuelEntries.slice(startIndex, endIndex);
-
-          return {
-            fuelEntries: paginatedEntries.map((fuel) => ({
-              ...fuel,
-              // Ensure numeric fields are numbers
-              quantity: parseFloat(fuel.quantity) || 0,
-              cost: parseFloat(fuel.cost) || 0,
-              odometerReading: parseFloat(fuel.odometerReading) || 0,
-              previousOdometer: parseFloat(fuel.previousOdometer) || 0,
-              unitPrice:
-                fuel.cost && fuel.quantity
-                  ? (fuel.cost / fuel.quantity).toFixed(2)
-                  : 0,
-            })),
-            pagination: {
-              isFirst: page === 1,
-              isLast: endIndex >= fuelEntries.length,
-              totalPages: Math.ceil(fuelEntries.length / count),
-              pageSize: count,
-              currentPage: page,
-              totalCount: fuelEntries.length,
-            },
-          };
-        }
-      } catch (localStorageError) {
-        console.error("Error reading from localStorage:", localStorageError);
+      if (Array.isArray(fuelList)) {
+        return {
+          fuelEntries: fuelList.map((fuel) => ({
+            id: fuel.id,
+            date: fuel.date,
+            time: fuel.time,
+            vehicle: fuel.vehicle,
+            driver: fuel.driver,
+            vehicleId: fuel.vehicleId,
+            driverId: fuel.driverId,
+            fuelType: fuel.fuelType,
+            quantity: parseFloat(fuel.quantity) || 0,
+            cost: parseFloat(fuel.cost) || 0,
+            station: fuel.station,
+            receiptNumber: fuel.receiptNumber,
+            odometerReading: parseFloat(fuel.odometerReading) || 0,
+            previousOdometer: parseFloat(fuel.previousOdometer) || 0,
+            notes: fuel.notes,
+            branchCode: fuel.branchCode || "MAIN",
+            branchName: fuel.branchName || "Main Branch",
+            orgId: fuel.orgId,
+            createdBy: fuel.createdBy,
+            updatedBy: fuel.updatedBy,
+            createdAt: fuel.commonDate?.createdon,
+            updatedAt: fuel.commonDate?.modifiedon,
+            cancel: fuel.cancel || false,
+          })),
+        };
       }
 
-      // Return empty array if everything fails
-      return {
-        fuelEntries: [],
-        pagination: {
-          isFirst: true,
-          isLast: true,
-          totalPages: 0,
-          pageSize: count,
-          currentPage: page,
-          totalCount: 0,
-        },
-      };
+      return { fuelEntries: [] };
+    } catch (error) {
+      console.error("Error fetching fuel entries:", error);
+      throw error;
     }
   },
 

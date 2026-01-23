@@ -1,18 +1,14 @@
 import apiClient from "./apiClient";
 
 export const tyreAPI = {
-  getAllTyre: async (page = 1, count = 10, orgId) => {
+  getAllTyre: async (orgId) => {
     try {
-      const response = await apiClient.get("/api/tyre/getAllTyreByOrgId", {
-        params: {
-          orgId: orgId,
-          count: count,
-          page: page,
-        },
-      });
+      const response = await apiClient.get(
+        "/api/tyre/getAllTyreByOrgId",
+        { params: { orgId } }
+      );
 
       const data = response;
-      console.log("Tyre API response:", data);
 
       if (!data.status) {
         throw new Error(
@@ -20,139 +16,36 @@ export const tyreAPI = {
         );
       }
 
-      // Assuming API returns data in ttyreVO structure
-      // Note: Your sample shows single tyre object, but getAll should return array
-      const tyreEntries = data.paramObjectsMap?.tyre?.data
-        ? Array.isArray(data.paramObjectsMap.tyre.data)
-          ? data.paramObjectsMap.tyre.data.map((tyre) => ({
-            id: tyre.id,
-            serialNumber: tyre.serialNumber,
-            brand: tyre.brand,
-            model: tyre.model,
-            size: tyre.size,
-            position: tyre.position,
-            status: tyre.status,
-            purchaseDate: tyre.purchaseDate,
-            purchaseCost: parseFloat(tyre.purchaseCost) || 0,
-            odometerReading: parseFloat(tyre.odometerReading) || 0,
-            treadDepth: parseFloat(tyre.treadDepth) || 0,
-            recommendedPressure: parseFloat(tyre.recommendedPressure) || 0,
-            pressure: parseFloat(tyre.pressure) || 0,
-            notes: tyre.notes,
-            active: tyre.active || true,
-            createdBy: tyre.createdBy,
-            updatedBy: tyre.updatedBy,
-            cancel: tyre.cancel || false,
-            branchCode: tyre.branchCode || "MAIN",
-            branchName: tyre.branchName || "Main Branch",
-            orgId: tyre.orgId || orgId,
-            vehicleId: String(tyre.vehicleId),
-            vehicle: tyre.vehicle,
-            user: tyre.user,
-            createdAt: tyre.commonDate?.createdon,
-            updatedAt: tyre.commonDate?.modifiedon,
-          }))
-          : // If it's a single object (like in sample), wrap in array
-          [
-            {
-              id: data.paramObjectsMap.tyre.id,
-              serialNumber: data.paramObjectsMap.tyre.serialNumber,
-              brand: data.paramObjectsMap.tyre.brand,
-              model: data.paramObjectsMap.tyre.model,
-              size: data.paramObjectsMap.tyre.size,
-              position: data.paramObjectsMap.tyre.position,
-              status: data.paramObjectsMap.tyre.status,
-              purchaseDate: data.paramObjectsMap.tyre.purchaseDate,
-              purchaseCost:
-                parseFloat(data.paramObjectsMap.tyre.purchaseCost) || 0,
-              odometerReading:
-                parseFloat(data.paramObjectsMap.tyre.odometerReading) || 0,
-              treadDepth:
-                parseFloat(data.paramObjectsMap.tyre.treadDepth) || 0,
-              recommendedPressure:
-                parseFloat(data.paramObjectsMap.tyre.recommendedPressure) ||
-                0,
-              pressure: parseFloat(data.paramObjectsMap.tyre.pressure) || 0,
-              notes: data.paramObjectsMap.tyre.notes,
-              active: data.paramObjectsMap.tyre.active || true,
-              createdBy: data.paramObjectsMap.tyre.createdBy,
-              updatedBy: data.paramObjectsMap.tyre.updatedBy,
-              cancel: data.paramObjectsMap.tyre.cancel || false,
-              branchCode: data.paramObjectsMap.tyre.branchCode || "MAIN",
-              branchName:
-                data.paramObjectsMap.tyre.branchName || "Main Branch",
-              orgId: data.paramObjectsMap.tyre.orgId || orgId,
-              vehicle: data.paramObjectsMap.tyre.vehicle,
-              user: data.paramObjectsMap.tyre.user,
-            },
-          ]
+      const tyreEntries = Array.isArray(data.paramObjectsMap?.tyre)
+        ? data.paramObjectsMap.tyre.map(tyre => ({
+          id: tyre.id,
+          serialNumber: tyre.serialNumber,
+          brand: tyre.brand,
+          model: tyre.model,
+          size: tyre.size,
+          position: tyre.position,
+          status: tyre.status,
+          purchaseDate: tyre.purchaseDate,
+          purchaseCost: parseFloat(tyre.purchaseCost) || 0,
+          odometerReading: parseFloat(tyre.odometerReading) || 0,
+          treadDepth: parseFloat(tyre.treadDepth) || 0,
+          recommendedPressure: parseFloat(tyre.recommendedPressure) || 0,
+          pressure: parseFloat(tyre.pressure) || 0,
+          notes: tyre.notes,
+          active: tyre.active ?? true,
+          vehicleId: String(tyre.vehicleId),
+          vehicle: tyre.vehicle || "Unassigned",
+          branchCode: tyre.branchCode || "MAIN",
+          branchName: tyre.branchName || "Main Branch",
+          createdAt: tyre.commonDate?.createdon,
+          updatedAt: tyre.commonDate?.modifiedon,
+        }))
         : [];
 
-      console.log("Parsed tyre entries:", tyreEntries);
-
-      return {
-        tyreEntries: tyreEntries,
-        pagination: {
-          isFirst: data.paramObjectsMap?.tyre?.isFirst || true,
-          isLast: data.paramObjectsMap?.tyre?.isLast || true,
-          totalPages: data.paramObjectsMap?.tyre?.totalPages || 1,
-          pageSize: data.paramObjectsMap?.tyre?.pageSize || tyreEntries.length,
-          currentPage: data.paramObjectsMap?.tyre?.currentPage || 1,
-          totalCount:
-            data.paramObjectsMap?.tyre?.totalCount || tyreEntries.length,
-        },
-      };
+      return { tyreEntries };
     } catch (error) {
       console.error("Error fetching tyre entries:", error);
-
-      // Fallback to localStorage if API fails
-      try {
-        const stored = localStorage.getItem("tyreEntries");
-        if (stored) {
-          console.warn("Using cached tyre entries from localStorage");
-          const tyreEntries = JSON.parse(stored);
-
-          // Apply pagination to localStorage data
-          const startIndex = (page - 1) * count;
-          const endIndex = startIndex + count;
-          const paginatedEntries = tyreEntries.slice(startIndex, endIndex);
-
-          return {
-            tyreEntries: paginatedEntries.map((tyre) => ({
-              ...tyre,
-              // Ensure numeric fields are numbers
-              purchaseCost: parseFloat(tyre.purchaseCost) || 0,
-              odometerReading: parseFloat(tyre.odometerReading) || 0,
-              treadDepth: parseFloat(tyre.treadDepth) || 0,
-              recommendedPressure: parseFloat(tyre.recommendedPressure) || 0,
-              pressure: parseFloat(tyre.pressure) || 0,
-            })),
-            pagination: {
-              isFirst: page === 1,
-              isLast: endIndex >= tyreEntries.length,
-              totalPages: Math.ceil(tyreEntries.length / count),
-              pageSize: count,
-              currentPage: page,
-              totalCount: tyreEntries.length,
-            },
-          };
-        }
-      } catch (localStorageError) {
-        console.error("Error reading from localStorage:", localStorageError);
-      }
-
-      // Return empty array if everything fails
-      return {
-        tyreEntries: [],
-        pagination: {
-          isFirst: true,
-          isLast: true,
-          totalPages: 0,
-          pageSize: count,
-          currentPage: page,
-          totalCount: 0,
-        },
-      };
+      return { tyreEntries: [] };
     }
   },
 

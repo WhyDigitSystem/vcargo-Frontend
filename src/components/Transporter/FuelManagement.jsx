@@ -112,7 +112,7 @@ const FuelManagement = () => {
       setVehicles(vehicleList);
 
       // Load drivers from API
-      const driversResponse = await driverAPI.getDrivers(1, 100);
+      const driversResponse = await driverAPI.getDrivers();
       const driverList = driversResponse.drivers.map((driver) => ({
         id: driver.id,
         driverId: driver.id,
@@ -140,10 +140,10 @@ const FuelManagement = () => {
   const loadFuel = async () => {
     try {
       setLoading(true);
-      const response = await fuelAPI.getAllFuel(1, 100, orgId);
-      console.log("Fuel API response:", response);
 
-      if (response.fuelEntries && response.fuelEntries.length > 0) {
+      const response = await fuelAPI.getAllFuel(orgId);
+
+      if (response.fuelEntries?.length > 0) {
         const formattedEntries = response.fuelEntries.map((entry) => {
           const odometerReading = parseFloat(entry.odometerReading) || 0;
           const previousOdometer = parseFloat(entry.previousOdometer) || 0;
@@ -155,16 +155,17 @@ const FuelManagement = () => {
               : 0;
 
           const efficiencyValue =
-            parseFloat(entry.efficiency) ||
-            (distance > 0 && quantity > 0 ? distance / quantity : 0);
+            distance > 0 && quantity > 0 ? distance / quantity : 0;
 
           return {
             id: entry.id,
             entryId: entry.id,
             vehicleId: entry.vehicleId,
-            vehicle: entry.vehicle,
+            // vehicle: entry.vehicle,
+            vehicle: entry.vehicle?.vehicleNumber || "",
             driverId: entry.driverId,
-            driver: entry.driver,
+            // driver: entry.driver,
+            driver: entry.driver?.name || "",
             fuelType: (entry.fuelType || "diesel").toLowerCase(),
             quantity,
             unit: "liters",
@@ -178,9 +179,9 @@ const FuelManagement = () => {
             previousOdometer,
             distance,
             efficiencyValue: parseFloat(efficiencyValue.toFixed(2)),
-            efficiency: `${parseFloat(efficiencyValue).toFixed(2)} km/l`,
+            efficiency: `${efficiencyValue.toFixed(2)} km/l`,
             station: entry.station || "Unknown Station",
-            date: entry.date || new Date().toISOString().split("T")[0],
+            date: entry.date,
             time: entry.time || "00:00",
             receiptNumber: entry.receiptNumber || "N/A",
             notes: entry.notes || "",
@@ -301,11 +302,11 @@ const FuelManagement = () => {
       // Search filter
       const matchesSearch =
         searchQuery === "" ||
-        entry.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        entry.vehicle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        entry.driver.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        entry.station.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        entry.receiptNumber.toLowerCase().includes(searchQuery.toLowerCase());
+        String(entry.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(entry.vehicle).toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(entry.driver).toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(entry.station).toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(entry.receiptNumber).toLowerCase().includes(searchQuery.toLowerCase());
 
       return matchesVehicle && matchesDriver && matchesPeriod && matchesSearch;
     });

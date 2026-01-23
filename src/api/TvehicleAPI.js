@@ -2,17 +2,11 @@ import apiClient from "./apiClient";
 
 const vehicleAPI = {
   // Get all vehicles from real API
-  getVehicles: async (page = 1, count = 10, orgId) => {
+  getVehicles: async (orgId) => {
     try {
       const response = await apiClient.get(
         "/api/transaction/getTvehiclesByOrgId",
-        {
-          params: {
-            count: count,
-            page: page,
-            orgId: orgId,
-          },
-        }
+        { params: { orgId } }
       );
 
       const data = response;
@@ -23,81 +17,53 @@ const vehicleAPI = {
         );
       }
 
-      const vehicles = data.paramObjectsMap.tvehiclesVO.data.map((vehicle) => ({
-        id: vehicle.id,
-        vehicleNumber: vehicle.vehicleNumber,
-        type: vehicle.type,
-        model: vehicle.model,
-        capacity: vehicle.capacity,
-        status: vehicle.active,
-        insuranceExpiry: vehicle.insuranceExpiry,
-        fitnessExpiry: vehicle.fitnessExpiry,
-        lastService: vehicle.lastService,
-        nextService: vehicle.nextService,
-        driver: vehicle.driver,
-        driverPhone: vehicle.driverPhone,
-        currentLocation: vehicle.currentLocation,
-        fuelEfficiency: vehicle.fuelEfficiency,
-        documents: vehicle.documents?.map((doc) => doc.documentType) || [
-          "RC",
-          "Insurance",
-          "PUC",
-          "Fitness",
-        ],
-        documentObjects: vehicle.documents || [],
-        maintenanceRequired: vehicle.maintenanceRequired || false,
-        year: vehicle.year,
-        chassisNumber: vehicle.chassisNumber,
-        engineNumber: vehicle.engineNumber,
-        permitType: vehicle.permitType,
-        registrationType: vehicle.registrationType,
-        ownerName: vehicle.ownerName,
-        orgId: vehicle.orgId,
-        branchCode: vehicle.branchCode,
-        branchName: vehicle.branchName,
-        createdBy: vehicle.createdBy,
-        updatedBy: vehicle.updatedBy,
-        createdAt: vehicle.commonDate?.createdon,
-        updatedAt: vehicle.commonDate?.modifiedon,
-        cancel: vehicle.cancel,
-      }));
+      const vehicles =
+        data.paramObjectsMap?.tvehicleVO?.map((vehicle) => ({
+          id: vehicle.id,
+          vehicleNumber: vehicle.vehicleNumber,
+          type: vehicle.type,
+          model: vehicle.model,
+          capacity: vehicle.capacity,
+          status: (vehicle.active || "ACTIVE").toLowerCase(),
+          insuranceExpiry: vehicle.insuranceExpiry,
+          fitnessExpiry: vehicle.fitnessExpiry,
+          lastService: vehicle.lastService,
+          nextService: vehicle.nextService,
 
-      return {
-        vehicles: vehicles,
-        pagination: {
-          isFirst: data.paramObjectsMap.tvehiclesVO.isFirst,
-          isLast: data.paramObjectsMap.tvehiclesVO.isLast,
-          totalPages: data.paramObjectsMap.tvehiclesVO.totalPages,
-          pageSize: data.paramObjectsMap.tvehiclesVO.pageSize,
-          currentPage: data.paramObjectsMap.tvehiclesVO.currentPage,
-          totalCount: data.paramObjectsMap.tvehiclesVO.totalCount,
-        },
-      };
+          // 🔴 IMPORTANT: normalize driver (STRING ONLY)
+          driver:
+            typeof vehicle.driver === "object"
+              ? vehicle.driver?.name || "Not assigned"
+              : vehicle.driver || "Not assigned",
+
+          driverPhone: vehicle.driverPhone,
+          currentLocation: vehicle.currentLocation || "Not specified",
+          fuelEfficiency: vehicle.fuelEfficiency || "N/A",
+
+          documents: vehicle.documents?.map((d) => d.documentType) || [],
+          documentObjects: vehicle.documents || [],
+
+          maintenanceRequired: vehicle.maintenanceRequired || false,
+          year: vehicle.year,
+          chassisNumber: vehicle.chassisNumber,
+          engineNumber: vehicle.engineNumber,
+          permitType: vehicle.permitType,
+          registrationType: vehicle.registrationType,
+          ownerName: vehicle.ownerName,
+          orgId: vehicle.orgId,
+          branchCode: vehicle.branchCode,
+          branchName: vehicle.branchName,
+          createdBy: vehicle.createdBy,
+          updatedBy: vehicle.updatedBy,
+          createdAt: vehicle.commonDate?.createdon,
+          updatedAt: vehicle.commonDate?.modifiedon,
+          cancel: vehicle.cancel,
+        })) || [];
+
+      return { vehicles };
     } catch (error) {
       console.error("Error fetching vehicles:", error);
-
-      try {
-        const stored = localStorage.getItem("vehicles");
-        if (stored) {
-          console.warn("Using cached vehicles from localStorage");
-          const vehicles = JSON.parse(stored);
-          return {
-            vehicles: vehicles,
-            pagination: {
-              isFirst: true,
-              isLast: true,
-              totalPages: 1,
-              pageSize: vehicles.length,
-              currentPage: 1,
-              totalCount: vehicles.length,
-            },
-          };
-        }
-      } catch (localStorageError) {
-        console.error("Error reading from localStorage:", localStorageError);
-      }
-
-      throw new Error(`Failed to fetch vehicles: ${error.message}`);
+      return { vehicles: [] };
     }
   },
 
@@ -202,7 +168,7 @@ const vehicleAPI = {
   // Get single vehicle by ID
   getVehicleById: async (id) => {
     try {
-      const { vehicles } = await vehicleAPI.getVehicles(1, 1000);
+      const { vehicles } = await vehicleAPI.getVehicles();
       const vehicle = vehicles.find((v) => v.id === id);
 
       if (!vehicle) {

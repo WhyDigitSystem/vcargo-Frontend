@@ -66,7 +66,7 @@ export const TyreDashboard = ({ vehicles = [] }) => {
 
       // Load vehicles from API if not provided as prop
       if (vehicles.length === 0) {
-        const vehiclesResponse = await vehicleAPI.getVehicles(1, 100, orgId);
+        const vehiclesResponse = await vehicleAPI.getVehicles(orgId);
         const vehicleList = vehiclesResponse.vehicles.map((vehicle) => ({
           id: vehicle.id,
           vehicleId: vehicle.vehicleNumber,
@@ -91,141 +91,117 @@ export const TyreDashboard = ({ vehicles = [] }) => {
   const loadTyre = async () => {
     try {
       setLoading(true);
-      const response = await tyreAPI.getAllTyre(1, 100, orgId);
-      console.log("Tyre API response:", response.paramObjectsMap);
 
-      if (response.tyreEntries && response.tyreEntries.length > 0) {
-        // Format API data for UI
-        const formattedEntries = response.tyreEntries.map((entry) => {
-          // Calculate tyre age and condition
-          const purchaseDate = entry.purchaseDate
-            ? new Date(entry.purchaseDate)
-            : new Date();
-          const today = new Date();
-          const ageInMonths = Math.floor(
-            (today - purchaseDate) / (1000 * 60 * 60 * 24 * 30)
-          );
+      const response = await tyreAPI.getAllTyre(orgId);
 
-          // Determine tyre condition based on tread depth
-          let condition = "Good";
-          let conditionColor = "text-green-600 bg-green-100";
-          const treadDepth = parseFloat(entry.treadDepth) || 0;
+      console.log("Tyre API raw response:", response);
 
-          if (treadDepth < 30) condition = "Critical";
-          else if (treadDepth < 50) condition = "Poor";
-          else if (treadDepth < 70) condition = "Fair";
-
-          if (condition === "Critical")
-            conditionColor = "text-red-600 bg-red-100";
-          else if (condition === "Poor")
-            conditionColor = "text-orange-600 bg-orange-100";
-          else if (condition === "Fair")
-            conditionColor = "text-yellow-600 bg-yellow-100";
-
-          // Determine pressure status
-          const pressure = parseFloat(entry.pressure) || 0;
-          const recommendedPressure =
-            parseFloat(entry.recommendedPressure) || 0;
-          let pressureStatus = "Normal";
-          let pressureColor = "text-green-600 bg-green-100";
-
-          if (recommendedPressure > 0) {
-            const pressureDiff = Math.abs(pressure - recommendedPressure);
-            if (pressureDiff > 15) {
-              pressureStatus = "Critical";
-              pressureColor = "text-red-600 bg-red-100";
-            } else if (pressureDiff > 8) {
-              pressureStatus = "Low";
-              pressureColor = "text-orange-600 bg-orange-100";
-            }
-          }
-
-          return {
-            id: `TYRE-${entry.id}`,
-            entryId: entry.id,
-            serialNumber: entry.serialNumber || "N/A",
-            brand: entry.brand || "Unknown",
-            model: entry.model || "",
-            size: entry.size || "",
-            position: entry.position || "front",
-            status: entry.status || "new",
-            vehicleId: entry.vehicleId,
-            vehicle: entry.vehicle,
-            purchaseDate:
-              entry.purchaseDate || new Date().toISOString().split("T")[0],
-            purchaseCost: parseFloat(entry.purchaseCost) || 0,
-            odometerReading: parseFloat(entry.odometerReading) || 0,
-            treadDepth: parseFloat(entry.treadDepth) || 0,
-            recommendedPressure: parseFloat(entry.recommendedPressure) || 0,
-            pressure: parseFloat(entry.pressure) || 0,
-            notes: entry.notes || "",
-            active: entry.active !== undefined ? entry.active : true,
-            vehicleId: String(entry.vehicleId),
-            vehicle: entry.vehicle || "Unassigned",
-            branchCode: entry.branchCode || "MAIN",
-            branchName: entry.branchName || "Main Branch",
-
-            // Calculated fields for UI
-            ageMonths: ageInMonths,
-            condition: condition,
-            conditionColor: conditionColor,
-            pressureStatus: pressureStatus,
-            pressureColor: pressureColor,
-
-            // Format currency
-            costFormatted: formatIndianCurrency(
-              parseFloat(entry.purchaseCost) || 0
-            ),
-
-            // Additional metadata
-            createdAt: entry.createdAt,
-            updatedAt: entry.updatedAt,
-            createdBy: entry.createdBy,
-          };
-        });
-
-        console.log("Formatted tyre entries:", formattedEntries);
-
-        setTyreEntries(formattedEntries);
-        setFilteredEntries(formattedEntries);
-        calculateTyreStats(formattedEntries);
-      } else {
-        console.log("No tyre entries found, using sample data");
-        // Use sample data if no entries
-        // const sampleFormatted = sampleData.tyreEntries.map((entry) => ({
-        //   ...entry,
-        //   // Ensure numeric fields are parsed
-        //   purchaseCost: parseFloat(entry.purchaseCost) || 0,
-        //   odometerReading: parseFloat(entry.odometerReading) || 0,
-        //   treadDepth: parseFloat(entry.treadDepth) || 0,
-        //   recommendedPressure: parseFloat(entry.recommendedPressure) || 0,
-        //   pressure: parseFloat(entry.pressure) || 0,
-        // }));
-        // setTyreEntries(sampleFormatted);
-        // setFilteredEntries(sampleFormatted);
-        // calculateTyreStats(sampleFormatted);
+      if (!response?.tyreEntries || response.tyreEntries.length === 0) {
+        setTyreEntries([]);
+        setFilteredEntries([]);
+        calculateTyreStats([]);
+        return;
       }
+
+      const formattedEntries = response.tyreEntries.map((entry) => {
+
+        const purchaseDate = entry.purchaseDate
+          ? new Date(entry.purchaseDate)
+          : new Date();
+
+        const today = new Date();
+        const ageInMonths = Math.floor(
+          (today - purchaseDate) / (1000 * 60 * 60 * 24 * 30)
+        );
+
+        const treadDepth = parseFloat(entry.treadDepth) || 0;
+
+        let condition = "Good";
+        let conditionColor = "text-green-600 bg-green-100";
+
+        if (treadDepth < 30) {
+          condition = "Critical";
+          conditionColor = "text-red-600 bg-red-100";
+        } else if (treadDepth < 50) {
+          condition = "Poor";
+          conditionColor = "text-orange-600 bg-orange-100";
+        } else if (treadDepth < 70) {
+          condition = "Fair";
+          conditionColor = "text-yellow-600 bg-yellow-100";
+        }
+
+        const pressure = parseFloat(entry.pressure) || 0;
+        const recommendedPressure =
+          parseFloat(entry.recommendedPressure) || 0;
+
+        let pressureStatus = "Normal";
+        let pressureColor = "text-green-600 bg-green-100";
+
+        if (recommendedPressure > 0) {
+          const diff = Math.abs(pressure - recommendedPressure);
+          if (diff > 15) {
+            pressureStatus = "Critical";
+            pressureColor = "text-red-600 bg-red-100";
+          } else if (diff > 8) {
+            pressureStatus = "Low";
+            pressureColor = "text-orange-600 bg-orange-100";
+          }
+        }
+
+        return {
+          id: `TYRE-${entry.id}`,
+          entryId: entry.id,
+          serialNumber: entry.serialNumber || "N/A",
+          brand: entry.brand || "Unknown",
+          model: entry.model || "",
+          size: entry.size || "",
+          position: entry.position || "front",
+          status: entry.status || "new",
+          vehicleId: String(entry.vehicleId || ""),
+          vehicle:
+            typeof entry.vehicle === "object"
+              ? entry.vehicle.vehicleNumber || "Unassigned"
+              : entry.vehicle || "Unassigned",
+          purchaseDate:
+            entry.purchaseDate ||
+            new Date().toISOString().split("T")[0],
+          purchaseCost: parseFloat(entry.purchaseCost) || 0,
+          odometerReading: parseFloat(entry.odometerReading) || 0,
+          treadDepth,
+          recommendedPressure,
+          pressure,
+          notes: entry.notes || "",
+          active: entry.active !== undefined ? entry.active : true,
+          branchCode: entry.branchCode || "MAIN",
+          branchName: entry.branchName || "Main Branch",
+          createdAt: entry.createdAt,
+          updatedAt: entry.updatedAt,
+          createdBy: entry.createdBy,
+          ageMonths: ageInMonths,
+          condition,
+          conditionColor,
+          pressureStatus,
+          pressureColor,
+
+          costFormatted: formatIndianCurrency(
+            parseFloat(entry.purchaseCost) || 0
+          ),
+        };
+      });
+
+      console.log("Formatted tyre entries:", formattedEntries);
+
+      setTyreEntries(formattedEntries);
+      setFilteredEntries(formattedEntries);
+      calculateTyreStats(formattedEntries);
     } catch (error) {
       console.error("Error loading tyre entries:", error);
-      console.log("Falling back to sample data");
 
-      // Fallback to sample data
-      const sampleFormatted = sampleData.tyreEntries.map((entry) => ({
-        ...entry,
-        purchaseCost: parseFloat(entry.purchaseCost) || 0,
-        odometerReading: parseFloat(entry.odometerReading) || 0,
-        treadDepth: parseFloat(entry.treadDepth) || 0,
-        recommendedPressure: parseFloat(entry.recommendedPressure) || 0,
-        pressure: parseFloat(entry.pressure) || 0,
-      }));
-      setTyreEntries(sampleFormatted);
-      setFilteredEntries(sampleFormatted);
-      calculateTyreStats(sampleFormatted);
+      setTyreEntries([]);
+      setFilteredEntries([]);
+      calculateTyreStats([]);
 
-      // Show error to user
-      alert(
-        `Failed to load tyre data: ${error.message}. Using sample data instead.`
-      );
+      toast.error("Failed to load tyre data");
     } finally {
       setLoading(false);
     }
@@ -237,7 +213,8 @@ export const TyreDashboard = ({ vehicles = [] }) => {
       (sum, entry) => sum + entry.purchaseCost,
       0
     );
-    const avgCost = totalTyres > 0 ? totalCost / totalTyres : 0;
+    const avgCost =
+      totalTyres > 0 ? Math.round(totalCost / totalTyres) : 0;
 
     // Count by position
     const byPosition = {
@@ -660,9 +637,9 @@ export const TyreDashboard = ({ vehicles = [] }) => {
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             {filters.search ||
-            filters.status !== "all" ||
-            filters.vehicleId !== "all" ||
-            filters.position !== "all"
+              filters.status !== "all" ||
+              filters.vehicleId !== "all" ||
+              filters.position !== "all"
               ? "Try adjusting your filters"
               : "Add your first tyre to get started"}
           </p>
@@ -670,13 +647,13 @@ export const TyreDashboard = ({ vehicles = [] }) => {
             filters.status !== "all" ||
             filters.vehicleId !== "all" ||
             filters.position !== "all") && (
-            <button
-              onClick={handleClearFilters}
-              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-            >
-              Clear all filters
-            </button>
-          )}
+              <button
+                onClick={handleClearFilters}
+                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+              >
+                Clear all filters
+              </button>
+            )}
         </div>
       ) : (
         <TyreList

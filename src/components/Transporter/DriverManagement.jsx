@@ -875,8 +875,8 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
                       Salary
                     </label>
                     <input
-                      type="text"
                       value={formData.salary}
+                      type='number'
                       onChange={(e) => handleChange("salary", e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                       placeholder="e.g., ₹45,000"
@@ -1199,93 +1199,6 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
                   </div>
                 </div>
 
-                {/* panCard Card */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
-                  <div className="flex flex-col h-full">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">💳</span>
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            panCard Card
-                          </h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {files.panCard?.length || 0} file(s)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex-1">
-                      {files.panCard && files.panCard.length > 0 ? (
-                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                          {files.panCard.map((file) => (
-                            <div
-                              key={file.id}
-                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
-                            >
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                <div className="min-w-0">
-                                  <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                                    {file.name}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    {formatFileSize(file.size)}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <a
-                                  href={file.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                                  title="Preview"
-                                >
-                                  <Eye className="h-4 w-4 text-gray-500" />
-                                </a>
-                                <button
-                                  type="button"
-                                  onClick={() => removeFile("panCard", file.id)}
-                                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
-                                  disabled={isSubmitting}
-                                  title="Remove"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
-                          <File className="h-10 w-10 text-gray-400 mb-3" />
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                            No files uploaded
-                          </p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500">
-                            Click below to upload
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
-                      <Plus className="h-4 w-4 inline mr-2" />
-                      Add File
-                      <input
-                        type="file"
-                        multiple
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={(e) => handleFileChange("panCard", e)}
-                        className="hidden"
-                        disabled={uploading || isSubmitting}
-                      />
-                    </label>
-                  </div>
-                </div>
-
                 {/* Passport Photo */}
                 <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
                   <div className="flex flex-col h-full">
@@ -1377,6 +1290,93 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
                         {errors.passportPhoto}
                       </p>
                     )}
+                  </div>
+                </div>
+
+                {/* panCard Card */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors">
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">💳</span>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            panCard Card
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {files.panCard?.length || 0} file(s)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      {files.panCard && files.panCard.length > 0 ? (
+                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                          {files.panCard.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                                    {file.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatFileSize(file.size)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4 text-gray-500" />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => removeFile("panCard", file.id)}
+                                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
+                                  disabled={isSubmitting}
+                                  title="Remove"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full flex flex-col justify-center items-center">
+                          <File className="h-10 w-10 text-gray-400 mb-3" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                            No files uploaded
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            Click below to upload
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <label className="mt-4 text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-center">
+                      <Plus className="h-4 w-4 inline mr-2" />
+                      Add File
+                      <input
+                        type="file"
+                        multiple
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => handleFileChange("panCard", e)}
+                        className="hidden"
+                        disabled={uploading || isSubmitting}
+                      />
+                    </label>
                   </div>
                 </div>
 
@@ -1644,10 +1644,6 @@ const DriverManagement = () => {
   const [editingDriver, setEditingDriver] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [viewDriver, setViewDriver] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [itemsPerPage] = useState(10);
   const [notification, setNotification] = useState({ type: "", message: "" });
   const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
 
@@ -1662,19 +1658,13 @@ const DriverManagement = () => {
   // Load drivers on component mount
   useEffect(() => {
     loadDrivers();
-  }, [currentPage]);
+  }, []);
 
   const loadDrivers = async () => {
     setLoading(true);
     try {
-      const response = await driverAPI.getDrivers(
-        currentPage,
-        itemsPerPage,
-        orgId
-      );
+      const response = await driverAPI.getDrivers(orgId);
       setDrivers(response.drivers);
-      setTotalPages(response.pagination.totalPages);
-      setTotalCount(response.pagination.totalCount);
       showNotification("success", `Loaded ${response.drivers.length} drivers`);
     } catch (error) {
       console.error("Error loading drivers:", error);
@@ -1778,7 +1768,7 @@ const DriverManagement = () => {
 
   // Calculate stats
   const stats = {
-    total: totalCount,
+    total: drivers.length,
     active: drivers.filter((d) => d.status === "Active").length,
     onLeave: drivers.filter((d) => d.status === "Leave").length,
     licensesExpiring: drivers.filter((d) => {
@@ -1905,12 +1895,6 @@ const DriverManagement = () => {
         )}
       </div>
     );
-  };
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
   };
 
   // Format date for display
@@ -2264,66 +2248,6 @@ const DriverManagement = () => {
             <p className="text-gray-500 dark:text-gray-400 mt-2">
               Loading more drivers...
             </p>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-sm text-gray-700 dark:text-gray-400">
-              Showing{" "}
-              <span className="font-medium">
-                {(currentPage - 1) * itemsPerPage + 1}
-              </span>{" "}
-              to{" "}
-              <span className="font-medium">
-                {Math.min(currentPage * itemsPerPage, totalCount)}
-              </span>{" "}
-              of <span className="font-medium">{totalCount}</span> drivers
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                Previous
-              </button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`w-8 h-8 rounded-lg ${currentPage === pageNum
-                        ? "bg-blue-600 text-white"
-                        : "border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                        }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                Next
-              </button>
-            </div>
           </div>
         )}
       </div>

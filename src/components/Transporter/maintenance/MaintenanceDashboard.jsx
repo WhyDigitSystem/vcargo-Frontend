@@ -19,14 +19,6 @@ export const MaintenanceDashboard = () => {
 
   const [vehicles, setVehicles] = useState(false);
   const [error, setError] = useState(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    count: 10,
-    total: 0,
-    totalPages: 1,
-    isFirst: true,
-    isLast: true,
-  });
 
   const [filters, setFilters] = useState({
     search: "",
@@ -37,7 +29,7 @@ export const MaintenanceDashboard = () => {
   });
 
   // Organization ID - should come from auth context or props
-   const { user } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
 
   // Fetch maintenance records
@@ -69,27 +61,11 @@ export const MaintenanceDashboard = () => {
 
       console.log("Fetching maintenance with filters:", apiFilters);
 
-      const response = await maintananceAPI.getAllMaintenance(
-        pagination.page,
-        pagination.count,
-        orgId,
-        apiFilters
-      );
+      const response = await maintananceAPI.getAllMaintenance(orgId);
 
       console.log("Maintenance API Response:", response);
 
       setMaintenanceRecords(response.maintenanceRecords || []);
-
-      // Update pagination
-      setPagination((prev) => ({
-        ...prev,
-        total: response.pagination?.totalCount || 0,
-        totalPages: response.pagination?.totalPages || 1,
-        isFirst: response.pagination?.isFirst || true,
-        isLast: response.pagination?.isLast || true,
-        currentPage: response.pagination?.currentPage || pagination.page,
-        pageSize: response.pagination?.pageSize || pagination.count,
-      }));
 
       if (response.message) {
         // toast.success(response.message);
@@ -106,7 +82,7 @@ export const MaintenanceDashboard = () => {
   const loadVehicles = async () => {
     try {
       setLoading(true);
-      const vehiclesResponse = await vehicleAPI.getVehicles(1, 100, orgId);
+      const vehiclesResponse = await vehicleAPI.getVehicles(orgId);
       const vehicleList = vehiclesResponse.vehicles.map((vehicle) => ({
         id: vehicle.id,
         vehicleId: vehicle.Id,
@@ -246,14 +222,6 @@ export const MaintenanceDashboard = () => {
     }
   };
 
-  const handlePageChange = (newPage) => {
-    setPagination((prev) => ({ ...prev, page: newPage }));
-  };
-
-  const handlePageSizeChange = (newCount) => {
-    setPagination((prev) => ({ ...prev, count: newCount, page: 1 }));
-  };
-
   const handleRefresh = () => {
     fetchMaintenanceRecords();
   };
@@ -369,12 +337,7 @@ export const MaintenanceDashboard = () => {
           {/* Records Count */}
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              {filteredRecords.length} of {maintenanceRecords.length} records
-              shown
-              {pagination.total > 0 && ` (Total: ${pagination.total} records)`}
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Page {pagination.page} of {pagination.totalPages}
+              Showing {filteredRecords.length} records
             </div>
           </div>
 
@@ -406,82 +369,6 @@ export const MaintenanceDashboard = () => {
             vehicles={vehicles}
             records={maintenanceRecords}
           />
-
-          {/* Pagination Controls */}
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Showing {filteredRecords.length} records on page{" "}
-                {pagination.page}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={pagination.page <= 1 || pagination.isFirst}
-                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  Previous
-                </button>
-                <div className="flex items-center gap-1">
-                  {[...Array(Math.min(5, pagination.totalPages))].map(
-                    (_, i) => {
-                      const pageNum =
-                        pagination.page <= 3
-                          ? i + 1
-                          : pagination.page >= pagination.totalPages - 2
-                          ? pagination.totalPages - 4 + i
-                          : pagination.page - 2 + i;
-
-                      if (pageNum < 1 || pageNum > pagination.totalPages)
-                        return null;
-
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`w-10 h-10 rounded-lg text-sm font-medium ${
-                            pagination.page === pageNum
-                              ? "bg-blue-600 text-white"
-                              : "border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    }
-                  )}
-                </div>
-                <button
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={
-                    pagination.page >= pagination.totalPages ||
-                    pagination.isLast
-                  }
-                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  Next
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Show
-                </span>
-                <select
-                  value={pagination.count}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
-                >
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  per page
-                </span>
-              </div>
-            </div>
-          )}
         </>
       )}
 

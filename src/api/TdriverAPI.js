@@ -2,18 +2,11 @@ import apiClient from "./apiClient";
 
 const driverAPI = {
   // Get all drivers from real API
-  getDrivers: async (page = 1, count = 10, orgId) => {
+  getDrivers: async (orgId) => {
     try {
       const response = await apiClient.get(
         "/api/transaction/getTdriverByOrgId",
-        {
-          params: {
-            orgId: orgId,
-            count: count,
-            page: page,
-            orgId: orgId,
-          },
-        }
+        { params: { orgId } }
       );
 
       const data = response;
@@ -24,91 +17,33 @@ const driverAPI = {
         );
       }
 
-      // Assuming API returns data in similar structure as vehicles
       const drivers =
-        data.paramObjectsMap?.tdriverVO?.data?.map((driver) => ({
+        data.paramObjectsMap?.tdriverVO?.map((driver) => ({
           id: driver.id,
           name: driver.name,
           phone: driver.phone,
           email: driver.email,
-          active: driver.active,
+          status: driver.status || (driver.active ? "Active" : "Inactive"),
           licenseNumber: driver.licenseNumber,
           licenseExpiry: driver.licenseExpiry,
           aadharNumber: driver.aadharNumber,
-          address: driver.address,
-          status: driver.status,
           experience: driver.experience,
           salary: driver.salary,
           assignedVehicle: driver.assignedVehicle,
           currentLocation: driver.currentLocation,
           bloodGroup: driver.bloodGroup,
           emergencyContact: driver.emergencyContact,
-          performance: driver.performance || "4.5/5",
+          performance: driver.performance || "Good",
           joinedDate: driver.joinedDate,
           lastTrip: driver.lastTrip,
-          orgId: driver.orgId || orgId,
-          branchCode: driver.branchCode || "MAIN",
-          branchName: driver.branchName || "Main Branch",
-          createdBy: driver.createdBy,
-          updatedBy: driver.updatedBy,
-          createdAt: driver.commonDate?.createdon,
-          updatedAt: driver.commonDate?.modifiedon,
-          cancel: driver.cancel || false,
-
-          // ✅ FIXED DOCUMENT HANDLING
-          documents: driver.documents?.map((doc) => doc.documentType) || [],
+          documents: driver.documents?.map((d) => d.documentType) || [],
           documentObjects: driver.documents || [],
         })) || [];
 
-      return {
-        drivers: drivers,
-        pagination: {
-          isFirst: data.paramObjectsMap?.tdriverVO?.isFirst || true,
-          isLast: data.paramObjectsMap?.tdriverVO?.isLast || true,
-          totalPages: data.paramObjectsMap?.tdriverVO?.totalPages || 1,
-          pageSize: data.paramObjectsMap?.tdriverVO?.pageSize || drivers.length,
-          currentPage: data.paramObjectsMap?.tdriverVO?.currentPage || 1,
-          totalCount:
-            data.paramObjectsMap?.tdriverVO?.totalCount || drivers.length,
-        },
-      };
+      return { drivers };
     } catch (error) {
       console.error("Error fetching drivers:", error);
-
-      // Fallback to localStorage if API fails
-      try {
-        const stored = localStorage.getItem("drivers");
-        if (stored) {
-          console.warn("Using cached drivers from localStorage");
-          const drivers = JSON.parse(stored);
-          return {
-            drivers: drivers,
-            pagination: {
-              isFirst: true,
-              isLast: true,
-              totalPages: 1,
-              pageSize: drivers.length,
-              currentPage: 1,
-              totalCount: drivers.length,
-            },
-          };
-        }
-      } catch (localStorageError) {
-        console.error("Error reading from localStorage:", localStorageError);
-      }
-
-      // Return empty array if everything fails
-      return {
-        drivers: [],
-        pagination: {
-          isFirst: true,
-          isLast: true,
-          totalPages: 0,
-          pageSize: count,
-          currentPage: page,
-          totalCount: 0,
-        },
-      };
+      return { drivers: [] };
     }
   },
 
@@ -191,7 +126,7 @@ const driverAPI = {
           driverData = JSON.parse(driverDataText);
         }
 
-        const { drivers } = await driverAPI.getDrivers(1, 1000);
+        const { drivers } = await driverAPI.getDrivers();
         let newDriver;
         let driversArray = drivers;
 
@@ -262,7 +197,7 @@ const driverAPI = {
       }
 
       // Fallback to localStorage
-      const { drivers } = await driverAPI.getDrivers(1, 1000);
+      const { drivers } = await driverAPI.getDrivers();
       const filteredDrivers = drivers.filter((d) => d.id !== id);
       localStorage.setItem("drivers", JSON.stringify(filteredDrivers));
       return true;
@@ -320,7 +255,7 @@ const driverAPI = {
       }
 
       // Fallback to getting from localStorage
-      const { drivers } = await driverAPI.getDrivers(1, 1000);
+      const { drivers } = await driverAPI.getDrivers();
       const driver = drivers.find((d) => d.id === id);
 
       if (!driver) {

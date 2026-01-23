@@ -6,9 +6,9 @@ export const tripAPI = {
     return await apiClient.put("/api/trip/createUpdateTrip", payload);
   },
 
-  getAllTrips: async ({ count, page, orgId }) => {
+  getAllTrips: async (orgId) => {
     return await apiClient.get("/api/trip/getAllTripByOrgId", {
-      params: { count, page, orgId }
+      params: { orgId },
     });
   },
 

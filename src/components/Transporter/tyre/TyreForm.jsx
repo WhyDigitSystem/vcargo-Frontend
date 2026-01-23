@@ -67,7 +67,7 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
 
   const loadVehicles = async () => {
     try {
-      const response = await vehicleAPI.getVehicles(1, 10, orgId);
+      const response = await vehicleAPI.getVehicles(orgId);
       setVehiclesList(response.vehicles);
       console.log("Tyre===>", response);
       console.log("Test===>", vehiclesList);

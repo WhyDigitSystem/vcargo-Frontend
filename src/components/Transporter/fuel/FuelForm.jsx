@@ -167,7 +167,7 @@ export const FuelForm = ({
 
   const loadDrivers = async () => {
     try {
-      const response = await driverAPI.getDrivers(1, 10, orgId);
+      const response = await driverAPI.getDrivers(orgId);
       setDrivers(response.drivers);
       console.log("Test===>", response.drivers);
       console.log("Test===>", drivers);
@@ -179,7 +179,7 @@ export const FuelForm = ({
 
   const loadVehicles = async () => {
     try {
-      const response = await vehicleAPI.getVehicles(1, 10, orgId);
+      const response = await vehicleAPI.getVehicles(orgId);
       setVehicles(response.vehicles);
       console.log("Test===>", response);
       console.log("Test===>", vehicles);

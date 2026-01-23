@@ -465,7 +465,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
   const loadDrivers = async () => {
     try {
-      const response = await driverAPI.getDrivers(1, 10, orgId);
+      const response = await driverAPI.getDrivers(orgId);
 
       const normalizedDrivers = response.drivers.map((d) => ({
         ...d,
@@ -674,6 +674,8 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
     );
   };
 
+  const vehicleRegex = /^[A-Z]{2}\d{1,2}[A-Z]{1,2}\d{4}$/;
+
   // Also add a validation function in your existing validation logic:
   const validateVehicleNumber = (value) => {
     if (!value) return "Vehicle number is required";
@@ -681,31 +683,11 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
     // Remove dashes for validation
     const cleaned = value.replace(/-/g, "");
 
-    // if (cleaned.length !== 10) {
-    //   return "Vehicle number must be 10 characters (e.g., TN-10-AB-7878)";
-    // }
+    if (!vehicleRegex.test(cleaned)) {
+      return "Invalid vehicle number (e.g. TN-10-AB-7878)";
+    }
 
-    // First 2 should be letters (state code)
-    // if (!/^[A-Z]{2}$/.test(cleaned.substring(0, 2))) {
-    //   return "First 2 characters should be state code letters";
-    // }
-
-    // Next 2 should be numbers (district code)
-    // if (!/^[0-9]{2}$/.test(cleaned.substring(2, 4))) {
-    //   return "District code should be 2 digits";
-    // }
-
-    // Next 2 should be letters (series)
-    // if (!/^[A-Z]{2}$/.test(cleaned.substring(4, 6))) {
-    //   return "Series should be 2 letters";
-    // }
-
-    // Last 4 should be numbers
-    // if (!/^[0-9]{4}$/.test(cleaned.substring(6, 10))) {
-    //   return "Last 4 characters should be numbers";
-    // }
-
-    return null; // No error
+    return null;
   };
 
   const fileTypes = [
@@ -1447,12 +1429,6 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 // Main Vehicle Management Component
 const VehicleManagement = () => {
   const [vehicles, setVehicles] = useState([]);
-  const [pagination, setPagination] = useState({
-    totalCount: 0,
-    currentPage: 1,
-    totalPages: 1,
-    pageSize: 10,
-  });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -1473,35 +1449,23 @@ const VehicleManagement = () => {
   // Load vehicles on component mount and when filters/page changes
   useEffect(() => {
     loadVehicles();
-  }, [pagination.currentPage]); // Reload when page changes
+  }, []); // Reload when page changes
 
   const loadVehicles = async () => {
     setLoading(true);
     try {
-      const { vehicles: fetchedVehicles, pagination: fetchedPagination } =
-        await vehicleAPI.getVehicles(
-          pagination.currentPage,
-          pagination.pageSize,
-          orgId
-        );
+      const { vehicles: fetchedVehicles } =
+        await vehicleAPI.getVehicles(orgId);
 
       const processedVehicles = fetchedVehicles.map((vehicle) => ({
         ...vehicle,
         documents: vehicle.documents || [],
-        status: (vehicle.status || "ACTIVE").toLowerCase(),
-        fuelEfficiency: vehicle.fuelEfficiency || "N/A",
-        currentLocation: vehicle.currentLocation || "Not specified",
-        driver: vehicle.driver || "Not assigned",
+        fuelEfficiency: vehicle.fuelEfficiency || "",
+        currentLocation: vehicle.currentLocation || "",
         maintenanceRequired: vehicle.maintenanceRequired || false,
       }));
 
       setVehicles(processedVehicles);
-      setPagination((prev) => ({
-        ...prev,
-        totalCount: fetchedPagination.totalCount,
-        totalPages: fetchedPagination.totalPages,
-        pageSize: fetchedPagination.pageSize,
-      }));
     } catch (error) {
       console.error("Error loading vehicles:", error);
       setVehicles([]);
@@ -1555,26 +1519,6 @@ const VehicleManagement = () => {
     }
   };
 
-  // Add these states near your other state declarations
-  const [currentFilteredPage, setCurrentFilteredPage] = useState(1);
-  const [filteredPageSize] = useState(10);
-
-  // Calculate pagination for filtered results
-  const filteredTotalPages = Math.ceil(
-    filteredVehicles.length / filteredPageSize
-  );
-  const filteredIndexLast = currentFilteredPage * filteredPageSize;
-  const filteredIndexFirst = filteredIndexLast - filteredPageSize;
-  const currentFilteredItems = filteredVehicles.slice(
-    filteredIndexFirst,
-    filteredIndexLast
-  );
-
-  // Update the filtered pagination when filters change
-  useEffect(() => {
-    setCurrentFilteredPage(1);
-  }, [searchTerm, statusFilter]);
-
   // Update your table to show currentFilteredItems instead of filteredVehicles
 
   const handleDeleteVehicle = async (id) => {
@@ -1604,16 +1548,9 @@ const VehicleManagement = () => {
     setEditingVehicle(null);
   };
 
-  // Handle page change
-  const handlePageChange = (pageNumber) => {
-    if (pageNumber >= 1 && pageNumber <= pagination.totalPages) {
-      setPagination((prev) => ({ ...prev, currentPage: pageNumber }));
-    }
-  };
-
   // Calculate stats from ALL vehicles (not just filtered)
   const stats = {
-    total: pagination.totalCount, // Use total count from backend
+    total: vehicles.length, // Use total count from backend
     active: vehicles.filter((v) => v.status === "active").length,
     maintenance: vehicles.filter((v) => v.status === "maintenance").length,
     documentsExpiring: vehicles.filter((v) => {
@@ -2074,98 +2011,6 @@ const VehicleManagement = () => {
                 Add Your First Vehicle
               </button>
             )}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {pagination.totalCount > 0 && (
-          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Showing{" "}
-              <span className="font-medium">
-                {Math.min(
-                  (pagination.currentPage - 1) * pagination.pageSize + 1,
-                  pagination.totalCount
-                )}
-              </span>{" "}
-              to{" "}
-              <span className="font-medium">
-                {Math.min(
-                  pagination.currentPage * pagination.pageSize,
-                  pagination.totalCount
-                )}
-              </span>{" "}
-              of <span className="font-medium">{pagination.totalCount}</span>{" "}
-              vehicles
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(pagination.currentPage - 1)}
-                disabled={pagination.currentPage === 1}
-                className={`p-2 rounded-lg border ${pagination.currentPage === 1
-                  ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  }`}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-
-              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                .filter((page) => {
-                  // Show first, last, and pages around current
-                  if (pagination.totalPages <= 5) return true;
-                  if (page === 1 || page === pagination.totalPages) return true;
-                  if (
-                    page >= pagination.currentPage - 1 &&
-                    page <= pagination.currentPage + 1
-                  )
-                    return true;
-                  return false;
-                })
-                .map((page, index, array) => {
-                  // Add ellipsis for skipped pages
-                  const prevPage = array[index - 1];
-                  if (prevPage && page - prevPage > 1) {
-                    return (
-                      <React.Fragment key={`ellipsis-${page}`}>
-                        <span className="px-2 text-gray-500">...</span>
-                        <button
-                          onClick={() => handlePageChange(page)}
-                          className={`px-3 py-1 rounded-lg ${pagination.currentPage === page
-                            ? "bg-indigo-600 text-white"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                            }`}
-                        >
-                          {page}
-                        </button>
-                      </React.Fragment>
-                    );
-                  }
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      className={`px-3 py-1 rounded-lg ${pagination.currentPage === page
-                        ? "bg-indigo-600 text-white"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                        }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
-
-              <button
-                onClick={() => handlePageChange(pagination.currentPage + 1)}
-                disabled={pagination.currentPage === pagination.totalPages}
-                className={`p-2 rounded-lg border ${pagination.currentPage === pagination.totalPages
-                  ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  }`}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
           </div>
         )}
       </div>
