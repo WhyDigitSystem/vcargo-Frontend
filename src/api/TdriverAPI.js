@@ -214,8 +214,8 @@ const driverAPI = {
           newDriver = {
             id: newId,
             ...driverData,
-            status: driverData.status || "active",
-            active: (driverData.status || "active") === "active",
+            status: driverData.status || "",
+            active: true,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };

@@ -189,12 +189,7 @@ export const TripForm = ({
     if (!formData.estimatedDuration) newErrors.estimatedDuration = "Estimated duration is required";
     if (!formData.startDate) newErrors.startDate = "Start date is required";
     if (!formData.startTime) newErrors.startTime = "Start time is required";
-    if (!formData.tripType) newErrors.tripType = "Trip type is required";
-
-    // Additional validation for freight trips
-    if (formData.tripType === 'freight') {
-      if (!formData.goodsType) newErrors.goodsType = "Goods type is required for freight trips";
-    }
+    // if (!formData.tripType) newErrors.tripType = "Trip type is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

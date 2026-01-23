@@ -28,7 +28,7 @@ import driverAPI from "../../api/TdriverAPI";
 // Import the driverAPI
 
 // Driver Form Component
-const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
+const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -37,7 +37,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
     licenseExpiry: "",
     aadharNumber: "",
     address: "",
-    status: "active",
+    status: "Active",
     experience: "",
     salary: "",
     assignedVehicle: "",
@@ -87,6 +87,12 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
 
       console.log("Extracted driver data for form:", driverData);
 
+      const normalizeStatus = (status, active) => {
+        if (status === "Leave") return "Leave";
+        if (status === "Inactive" || active === false) return "Inactive";
+        return "Active";
+      };
+
       // -------------------------------
       // FORM DATA
       // -------------------------------
@@ -98,7 +104,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
         licenseExpiry: driverData.licenseExpiry || "",
         aadharNumber: driverData.aadharNumber || "",
         address: driverData.address || "",
-        status: driverData.status || "active",
+        status: normalizeStatus(driverData.status, driverData.active),
         experience: driverData.experience || "",
         salary: driverData.salary || "",
         assignedVehicle: driverData.assignedVehicle || "",
@@ -116,10 +122,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
         userId: driverData.userId || "",
         createdBy: driverData.createdBy || "",
         userName: driverData.userName || "",
-        active:
-          typeof driverData.active === "boolean"
-            ? driverData.active
-            : driverData.status === "active",
+        active: true
       });
 
       setFilesToDelete([]);
@@ -178,7 +181,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
         licenseExpiry: "",
         aadharNumber: "",
         address: "",
-        status: "active",
+        status: "Active",
         experience: "",
         salary: "",
         assignedVehicle: "",
@@ -370,8 +373,9 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
       newErrors.phone = "Phone number is required";
     } else {
       const phoneDigits = formData.phone.replace(/\D/g, "");
-      if (!/^[0-9]{10}$/.test(phoneDigits)) {
-        newErrors.phone = "Enter a valid 10-digit phone number";
+
+      if (phoneDigits.length !== 10) {
+        newErrors.phone = "Phone number must be exactly 10 digits";
       }
     }
 
@@ -389,6 +393,19 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
 
     if (!formData.licenseNumber?.trim()) {
       newErrors.licenseNumber = "License number is required";
+    } else {
+      const license = formData.licenseNumber.trim();
+
+      // Alphanumeric only
+      const licenseRegex = /^[A-Za-z0-9]+$/;
+
+      if (!licenseRegex.test(license)) {
+        newErrors.licenseNumber =
+          "License number must contain only letters and numbers";
+      } else if (license.length < 10 || license.length > 20) {
+        newErrors.licenseNumber =
+          "License number must be between 10 and 20 characters";
+      }
     }
 
     if (!formData.licenseExpiry) {
@@ -422,6 +439,12 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
     )
 
       setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      showNotification("error", "Please fill all required fields correctly");
+      return false;
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -450,6 +473,11 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
       const userName = localStorage.getItem("userName") || "Admin User";
 
       // Prepare the driver data object
+      const normalizeStatus = (status) => {
+        if (!status) return "Active";
+        return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+      };
+
       const driverData = {
         name: formData.name,
         phone: formData.phone.replace(/\D/g, "").slice(0, 10),
@@ -458,7 +486,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
         licenseExpiry: formatDateForAPI(formData.licenseExpiry),
         aadharNumber: formData.aadharNumber,
         address: formData.address || "",
-        status: formData.status || "active",
+        status: normalizeStatus(formData.status), // ✅ ALWAYS "Active"
         experience: formData.experience || "",
         salary: formData.salary || "",
         assignedVehicle: formData.assignedVehicle || "",
@@ -468,13 +496,13 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
         performance: formData.performance || "4.5/5",
         joinedDate: formatDateForAPI(formData.joinedDate),
         lastTrip: formatDateForAPI(formData.lastTrip),
-        userId: userId,
-        orgId: orgId,
-        branchCode: formData.branchCode || "MAIN",
-        branchName: formData.branchName || "Main Branch",
-        active: formData.status === "active",
+        userId,
+        orgId,
+        branchCode: "MAIN",
+        branchName: "Main Branch",
+        active: true,
         createdBy: userId,
-        userName: userName,
+        userName,
       };
 
       // Add ID if editing
@@ -568,20 +596,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
   };
 
   const formatPhone = (value) => {
-    // Remove all non-digits
-    const numbers = value.replace(/\D/g, "");
-    // Format as Indian phone number
-    if (numbers.length <= 3) return numbers;
-    if (numbers.length <= 5)
-      return `${numbers.slice(0, 3)} ${numbers.slice(3)}`;
-    if (numbers.length <= 8)
-      return `${numbers.slice(0, 3)} ${numbers.slice(3, 5)} ${numbers.slice(
-        5
-      )}`;
-    return `${numbers.slice(0, 3)} ${numbers.slice(3, 6)} ${numbers.slice(
-      6,
-      10
-    )}`;
+    return value.replace(/\D/g, "");
   };
 
   if (!isOpen) return null;
@@ -678,7 +693,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                       className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.phone ? "border-red-500" : "border-gray-300"
                         }`}
                       placeholder="987 654 3210"
-                      maxLength="14"
+                      maxLength="10"
                       disabled={isSubmitting}
                     />
                     {errors.phone && (
@@ -777,7 +792,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                       }
                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                       placeholder="987 654 3211"
-                      maxLength="14"
+                      maxLength="10"
                       disabled={isSubmitting}
                     />
                   </div>
@@ -892,7 +907,6 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                       value={formData.status}
                       onChange={(e) => handleChange("status", e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                      disabled={isSubmitting}
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
@@ -915,13 +929,15 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen }) => {
                     <input
                       type="text"
                       value={formData.licenseNumber}
-                      onChange={(e) =>
-                        handleChange("licenseNumber", e.target.value)
-                      }
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.licenseNumber
-                        ? "border-red-500"
-                        : "border-gray-300"
-                        }`}
+                      onChange={(e) => {
+                        const value = e.target.value
+                          .toUpperCase()
+                          .replace(/[^A-Z0-9]/g, "");
+
+                        handleChange("licenseNumber", value);
+                      }}
+                      maxLength={16}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg ${errors.licenseNumber ? "border-red-500" : "border-gray-300"} focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white`}
                       placeholder="DL0420190001234"
                       disabled={isSubmitting}
                     />
@@ -1775,36 +1791,14 @@ const DriverManagement = () => {
   };
 
   const getStatusBadge = (status) => {
-    // Convert safely to string
-    const normalized =
-      typeof status === "string"
-        ? status.toLowerCase()
-        : String(status).toLowerCase();
+    const normalized = (status || "Inactive").toString().toLowerCase();
 
     const statusConfig = {
-      "on duty": {
-        color:
-          "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-        icon: Clock,
-        label: "On Duty",
-      },
-      available: {
+      active: {
         color:
           "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
         icon: CheckCircle,
-        label: "Available",
-      },
-      "ontrip": {
-        color:
-          "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-        icon: Clock,
-        label: "On Trip",
-      },
-      leave: {
-        color:
-          "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
-        icon: Clock,
-        label: "Leave",
+        label: "Active",
       },
       inactive: {
         color:
@@ -1812,11 +1806,29 @@ const DriverManagement = () => {
         icon: XCircle,
         label: "Inactive",
       },
-      active: {
+      leave: {
+        color:
+          "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+        icon: Clock,
+        label: "Leave",
+      },
+      available: {
         color:
           "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
         icon: CheckCircle,
-        label: "Active",
+        label: "Available",
+      },
+      "on duty": {
+        color:
+          "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+        icon: Clock,
+        label: "On Duty",
+      },
+      "on trip": {
+        color:
+          "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+        icon: Clock,
+        label: "On Trip",
       },
       true: {
         color:
@@ -1832,8 +1844,8 @@ const DriverManagement = () => {
       },
     };
 
-    const config = statusConfig[normalized] || statusConfig["inactive"];
-    const IconComponent = config.icon;
+    const config = statusConfig[normalized] || statusConfig.inactive;
+    const IconComponent = config.icon || XCircle;
 
     return (
       <span
@@ -2338,6 +2350,7 @@ const DriverManagement = () => {
         onSave={handleFormSave}
         onCancel={handleFormCancel}
         isOpen={showForm}
+        showNotification={showNotification}
       />
 
       {/* Delete Confirmation Modal */}
