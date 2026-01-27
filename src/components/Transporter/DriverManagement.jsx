@@ -50,13 +50,13 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
   });
 
   const [activeTab, setActiveTab] = useState("personal");
-  const [filesToDelete, setFilesToDelete] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
 
+  // Update the useEffect that loads driver data when editing:
   useEffect(() => {
     if (!isOpen) return;
 
@@ -76,9 +76,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
     if (driver) {
       let driverData = driver;
 
-      console.log("Raw driver data structure:", driver);
-
-      // Handle wrapped API responses (safety)
+      // Handle wrapped API responses
       if (driver.tdriverVO?.data?.length > 0) {
         driverData = driver.tdriverVO.data[0];
       } else if (driver.tdriversVO?.data?.length > 0) {
@@ -87,6 +85,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
 
       console.log("Extracted driver data for form:", driverData);
 
+      // Normalize status
       const normalizeStatus = (status, active) => {
         if (status === "Leave") return "Leave";
         if (status === "Inactive" || active === false) return "Inactive";
@@ -111,8 +110,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
         currentLocation: driverData.currentLocation || "",
         bloodGroup: driverData.bloodGroup || "",
         emergencyContact: driverData.emergencyContact || "",
-        joinedDate:
-          driverData.joinedDate || new Date().toISOString().split("T")[0],
+        joinedDate: driverData.joinedDate || new Date().toISOString().split("T")[0],
         performance: driverData.performance || "4.5/5",
         branchCode: driverData.branchCode || "MAIN",
         branchName: driverData.branchName || "Main Branch",
@@ -125,10 +123,8 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
         active: true
       });
 
-      setFilesToDelete([]);
-
       // -------------------------------
-      // DOCUMENTS (FIXED & CORRECT)
+      // DOCUMENTS - FIXED VERSION
       // -------------------------------
       const emptyFiles = {
         driverLicense: [],
@@ -139,34 +135,45 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
         medicalCertificate: [],
       };
 
-      if (driverData.documentObjects?.length > 0) {
-        console.log("Loading driver documents:", driverData.documentObjects);
+      // Check for documents in different possible API structures
+      const documentObjects = driverData.tdriverDocumentsVO ||
+        driverData.documentObjects ||
+        driverData.documents ||
+        [];
 
-        const transformedFiles = { ...emptyFiles };
+      console.log("Loading driver documents from:", documentObjects);
 
-        driverData.documentObjects.forEach((doc) => {
+      const transformedFiles = { ...emptyFiles };
+
+      if (documentObjects && documentObjects.length > 0) {
+        documentObjects.forEach((doc) => {
           const fileKey = documentTypeMapping[doc.documentType];
 
           if (fileKey) {
-            transformedFiles[fileKey].push({
-              id: doc.id,
-              name: doc.fileName,
+            // Create file object that tracks whether it's from server
+            const fileObj = {
+              id: doc.id, // Use server ID as unique identifier
+              name: doc.fileName || `Document-${doc.documentType}`,
               type: doc.fileType || "application/octet-stream",
               size: doc.fileSize || 0,
-              url: doc.filePath,
-              uploadedAt: doc.uploadedOn,
-              serverId: doc.id,
-              serverPath: doc.filePath,
+              url: doc.filePath, // This is the server URL/path
+              uploadedAt: doc.uploadedOn || new Date().toISOString(),
+              serverId: doc.id, // Track server ID
+              serverPath: doc.filePath, // Track server path
               documentType: doc.documentType,
               fileName: doc.fileName,
-            });
+              isFromServer: true, // Flag to identify server files
+              originalFileName: doc.fileName
+            };
+
+            transformedFiles[fileKey].push(fileObj);
           }
         });
 
-        setFiles(transformedFiles);
-      } else {
-        setFiles(emptyFiles);
+        console.log("Transformed files:", transformedFiles);
       }
+
+      setFiles(transformedFiles);
     }
 
     // -------------------------------
@@ -207,7 +214,6 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
         medicalCertificate: [],
       });
 
-      setFilesToDelete([]);
       setErrors({});
     }
 
@@ -324,40 +330,10 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
   };
 
   const removeFile = (fileType, fileId) => {
-    const fileToRemove = files[fileType].find((file) => file.id === fileId);
-
-    // If file has a server path (already uploaded to server), add to delete list
-    if (fileToRemove && fileToRemove.serverId) {
-      setFilesToDelete((prev) => [
-        ...prev,
-        {
-          id: fileToRemove.serverId,
-          filePath: fileToRemove.serverPath,
-          category: fileType,
-          documentType:
-            fileTypes.find((f) => f.key === fileType)?.label || fileType,
-        },
-      ]);
-      console.log("Added file to delete list:", fileToRemove);
-    }
-
-    // Revoke object URL to prevent memory leaks
-    if (
-      fileToRemove &&
-      fileToRemove.url &&
-      fileToRemove.url.startsWith("blob:")
-    ) {
-      URL.revokeObjectURL(fileToRemove.url);
-    }
-
-    // Remove from local state
-    setFiles((prev) => ({
+    setFiles(prev => ({
       ...prev,
-      [fileType]: prev[fileType].filter((file) => file.id !== fileId),
+      [fileType]: prev[fileType].filter(f => f.id !== fileId),
     }));
-
-    console.log("Removed file:", fileType, fileId);
-    console.log("Files to delete:", filesToDelete);
   };
 
   // Phone formatter function
@@ -450,29 +426,24 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+
     try {
-      // Format date for API
       const formatDateForAPI = (dateString) => {
         if (!dateString) return null;
-        try {
-          const date = new Date(dateString);
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-          return `${year}-${month}-${day}`;
-        } catch (e) {
-          return null;
-        }
+        const date = new Date(dateString);
+        return isNaN(date)
+          ? null
+          : date.toISOString().split("T")[0];
       };
 
-      // Get user info
-      const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
-      const userName = localStorage.getItem("userName") || "Admin User";
+      const userId =
+        JSON.parse(localStorage.getItem("user"))?.usersId || "";
+      const userName = localStorage.getItem("userName") || "Admin";
 
-      // Prepare the driver data object
       const normalizeStatus = (status) => {
         if (!status) return "Active";
         return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
@@ -486,7 +457,7 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
         licenseExpiry: formatDateForAPI(formData.licenseExpiry),
         aadharNumber: formData.aadharNumber,
         address: formData.address || "",
-        status: normalizeStatus(formData.status), // ✅ ALWAYS "Active"
+        status: normalizeStatus(formData.status),
         experience: formData.experience || "",
         salary: formData.salary || "",
         assignedVehicle: formData.assignedVehicle || "",
@@ -505,34 +476,22 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
         userName,
       };
 
-      // Add ID if editing
       if (driver?.id) {
         driverData.id = driver.id;
         driverData.updatedBy = userId;
       }
 
-      // Create FormData
       const formDataToSend = new FormData();
 
-      // Add driver data as tdriverDTO binary blob
-      const driverDataJSON = JSON.stringify(driverData);
-      const driverDataBlob = new Blob([driverDataJSON], {
-        type: "application/json",
-      });
+      // Driver DTO as JSON Blob
+      formDataToSend.append(
+        "tdriverDTO",
+        new Blob([JSON.stringify(driverData)], {
+          type: "application/json",
+        }),
+        "tdriverDTO.json"
+      );
 
-      formDataToSend.append("tdriverDTO", driverDataBlob, "tdriverDTO.json");
-
-      if (filesToDelete.length > 0) {
-        console.log("Adding files to delete:", filesToDelete);
-        formDataToSend.append("filesToDelete", JSON.stringify(filesToDelete));
-      }
-
-      // Add files to delete if any (for edit mode)
-      if (filesToDelete && filesToDelete.length > 0) {
-        formDataToSend.append("filesToDelete", JSON.stringify(filesToDelete));
-      }
-
-      // Define API parameter mappings for driver documents
       const apiFileMappings = {
         driverLicense: "DL",
         aadharCard: "AADHAR",
@@ -541,47 +500,35 @@ const DriverForm = ({ driver, onSave, onCancel, isOpen, showNotification }) => {
         experienceCertificate: "EXP",
         medicalCertificate: "MEDICAL",
       };
-      // Append each file to the correct API parameter
-      let hasFiles = false;
+
       Object.keys(files).forEach((fileType) => {
         const apiParamName = apiFileMappings[fileType];
+        if (!apiParamName) return;
 
-        if (apiParamName && files[fileType].length > 0) {
-          hasFiles = true;
-          files[fileType].forEach((file) => {
-            // Only upload new files (with file object)
-            if (file.file) {
-              formDataToSend.append(apiParamName, file.file, file.name);
-
-              // Also add metadata if needed
-              formDataToSend.append(
-                `metadata_${apiParamName}`,
-                JSON.stringify({
-                  fileName: file.name,
-                  fileType: file.type,
-                  fileSize: file.size,
-                  uploadedAt: file.uploadedAt,
-                  category: fileType,
-                })
-              );
-            }
-          });
-        }
+        files[fileType].forEach(file => {
+          if (file.file) {
+            // ✅ NEW upload
+            formDataToSend.append(apiParamName, file.file, file.name);
+          } else if (file.isFromServer && file.serverPath) {
+            // ✅ EXISTING server file (re-send reference)
+            formDataToSend.append(
+              apiParamName,
+              new Blob([], { type: file.type }),
+              file.originalFileName || file.name
+            );
+          }
+        });
       });
 
-      // If no files, add empty flag
-      if (!hasFiles) {
-        formDataToSend.append("noFiles", "true");
-      }
-
-      // Call onSave with FormData
       await onSave(formDataToSend);
     } catch (error) {
-      console.error("Form submission error:", error);
-      // Show error to user
+      console.error("Driver save failed:", error);
+
       setErrors((prev) => ({
         ...prev,
-        submit: error.message || "Failed to save driver. Please try again.",
+        submit:
+          error?.message ||
+          "Failed to save driver. Please try again.",
       }));
     } finally {
       setIsSubmitting(false);
@@ -1649,6 +1596,14 @@ const DriverManagement = () => {
 
   const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
+
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
   // Show notification
   const showNotification = (type, message) => {
     setNotification({ type, message });
@@ -1932,6 +1887,13 @@ const DriverManagement = () => {
     </div>
   );
 
+  const totalPages = Math.ceil(filteredDrivers.length / ITEMS_PER_PAGE);
+
+  const paginatedDrivers = filteredDrivers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       {/* Notification */}
@@ -2113,7 +2075,7 @@ const DriverManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredDrivers.map((driver) => (
+              {paginatedDrivers.map((driver) => (
                 <tr
                   key={driver.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -2217,6 +2179,52 @@ const DriverManagement = () => {
               ))}
             </tbody>
           </table>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t dark:border-gray-700">
+              <p className="text-sm text-gray-500">
+                Page {currentPage} of {totalPages}
+              </p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                >
+                  Previous
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .slice(
+                    Math.max(0, currentPage - 2),
+                    Math.min(totalPages, currentPage + 1)
+                  )
+                  .map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 text-sm border rounded ${currentPage === page
+                        ? "bg-blue-600 text-white"
+                        : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(p + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Empty State */}

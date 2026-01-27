@@ -478,6 +478,11 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
     }
   };
 
+  const fetchFileAsBlob = async (url) => {
+    const response = await fetch(url);
+    return await response.blob();
+  };
+
   const handleFileChange = (fileType, event) => {
     const selectedFiles = Array.from(event.target.files);
     selectedFiles.forEach((file) => {
@@ -486,21 +491,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
     event.target.value = ""; // Reset file input
   };
 
-  const [filesToDelete, setFilesToDelete] = useState([]);
-
   const removeFile = (fileType, fileId) => {
-    const file = files[fileType].find((f) => f.id === fileId);
-
-    // Check if it's an existing file from server (has server ID and no originalFile)
-    if (file && file.id > 1000000000 && !file.originalFile) {
-      // Mark for deletion on server
-      setFilesToDelete((prev) => [
-        ...prev,
-        { fileType, fileId, serverId: file.id },
-      ]);
-    }
-
-    // Remove from local state
     setFiles((prev) => ({
       ...prev,
       [fileType]: prev[fileType].filter((file) => file.id !== fileId),
@@ -578,11 +569,6 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
         "tvehicleDTO.json"
       );
 
-      // Add files to delete if any
-      if (filesToDelete.length > 0) {
-        formDataToSend.append("filesToDelete", JSON.stringify(filesToDelete));
-      }
-
       // Add files according to API parameter names
       const apiFileMappings = {
         rc: "RC",
@@ -594,22 +580,20 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
       };
 
       // Append each file to the correct API parameter
-      Object.keys(files).forEach((fileType) => {
+      for (const fileType of Object.keys(files)) {
         const apiParamName = apiFileMappings[fileType];
+        if (!apiParamName || !files[fileType]?.length) continue;
 
-        if (apiParamName && files[fileType].length > 0) {
-          files[fileType].forEach((file) => {
-            // Only upload new files (with originalFile)
-            if (file.originalFile) {
-              formDataToSend.append(
-                apiParamName,
-                file.originalFile,
-                file.name
-              );
-            }
-          });
+        for (const file of files[fileType]) {
+          if (file.originalFile) {
+            // ✅ NEW file
+            formDataToSend.append(apiParamName, file.originalFile, file.name);
+          } else if (file.url) {
+            const blob = await fetchFileAsBlob(file.url);
+            formDataToSend.append(apiParamName, blob, file.name);
+          }
         }
-      });
+      }
 
       await onSave(formDataToSend);
     } finally {
@@ -626,52 +610,25 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
   // Helper function to format vehicle number as user types
   const formatVehicleNumber = (input) => {
-    // Remove all non-alphanumeric characters
-    let cleaned = input.replace(/[^A-Z0-9]/gi, "");
-
-    // Limit to 10 characters (2 for state, 2 for district, 2 for series, 4 for number)
-    cleaned = cleaned.substring(0, 10);
-
-    if (cleaned.length === 0) return "";
-
-    // Format based on length
-    let formatted = cleaned;
-
-    if (cleaned.length > 2) {
-      formatted = cleaned.substring(0, 2) + "-" + cleaned.substring(2);
-    }
-
-    if (cleaned.length > 4) {
-      formatted = formatted.substring(0, 5) + "-" + formatted.substring(5);
-    }
-
-    if (cleaned.length > 6) {
-      formatted = formatted.substring(0, 8) + "-" + formatted.substring(8);
-    }
-
-    return formatted;
+    // Allow only letters, numbers and dash
+    return input
+      .toUpperCase()
+      .replace(/[^A-Z0-9-]/g, "");
   };
 
   // Helper function to validate and finalize format on blur
   const formatAndValidateVehicleNumber = (input) => {
-    // Remove all non-alphanumeric characters
-    let cleaned = input.replace(/[^A-Z0-9]/gi, "");
+    const cleaned = input.replace(/[^A-Z0-9]/gi, "").toUpperCase();
 
-    // Check if we have a complete number (10 characters)
-    if (cleaned.length < 10) {
-      return input; // Return as-is, validation will catch it
-    }
-
-    // Format as TN-10-AB-7878
-    return (
-      cleaned.substring(0, 2) +
-      "-" +
-      cleaned.substring(2, 4) +
-      "-" +
-      cleaned.substring(4, 6) +
-      "-" +
-      cleaned.substring(6, 10)
+    const match = cleaned.match(
+      /^([A-Z]{2})(\d{1,2})([A-Z]{1,3})(\d{4})([A-Z]?)$/
     );
+
+    if (!match) return input; // let validation handle error
+
+    return [match[1], match[2], match[3], match[4], match[5]]
+      .filter(Boolean)
+      .join("-");
   };
 
   const vehicleRegex = /^[A-Z]{2}\d{1,2}[A-Z]{1,2}\d{4}$/;
@@ -680,11 +637,13 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
   const validateVehicleNumber = (value) => {
     if (!value) return "Vehicle number is required";
 
-    // Remove dashes for validation
-    const cleaned = value.replace(/-/g, "");
+    const cleaned = value.replace(/-/g, "").toUpperCase();
+
+    const vehicleRegex =
+      /^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d{4}[A-Z]?$/;
 
     if (!vehicleRegex.test(cleaned)) {
-      return "Invalid vehicle number (e.g. TN-10-AB-7878)";
+      return "Invalid format (e.g. TN-09-Y-8765, TN-09-BH-9876)";
     }
 
     return null;
@@ -808,25 +767,20 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                     <input
                       type="text"
                       value={formData.vehicleNumber}
-                      onChange={(e) => {
-                        const rawValue = e.target.value.toUpperCase();
-                        const formattedValue = formatVehicleNumber(rawValue);
-                        handleChange("vehicleNumber", formattedValue);
-                      }}
-                      onBlur={(e) => {
-                        // Validate and finalize format on blur
-                        const formattedValue = formatAndValidateVehicleNumber(
-                          e.target.value
-                        );
-                        handleChange("vehicleNumber", formattedValue);
-                      }}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${errors.vehicleNumber
-                        ? "border-red-500"
-                        : "border-gray-300"
+                      onChange={(e) =>
+                        handleChange("vehicleNumber", formatVehicleNumber(e.target.value))
+                      }
+                      onBlur={(e) =>
+                        handleChange(
+                          "vehicleNumber",
+                          formatAndValidateVehicleNumber(e.target.value)
+                        )
+                      }
+                      placeholder="TN-09-Y-8765"
+                      maxLength={15}
+                      className={`w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                         }`}
-                      placeholder="TN-10-AB-7878"
                       disabled={saving}
-                      maxLength={13} // TN-10-AB-7878 = 13 characters max
                     />
                     {errors.vehicleNumber && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1436,9 +1390,17 @@ const VehicleManagement = () => {
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [notification, setNotification] = useState(null);
+  const [viewVehicle, setViewVehicle] = useState(null);
   const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
   const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
+
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   // Show notification
   const showNotification = (message, type = "success") => {
@@ -1488,6 +1450,13 @@ const VehicleManagement = () => {
 
     return matchesSearch && matchesStatus;
   });
+
+  const totalPages = Math.ceil(filteredVehicles.length / ITEMS_PER_PAGE);
+
+  const paginatedVehicles = filteredVehicles.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const handleFormSave = async (formData) => {
     try {
@@ -1879,7 +1848,7 @@ const VehicleManagement = () => {
                 // No vehicles at all (empty state)
                 ""
               ) : (
-                filteredVehicles.map((vehicle) => {
+                paginatedVehicles.map((vehicle) => {
                   const nextServiceDate = calculateNextServiceDate(
                     vehicle.lastService,
                     vehicle.serviceIntervalDays || 90
@@ -1973,12 +1942,25 @@ const VehicleManagement = () => {
 
                       {/* ACTIONS */}
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleEdit(vehicle)}
-                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          {/* View */}
+                          <button
+                            onClick={() => setViewVehicle(vehicle)}
+                            className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
+                            title="View Vehicle"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+
+                          {/* Edit */}
+                          <button
+                            onClick={() => handleEdit(vehicle)}
+                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Edit Vehicle"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1986,6 +1968,50 @@ const VehicleManagement = () => {
               )}
             </tbody>
           </table>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t dark:border-gray-700">
+              <span className="text-sm text-gray-500">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 border rounded disabled:opacity-50"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .slice(
+                    Math.max(0, currentPage - 2),
+                    Math.min(totalPages, currentPage + 1)
+                  )
+                  .map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 text-sm rounded border ${currentPage === page
+                        ? "bg-indigo-600 text-white"
+                        : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 border rounded disabled:opacity-50"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Empty State */}
@@ -2022,6 +2048,79 @@ const VehicleManagement = () => {
         onCancel={handleFormCancel}
         isOpen={showForm}
       />
+
+      {viewVehicle && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
+              <h2 className="text-lg font-semibold dark:text-white">
+                Vehicle Details
+              </h2>
+              <button
+                onClick={() => setViewVehicle(null)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500">Vehicle No</p>
+                <p className="font-medium">{viewVehicle.vehicleNumber}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Model</p>
+                <p className="font-medium">{viewVehicle.model}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Status</p>
+                {getStatusBadge(viewVehicle.status)}
+              </div>
+
+              <div>
+                <p className="text-gray-500">Driver</p>
+                <p className="font-medium">{viewVehicle.driver || "N/A"}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Location</p>
+                <p className="font-medium">{viewVehicle.currentLocation}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Fuel Efficiency</p>
+                <p className="font-medium">
+                  {viewVehicle.fuelEfficiency || "N/A"}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 px-4 py-3 border-t dark:border-gray-700">
+              <button
+                onClick={() => setViewVehicle(null)}
+                className="px-3 py-1.5 border rounded text-sm"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setViewVehicle(null);
+                  handleEdit(viewVehicle);
+                }}
+                className="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (

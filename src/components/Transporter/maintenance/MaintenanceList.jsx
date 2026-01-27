@@ -33,6 +33,7 @@ export const MaintenanceList = ({
     direction: "desc",
   });
   const [showActionsMenu, setShowActionsMenu] = useState(null);
+  const [viewRecord, setViewRecord] = useState(null);
 
   // Memoized sorted records
   const sortedRecords = useMemo(() => {
@@ -305,40 +306,36 @@ export const MaintenanceList = ({
               <div className="hidden md:flex items-center gap-1">
                 <button
                   onClick={() => handleSort("scheduledDate")}
-                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${
-                    sortConfig.key === "scheduledDate"
-                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                      : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                  }`}
+                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${sortConfig.key === "scheduledDate"
+                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    }`}
                 >
                   <Calendar className="h-3 w-3" />
                   <SortAsc
-                    className={`h-3 w-3 transition-transform ${
-                      sortConfig.key === "scheduledDate" &&
+                    className={`h-3 w-3 transition-transform ${sortConfig.key === "scheduledDate" &&
                       sortConfig.direction === "desc"
-                        ? "rotate-180"
-                        : ""
-                    }`}
+                      ? "rotate-180"
+                      : ""
+                      }`}
                   />
                 </button>
                 <button
                   onClick={() => handleSort("priority")}
-                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${
-                    sortConfig.key === "priority"
-                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                      : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                  }`}
+                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${sortConfig.key === "priority"
+                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    }`}
                 >
                   <AlertCircle className="h-3 w-3" />
                   Priority
                 </button>
                 <button
                   onClick={() => handleSort("cost")}
-                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${
-                    sortConfig.key === "cost"
-                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                      : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                  }`}
+                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${sortConfig.key === "cost"
+                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    }`}
                 >
                   <IndianRupee className="h-3 w-3" />
                   Cost
@@ -392,11 +389,10 @@ export const MaintenanceList = ({
             return (
               <div
                 key={record.id}
-                className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors ${
-                  selectedRecords.includes(record.id)
-                    ? "bg-blue-50 dark:bg-blue-900/10"
-                    : ""
-                } ${overdue ? "border-l-2 border-red-500" : ""}`}
+                className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors ${selectedRecords.includes(record.id)
+                  ? "bg-blue-50 dark:bg-blue-900/10"
+                  : ""
+                  } ${overdue ? "border-l-2 border-red-500" : ""}`}
               >
                 {/* Compact Row */}
                 <div className="flex items-start gap-3">
@@ -505,9 +501,8 @@ export const MaintenanceList = ({
                       className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
                       <ChevronRight
-                        className={`h-4 w-4 transition-transform ${
-                          expandedId === record.id ? "rotate-90" : ""
-                        }`}
+                        className={`h-4 w-4 transition-transform ${expandedId === record.id ? "rotate-90" : ""
+                          }`}
                       />
                     </button>
 
@@ -547,16 +542,18 @@ export const MaintenanceList = ({
                               <CheckCircle className="h-4 w-4" />
                               Mark Complete
                             </button>
-                            <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <button
+                              onClick={() => {
+                                setViewRecord(record);
+                                setShowActionsMenu(null);
+                              }}
+                              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
                               <Eye className="h-4 w-4" />
                               View Details
                             </button>
-                            <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                              <Printer className="h-4 w-4" />
-                              Print Report
-                            </button>
                             <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
-                            <button
+                            {/* <button
                               onClick={() => {
                                 onDelete(record.id);
                                 setShowActionsMenu(null);
@@ -565,7 +562,7 @@ export const MaintenanceList = ({
                             >
                               <Trash2 className="h-4 w-4" />
                               Delete Record
-                            </button>
+                            </button> */}
                           </div>
                         </div>
                       )}
@@ -729,6 +726,111 @@ export const MaintenanceList = ({
           </div>
         </div>
       )}
+
+      {/* View Maintenance Modal */}
+      {viewRecord && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Maintenance Details
+              </h3>
+              <button
+                onClick={() => setViewRecord(null)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500">Title</p>
+                <p className="font-medium">{viewRecord.title}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Status</p>
+                <StatusBadge status={viewRecord.status} />
+              </div>
+
+              <div>
+                <p className="text-gray-500">Vehicle</p>
+                <p className="font-medium">{viewRecord.vehicleName}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Priority</p>
+                <PriorityBadge priority={viewRecord.priority} />
+              </div>
+
+              <div>
+                <p className="text-gray-500">Scheduled Date</p>
+                <p className="font-medium">
+                  {formatDate(viewRecord.scheduledDate)}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Odometer</p>
+                <p className="font-medium">
+                  {viewRecord.odometerReading?.toLocaleString()} km
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Service Center</p>
+                <p className="font-medium">
+                  {viewRecord.serviceCenter || "N/A"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Mechanic</p>
+                <p className="font-medium">
+                  {viewRecord.mechanic || "N/A"}
+                </p>
+              </div>
+
+              <div className="md:col-span-2">
+                <p className="text-gray-500">Description</p>
+                <p className="font-medium">{viewRecord.description}</p>
+              </div>
+
+              {viewRecord.notes && (
+                <div className="md:col-span-2">
+                  <p className="text-gray-500">Notes</p>
+                  <p className="text-sm bg-gray-50 dark:bg-gray-900/40 p-3 rounded">
+                    {viewRecord.notes}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 px-4 py-3 border-t dark:border-gray-700">
+              <button
+                onClick={() => setViewRecord(null)}
+                className="px-3 py-1.5 border rounded text-sm"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setViewRecord(null);
+                  onEdit(viewRecord);
+                }}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

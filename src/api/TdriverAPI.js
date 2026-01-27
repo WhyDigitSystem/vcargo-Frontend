@@ -36,8 +36,9 @@ const driverAPI = {
           performance: driver.performance || "Good",
           joinedDate: driver.joinedDate,
           lastTrip: driver.lastTrip,
-          documents: driver.documents?.map((d) => d.documentType) || [],
-          documentObjects: driver.documents || [],
+          documents: driver.tdriverDocumentsVO?.map(d => d.documentType) || [],
+          documentObjects: driver.tdriverDocumentsVO || [],
+          tdriverDocumentsVO: driver.tdriverDocumentsVO || [],
         })) || [];
 
       return { drivers };
