@@ -1,36 +1,35 @@
+import { Autocomplete } from "@react-google-maps/api";
 import {
-  X,
-  Save,
-  Navigation,
-  MapPin,
   Calendar,
   Car,
-  User,
-  Package,
-  IndianRupee,
-  Plus,
-  Trash2,
   Hash,
+  IndianRupee,
+  MapPin,
+  Navigation,
+  Package,
+  Plus,
+  Save,
+  Trash2,
+  User,
+  X,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import driverAPI from "../../../api/TdriverAPI";
 import vehicleAPI from "../../../api/TvehicleAPI";
-import { useSelector } from "react-redux";
-import { Autocomplete } from "@react-google-maps/api";
 import { useGoogleMaps } from "../../../hooks/useGoogleMaps";
 
-export const TripForm = ({
-  trip = null,
-  customers = [],
-  onSave,
-  onCancel
-}) => {
+export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     customer: "",
     vehicleId: "",
     driverId: "",
     source: "",
+    sourceLat: "",
+    sourceLng: "",
     destination: "",
+    destinationLat: "",
+    destinationLng: "",
     distance: "",
     estimatedDuration: "",
     startDate: new Date().toISOString().split("T")[0],
@@ -73,29 +72,41 @@ export const TripForm = ({
     const fuelCost = parseFloat(formData.fuelCost) || 0;
     const tollCharges = parseFloat(formData.tollCharges) || 0;
     const otherExpenses = parseFloat(formData.otherExpenses) || 0;
-    const profit = revenue - (tripCost + fuelCost + tollCharges + otherExpenses);
+    const profit =
+      revenue - (tripCost + fuelCost + tollCharges + otherExpenses);
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      profit: profit.toFixed(2)
+      profit: profit.toFixed(2),
     }));
-  }, [formData.tripCost, formData.revenue, formData.fuelCost, formData.tollCharges, formData.otherExpenses]);
+  }, [
+    formData.tripCost,
+    formData.revenue,
+    formData.fuelCost,
+    formData.tollCharges,
+    formData.otherExpenses,
+  ]);
 
   useEffect(() => {
-    if (!formData.startDate || !formData.startTime || !formData.estimatedDuration) return;
+    if (
+      !formData.startDate ||
+      !formData.startTime ||
+      !formData.estimatedDuration
+    )
+      return;
 
     const result = calculateEndDateTime(
       formData.startDate,
       formData.startTime,
-      formData.estimatedDuration
+      formData.estimatedDuration,
     );
 
     if (!result) return;
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       endDate: result.endDate,
-      endTime: `${result.endTime.hour}:${result.endTime.minute}`
+      endTime: `${result.endTime.hour}:${result.endTime.minute}`,
     }));
   }, [formData.startDate, formData.startTime, formData.estimatedDuration]);
 
@@ -119,6 +130,13 @@ export const TripForm = ({
         driverId: trip.driverId || "",
         source: trip.source || "",
         destination: trip.destination || "",
+
+        source: trip.source || "",
+        sourceLat: trip.sourceLat || "",
+        sourceLng: trip.sourceLng || "",
+        destination: trip.destination || "",
+        destinationLat: trip.destinationLat || "",
+        destinationLng: trip.destinationLng || "",
         distance: trip.distance || "",
         estimatedDuration: trip.estimatedDuration || "",
         startDate: trip.startDate || new Date().toISOString().split("T")[0],
@@ -153,7 +171,7 @@ export const TripForm = ({
       const response = await driverAPI.getDrivers(orgId);
 
       const activeDrivers = response.drivers.filter(
-        (d) => d.status === "Active" || d.isActive === true
+        (d) => d.status === "Active" || d.isActive === true,
       );
 
       setDrivers(activeDrivers);
@@ -167,7 +185,7 @@ export const TripForm = ({
       const response = await vehicleAPI.getVehicles(orgId);
 
       const activeVehicles = response.vehicles.filter(
-        (v) => v.status === "active" && v.cancel !== true
+        (v) => v.status === "active" && v.cancel !== true,
       );
 
       setVehicles(activeVehicles);
@@ -183,10 +201,12 @@ export const TripForm = ({
     if (!formData.vehicleId) newErrors.vehicleId = "Vehicle is required";
     if (!formData.driverId) newErrors.driverId = "Driver is required";
     if (!formData.source) newErrors.source = "Source is required";
-    if (!formData.destination) newErrors.destination = "Destination is required";
+    if (!formData.destination)
+      newErrors.destination = "Destination is required";
     if (!formData.distance || parseFloat(formData.distance) <= 0)
       newErrors.distance = "Valid distance is required";
-    if (!formData.estimatedDuration) newErrors.estimatedDuration = "Estimated duration is required";
+    if (!formData.estimatedDuration)
+      newErrors.estimatedDuration = "Estimated duration is required";
     if (!formData.startDate) newErrors.startDate = "Start date is required";
     if (!formData.startTime) newErrors.startTime = "Start time is required";
     // if (!formData.tripType) newErrors.tripType = "Trip type is required";
@@ -196,6 +216,8 @@ export const TripForm = ({
   };
 
   const handleSubmit = (e) => {
+    console.log("Test===>", formData);
+
     e.preventDefault();
 
     if (!validateForm()) return;
@@ -211,14 +233,18 @@ export const TripForm = ({
       fuelCost: parseFloat(formData.fuelCost) || 0,
       tollCharges: parseFloat(formData.tollCharges) || 0,
       otherExpenses: parseFloat(formData.otherExpenses) || 0,
-      customerName: customers.find(c => c.id === formData.customer)?.name || "",
-      vehicleName: vehicles.find(v => v.id === formData.vehicleId)?.registrationNumber || "",
-      driverName: parseInt(drivers.find(d => d.id === formData.driverId)?.name) || "",
+      customerName:
+        customers.find((c) => c.id === formData.customer)?.name || "",
+      vehicleName:
+        vehicles.find((v) => v.id === formData.vehicleId)?.registrationNumber ||
+        "",
+      driverName:
+        parseInt(drivers.find((d) => d.id === formData.driverId)?.name) || "",
       waypoints: formData.waypoints.map((wp, index) => ({
         location: wp.location,
-        sequenceNo: index + 1
+        sequenceNo: index + 1,
       })),
-      documents: formData.documents || []
+      documents: formData.documents || [],
     };
 
     console.log("Trip data to save:", tripDataToSave);
@@ -262,10 +288,10 @@ export const TripForm = ({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -275,39 +301,39 @@ export const TripForm = ({
 
     setFormData((prev) => ({
       ...prev,
-      waypoints: [
-        ...prev.waypoints,
-        { location: value }
-      ]
+      waypoints: [...prev.waypoints, { location: value }],
     }));
 
     setNewWaypoint(""); // reset input
   };
 
   const removeWaypoint = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      waypoints: prev.waypoints.filter((_, i) => i !== index)
+      waypoints: prev.waypoints.filter((_, i) => i !== index),
     }));
   };
 
   const addDocument = () => {
     if (newDocument.name.trim()) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        documents: [...prev.documents, {
-          ...newDocument,
-          url: "#"
-        }]
+        documents: [
+          ...prev.documents,
+          {
+            ...newDocument,
+            url: "#",
+          },
+        ],
       }));
       setNewDocument({ name: "", type: "pdf" });
     }
   };
 
   const removeDocument = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      documents: prev.documents.filter((_, i) => i !== index)
+      documents: prev.documents.filter((_, i) => i !== index),
     }));
   };
 
@@ -320,8 +346,15 @@ export const TripForm = ({
   ];
 
   const goodsTypeOptions = [
-    "Electronics", "Textiles", "Auto Parts", "FMCG", "Chemicals",
-    "Construction Material", "Agriculture", "Pharmaceuticals", "Other"
+    "Electronics",
+    "Textiles",
+    "Auto Parts",
+    "FMCG",
+    "Chemicals",
+    "Construction Material",
+    "Agriculture",
+    "Pharmaceuticals",
+    "Other",
   ];
 
   const LocationAutocomplete = ({
@@ -339,15 +372,13 @@ export const TripForm = ({
       setInputValue(value || "");
     }, [value]);
 
+    // Fallback input when Google Maps is not loaded
     if (!isLoaded) {
       return (
         <input
           type="text"
           value={inputValue}
-          onChange={(e) => {
-            setInputValue(e.target.value);
-            onChange(e.target.value);
-          }}
+          onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={onKeyPress}
           placeholder={placeholder}
           className={`w-full px-4 py-3 rounded-xl
@@ -370,35 +401,39 @@ export const TripForm = ({
           if (!autocompleteRef.current) return;
 
           const place = autocompleteRef.current.getPlace();
+          if (!place?.geometry?.location) return;
+
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
 
           const placeName = place?.name || "";
           const formattedAddress = place?.formatted_address || "";
 
           let fullLocation = "";
-
           if (placeName && formattedAddress) {
-            if (!formattedAddress.toLowerCase().includes(placeName.toLowerCase())) {
-              fullLocation = `${placeName}, ${formattedAddress}`;
-            } else {
-              fullLocation = formattedAddress;
-            }
+            fullLocation = formattedAddress
+              .toLowerCase()
+              .includes(placeName.toLowerCase())
+              ? formattedAddress
+              : `${placeName}, ${formattedAddress}`;
           } else {
             fullLocation = placeName || formattedAddress;
           }
 
-          if (fullLocation) {
-            setInputValue(fullLocation);
-            onChange(fullLocation);
-          }
+          setInputValue(fullLocation);
+
+          // ✅ Update parent ONLY on selection
+          onChange({
+            address: fullLocation,
+            lat,
+            lng,
+          });
         }}
       >
         <input
           type="text"
           value={inputValue}
-          onChange={(e) => {
-            const newValue = e.target.value;
-            setInputValue(newValue);
-          }}
+          onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={onKeyPress}
           placeholder={placeholder}
           className={`w-full px-4 py-3 rounded-xl
@@ -436,8 +471,8 @@ export const TripForm = ({
       let totalDurationSeconds = 0;
 
       legs.forEach((leg) => {
-        totalDistanceMeters += leg.distance.value;   // meters
-        totalDurationSeconds += leg.duration.value;  // seconds
+        totalDistanceMeters += leg.distance.value; // meters
+        totalDurationSeconds += leg.duration.value; // seconds
       });
 
       const totalDistanceKm = Math.round(totalDistanceMeters / 1000);
@@ -490,13 +525,10 @@ export const TripForm = ({
         <div className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
           {/* Basic Information */}
           <div className="space-y-6">
-
             {/* ================= ROW 1 ================= */}
             <div className="space-y-6">
-
               {/* ===== Header Row ===== */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
                 {/* -------- Customer -------- */}
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -539,7 +571,7 @@ export const TripForm = ({
                     className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select Vehicle</option>
-                    {vehicles.map(v => (
+                    {vehicles.map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.vehicleNumber} - {v.year} {v.model}
                       </option>
@@ -564,16 +596,14 @@ export const TripForm = ({
                     className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select Driver</option>
-                    {drivers.map(d => (
+                    {drivers.map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name} - {d.licenseNumber}
                       </option>
                     ))}
                   </select>
                 </div>
-
               </div>
-
             </div>
 
             <div className="space-y-4">
@@ -583,15 +613,18 @@ export const TripForm = ({
               </h3>
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {tripTypeOptions.map(type => (
+                {tripTypeOptions.map((type) => (
                   <button
                     key={type.id}
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, tripType: type.id }))}
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, tripType: type.id }))
+                    }
                     className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center dark:text-gray-300 transition-all
-                      ${formData.tripType === type.id
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                        : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
+                      ${
+                        formData.tripType === type.id
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
                       }
                     `}
                   >
@@ -601,7 +634,6 @@ export const TripForm = ({
                 ))}
               </div>
             </div>
-
           </div>
 
           {/* Route Details */}
@@ -621,10 +653,18 @@ export const TripForm = ({
                   value={formData.source}
                   placeholder="e.g., Mumbai, Maharashtra"
                   onChange={(val) =>
-                    setFormData((prev) => ({ ...prev, source: val }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      source: val.address,
+                      sourceLat: val.lat,
+                      sourceLng: val.lng,
+                    }))
                   }
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.source ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                    }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.source
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
+                  }`}
                 />
               </div>
 
@@ -637,10 +677,18 @@ export const TripForm = ({
                   value={formData.destination}
                   placeholder="e.g., Pune, Maharashtra"
                   onChange={(val) =>
-                    setFormData((prev) => ({ ...prev, destination: val }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      destination: val.address,
+                      destinationLat: val.lat,
+                      destinationLng: val.lng,
+                    }))
                   }
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.destination ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                    }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.destination
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
+                  }`}
                 />
               </div>
 
@@ -655,8 +703,11 @@ export const TripForm = ({
                   onChange={handleChange}
                   step="0.1"
                   min="0"
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.distance ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                    }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.distance
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
+                  }`}
                   placeholder="150"
                 />
               </div>
@@ -689,10 +740,15 @@ export const TripForm = ({
               {formData.waypoints.length > 0 && (
                 <div className="space-y-2">
                   {formData.waypoints.map((waypoint, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                    >
                       <div className="flex items-center gap-2">
                         <Hash className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-900 dark:text-white">{waypoint.location}</span>
+                        <span className="text-gray-900 dark:text-white">
+                          {waypoint.location}
+                        </span>
                       </div>
                       <button
                         type="button"
@@ -725,8 +781,11 @@ export const TripForm = ({
                   name="startDate"
                   value={formData.startDate}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.startDate ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                    }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.startDate
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
+                  }`}
                 />
               </div>
 
@@ -739,8 +798,11 @@ export const TripForm = ({
                   name="startTime"
                   value={formData.startTime}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.startTime ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                    }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.startTime
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
+                  }`}
                 />
               </div>
 
@@ -753,8 +815,11 @@ export const TripForm = ({
                   name="estimatedDuration"
                   value={formData.estimatedDuration}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.estimatedDuration ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                    }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.estimatedDuration
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
+                  }`}
                   placeholder="e.g., 3 hours, 4 hours 30 mins"
                 />
               </div>
@@ -780,7 +845,7 @@ export const TripForm = ({
           </div>
 
           {/* Goods Information */}
-          {formData.tripType === 'freight' && (
+          {formData.tripType === "freight" && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Package className="h-5 w-5" />
@@ -799,8 +864,10 @@ export const TripForm = ({
                     className="w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select Goods Type</option>
-                    {goodsTypeOptions.map(type => (
-                      <option key={type} value={type}>{type}</option>
+                    {goodsTypeOptions.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
                     ))}
                   </select>
                 </div>

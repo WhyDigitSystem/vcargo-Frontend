@@ -151,7 +151,11 @@ export const TripDashboard = () => {
         user: parseInt(userId, 10) || 0,
         customer: tripData.customer,
         source: tripData.source || "",
+        sourceLat: (tripData.sourceLat || "").toString(), // Convert to string
+        sourceLng: (tripData.sourceLng || "").toString(),
         destination: tripData.destination || "",
+        destinationLat: (tripData.destinationLat || "").toString(), // Convert to string
+        destinationLng: (tripData.destinationLng || "").toString(),
         vehicle: tripData.vehicleId,
         driver: tripData.driverId,
         tripType: tripData.tripType || "",

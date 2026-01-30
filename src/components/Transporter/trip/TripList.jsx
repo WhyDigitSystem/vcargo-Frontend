@@ -34,7 +34,11 @@ export const TripList = ({
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [loadingTripId, setLoadingTripId] = useState(null);
-  const [loadingAction, setLoadingAction] = useState(null); // 'start' or 'complete'
+  const [loadingAction, setLoadingAction] = useState(null);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [selectedTripForConsent, setSelectedTripForConsent] = useState(null);
+  const [consentData, setConsentData] = useState(null);
+  const [checkingConsent, setCheckingConsent] = useState(false);
 
   const handleSelectAll = () => {
     if (selectedTrips.length === trips.length) {
@@ -49,6 +53,68 @@ export const TripList = ({
       onSelectTrip(selectedTrips.filter((tId) => tId !== id));
     } else {
       onSelectTrip([...selectedTrips, id]);
+    }
+  };
+
+  // Check consent before starting trip
+  const checkAndStartTrip = async (tripId) => {
+    setSelectedTripForConsent(tripId);
+    setCheckingConsent(true);
+
+    try {
+      // Call consent API
+      const consentResponse = await apiClient.get(`/api/trip/trip/Consent`, {
+        params: { id: tripId },
+      });
+
+      if (consentResponse?.status) {
+        const consentInfo = consentResponse.paramObjectsMap?.message;
+        setConsentData(consentInfo);
+
+        // Check if consent is PENDING
+        if (consentInfo.consent === "PENDING") {
+          setShowConsentModal(true);
+        } else if (consentInfo.consent === "GRANTED") {
+          // If consent is already granted, proceed directly
+          await handleStartTrip(tripId);
+        } else {
+          toast.error(
+            `Cannot start trip. Consent status: ${consentInfo.consent}`,
+          );
+        }
+      } else {
+        toast.error("Failed to check consent status");
+      }
+    } catch (err) {
+      toast.error("Error checking consent");
+      console.error("Consent check error:", err);
+    } finally {
+      setCheckingConsent(false);
+    }
+  };
+
+  // Handle proceed without consent
+  const handleProceedWithoutConsent = async () => {
+    if (selectedTripForConsent) {
+      await handleStartTrip(selectedTripForConsent);
+      setShowConsentModal(false);
+      setConsentData(null);
+      setSelectedTripForConsent(null);
+    }
+  };
+
+  // Handle cancel start trip
+  const handleCancelStartTrip = () => {
+    setShowConsentModal(false);
+    setConsentData(null);
+    setSelectedTripForConsent(null);
+  };
+
+  // Handle start trip (actual API call)
+  const handleStartTrip = async (tripId) => {
+    const success = await updateTripStatus(tripId, "START");
+    if (success) {
+      setExpandedId(null);
     }
   };
 
@@ -76,22 +142,16 @@ export const TripList = ({
         await onRefresh?.(); // refetchTrips immediately
 
         setExpandedId(null);
+        return true;
       } else {
         throw new Error("Status update failed");
       }
     } catch (err) {
       toast.error("Failed to update trip status");
+      return false;
     } finally {
       setLoadingTripId(null);
       setLoadingAction(null);
-    }
-  };
-
-  // Handle start trip
-  const handleStartTrip = async (tripId) => {
-    const success = await updateTripStatus(tripId, "START");
-    if (success) {
-      setExpandedId(null); // Collapse the expanded view
     }
   };
 
@@ -99,7 +159,7 @@ export const TripList = ({
   const handleCompleteTrip = async (tripId) => {
     const success = await updateTripStatus(tripId, "END");
     if (success) {
-      setExpandedId(null); // Collapse the expanded view
+      setExpandedId(null);
     }
   };
 
@@ -177,8 +237,86 @@ export const TripList = ({
 
   const canCompleteTrip = (trip) => trip.status === "STARTED";
 
+  // Consent Modal Component
+  const ConsentModal = () => {
+    if (!showConsentModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
+              <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Driver Consent Required
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Driver consent is pending for this trip
+              </p>
+            </div>
+          </div>
+
+          {/* Consent Details */}
+          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 mb-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Status
+                </p>
+                <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                  {consentData?.consent || "PENDING"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Driver Contact
+                </p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {consentData?.tel || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Operator
+                </p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {consentData?.operator || "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+            Are you sure you want to start this trip without driver's consent?
+            This may be against company policy.
+          </p>
+
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={handleCancelStartTrip}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleProceedWithoutConsent}
+              className="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Play className="h-4 w-4" />
+              Proceed Without Consent
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <ConsentModal />
+
       {/* Table Header */}
       <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
         <div className="flex items-center justify-between">
@@ -243,6 +381,8 @@ export const TripList = ({
             const timeRemaining = calculateTimeRemaining(trip);
             const progress = getProgressPercentage(trip);
             const isTripLoading = loadingTripId === trip.id;
+            const isCheckingConsent =
+              checkingConsent && selectedTripForConsent === trip.id;
 
             return (
               <div
@@ -294,16 +434,6 @@ export const TripList = ({
                           <h4 className="font-medium text-gray-900 dark:text-white">
                             {trip.tripNumber}
                           </h4>
-                          {/* <span
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                              trip?.status
-                            )}`}
-                          >
-                            {getStatusIcon(trip.status)}
-                            {trip?.status.charAt(0).toUpperCase() +
-                              trip?.status.slice(1).replace("_", " ")}
-                          </span> */}
-
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(trip.status)}`}
                           >
@@ -338,7 +468,7 @@ export const TripList = ({
                             {formatDate(trip.startDate)}{" "}
                             {formatTime(trip.startTime)}
                           </span>
-                          {trip.goodsType && (
+                          {trip.goodsType && trip.goodsType !== "Empty" && (
                             <>
                               <span>•</span>
                               <span className="flex items-center gap-1">
@@ -364,7 +494,7 @@ export const TripList = ({
                               className={`h-full rounded-full ${
                                 trip.status === "COMPLETED"
                                   ? "bg-emerald-500"
-                                  : trip.status === "in_progress"
+                                  : trip.status === "IN_PROGRESS"
                                     ? "bg-blue-500"
                                     : "bg-cyan-500"
                               }`}
@@ -429,12 +559,14 @@ export const TripList = ({
                       <div className="w-[20px] flex justify-center">
                         {canStartTrip(trip) && (
                           <button
-                            onClick={() => handleStartTrip(trip.id)}
-                            disabled={isTripLoading}
+                            onClick={() => checkAndStartTrip(trip.id)}
+                            disabled={isTripLoading || isCheckingConsent}
                             className="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Start trip"
                           >
-                            {isTripLoading && loadingAction === "start" ? (
+                            {isCheckingConsent ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : isTripLoading && loadingAction === "start" ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <Play className="h-4 w-4" />
@@ -643,11 +775,13 @@ export const TripList = ({
 
                       {canStartTrip(trip) && (
                         <button
-                          onClick={() => handleStartTrip(trip.id)}
-                          disabled={isTripLoading}
+                          onClick={() => checkAndStartTrip(trip.id)}
+                          disabled={isTripLoading || isCheckingConsent}
                           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {isTripLoading && loadingAction === "start" ? (
+                          {isCheckingConsent ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : isTripLoading && loadingAction === "start" ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <Play className="h-4 w-4" />
