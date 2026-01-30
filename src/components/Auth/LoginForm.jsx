@@ -8,7 +8,6 @@ import {
   Mail,
   Phone,
   Shield,
-  Truck,
   User,
 } from "lucide-react";
 import { useState } from "react";
@@ -153,7 +152,7 @@ const AuthForm = () => {
         }, 2000);
       } else {
         throw new Error(
-          verifyResponse?.paramObjectsMap?.message || "OTP verification failed"
+          verifyResponse?.paramObjectsMap?.message || "OTP verification failed",
         );
       }
     } catch (error) {
@@ -233,7 +232,7 @@ const AuthForm = () => {
           type: userVO?.type,
           orgId: userVO?.orgId,
           // avoid ...response.data unless you know shape — add only needed fields
-        })
+        }),
       );
 
       // ensure loading stops before navigation (optional, but cleaner)
@@ -380,8 +379,22 @@ const AuthForm = () => {
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Truck className="h-6 w-6 text-white" />
+              <div className="w-16 h-16">
+                {/* Light mode logo */}
+                <img
+                  src="/vcargo-logo.png"
+                  alt="Vcargo Logo"
+                  className="w-full h-full object-contain dark:hidden"
+                />
+
+                {/* Dark mode logo with light background */}
+                <div className="hidden dark:block w-full h-full bg-white/70 rounded-3xl p-0.2">
+                  <img
+                    src="/vcargo-logo-removebg-preview.png"
+                    alt="Vcargo Logo"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
               </div>
               <div className="text-left">
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -484,7 +497,7 @@ const AuthForm = () => {
                     value={verificationCode}
                     onChange={(e) => {
                       setVerificationCode(
-                        e.target.value.replace(/\D/g, "").slice(0, 6)
+                        e.target.value.replace(/\D/g, "").slice(0, 6),
                       );
                       if (errorMessage) setErrorMessage("");
                     }}
@@ -670,8 +683,8 @@ const AuthForm = () => {
                 {loading
                   ? "Please wait..."
                   : isSignup
-                  ? "Create Account"
-                  : "Sign In"}
+                    ? "Create Account"
+                    : "Sign In"}
               </button>
             </form>
           )}

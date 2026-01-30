@@ -7,6 +7,7 @@ import { TripFilters } from "./TripFilters";
 import { TripForm } from "./TripForm";
 import { TripList } from "./TripList";
 import { TripMapView } from "./TripMapView";
+import TripMapViewSim from "./TripMapViewSim";
 import { TripStats } from "./TripStats";
 import { TripTimeline } from "./TripTimeline";
 
@@ -16,6 +17,7 @@ export const TripDashboard = () => {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [showMapSim, setShowMapSim] = useState(false);
   const [editingTrip, setEditingTrip] = useState(null);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [selectedTrips, setSelectedTrips] = useState([]);
@@ -51,17 +53,13 @@ export const TripDashboard = () => {
         customerId: trip.customer,
         customerName: trip.customer,
         vehicleId:
-          typeof trip.vehicle === "object"
-            ? trip.vehicle.id
-            : trip.vehicleId,
+          typeof trip.vehicle === "object" ? trip.vehicle.id : trip.vehicleId,
         vehicleName:
           typeof trip.vehicle === "object"
             ? trip.vehicle.vehicleNumber
             : trip.vehicle || "Unassigned",
         driverId:
-          typeof trip.driver === "object"
-            ? trip.driver.id
-            : trip.driverId,
+          typeof trip.driver === "object" ? trip.driver.id : trip.driverId,
         driverName:
           typeof trip.driver === "object"
             ? trip.driver.name
@@ -99,16 +97,16 @@ export const TripDashboard = () => {
             .map((t) => [
               t.customerId,
               { id: t.customerId, name: t.customerName },
-            ])
-        ).values()
+            ]),
+        ).values(),
       );
 
       const uniqueDrivers = Array.from(
         new Map(
           mappedTrips
             .filter((t) => t.driverId)
-            .map((t) => [t.driverId, { id: t.driverId, name: t.driverName }])
-        ).values()
+            .map((t) => [t.driverId, { id: t.driverId, name: t.driverName }]),
+        ).values(),
       );
 
       const uniqueVehicles = Array.from(
@@ -122,8 +120,8 @@ export const TripDashboard = () => {
                 registrationNumber: t.vehicleName,
                 name: t.vehicleName,
               },
-            ])
-        ).values()
+            ]),
+        ).values(),
       );
 
       setFilterCustomers(uniqueCustomers);
@@ -197,7 +195,7 @@ export const TripDashboard = () => {
         toast.success(
           editingTrip
             ? "Trip updated successfully!"
-            : "Trip created successfully!"
+            : "Trip created successfully!",
         );
         setShowForm(false);
         setEditingTrip(null);
@@ -277,6 +275,11 @@ export const TripDashboard = () => {
   const handleViewMap = (trip) => {
     setSelectedTrip(trip);
     setShowMap(true);
+  };
+
+  const handleViewMapSim = (trip) => {
+    setSelectedTrip(trip);
+    setShowMapSim(true);
   };
 
   // const handleTripStatusChange = (tripId, newStatus) => {
@@ -466,13 +469,13 @@ export const TripDashboard = () => {
         drivers={filterDrivers}
         customers={filterCustomers}
         selectedTrips={selectedTrips}
-      // onBulkAction={(action) => {
-      //   if (action === "export") {
-      //     console.log("Exporting:", selectedTrips);
-      //   } else if (action === "start") {
-      //     selectedTrips.forEach((id) => handleStartTrip(id));
-      //   }
-      // }}
+        // onBulkAction={(action) => {
+        //   if (action === "export") {
+        //     console.log("Exporting:", selectedTrips);
+        //   } else if (action === "start") {
+        //     selectedTrips.forEach((id) => handleStartTrip(id));
+        //   }
+        // }}
       />
 
       {/* Two Column Layout */}
@@ -484,6 +487,7 @@ export const TripDashboard = () => {
             onEdit={handleEditTrip}
             onDelete={handleDeleteTrip}
             onViewMap={handleViewMap}
+            onViewMapSim={handleViewMapSim}
             selectedTrips={selectedTrips}
             onSelectTrip={setSelectedTrips}
             onRefresh={fetchTrips}
@@ -538,6 +542,22 @@ export const TripDashboard = () => {
               trip={selectedTrip}
               trips={trips.filter((t) => t.status === "in_progress")}
               onClose={() => setShowMap(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {showMapSim && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen p-4">
+            <div
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowMapSim(false)}
+            />
+            <TripMapViewSim
+              trip={selectedTrip}
+              trips={trips.filter((t) => t.status === "in_progress")}
+              onClose={() => setShowMapSim(false)}
             />
           </div>
         </div>
