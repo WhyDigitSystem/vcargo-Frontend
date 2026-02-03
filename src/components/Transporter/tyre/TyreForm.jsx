@@ -41,7 +41,15 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
   }, []);
 
   useEffect(() => {
+    if (tyre && vehiclesList.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        vehicleId: Number(tyre.vehicleId) || "",
+      }));
+    }
+  }, [vehiclesList, tyre]);
 
+  useEffect(() => {
     console.log("tyreID==>", tyre)
     if (tyre) {
       setFormData({
@@ -49,7 +57,7 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
         brand: tyre.brand || "",
         model: tyre.model || "",
         size: tyre.size || "",
-        vehicleId: String(tyre.vehicleId || ""),
+        vehicleId: Number(tyre.vehicleId) || "",
         position: tyre.position || "Front Left",
         status: tyre.status || "active",
         purchaseDate:
@@ -110,7 +118,7 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
       pressure: parseFloat(formData.pressure),
       id: tyre?.id || `TYRE-${Date.now()}`,
       vehicleName:
-        vehicles.find((v) => v.id === formData.vehicleId)?.registrationNumber ||
+        vehicles.find((v) => v.id === formData.vehicleId)?.vehicleNumber ||
         "",
     });
   };
@@ -186,11 +194,10 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
                   name="serialNumber"
                   value={formData.serialNumber}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.serialNumber
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.serialNumber
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                   placeholder="TYRE-001234"
                 />
                 {errors.serialNumber && (
@@ -210,11 +217,10 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
                   name="brand"
                   value={formData.brand}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.brand
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.brand
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                   placeholder="MRF, Apollo, CEAT"
                 />
               </div>
@@ -242,11 +248,10 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
                   name="size"
                   value={formData.size}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.size
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.size
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                   placeholder="205/55 R16"
                 />
               </div>
@@ -268,11 +273,10 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
                   name="vehicleId"
                   value={formData.vehicleId}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.vehicleId
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.vehicleId
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                 >
                   <option value="" className="text-gray-500 dark:text-gray-400">
                     Select Vehicle
@@ -329,11 +333,10 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
                   name="purchaseDate"
                   value={formData.purchaseDate}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.purchaseDate
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.purchaseDate
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                 />
               </div>
 
@@ -348,11 +351,10 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
                     name="purchaseCost"
                     value={formData.purchaseCost}
                     onChange={handleChange}
-                    className={`w-full px-4 py-3 pl-10 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.purchaseCost
-                        ? "border-red-500"
-                        : "border-gray-300 dark:border-gray-700"
-                    }`}
+                    className={`w-full px-4 py-3 pl-10 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.purchaseCost
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-700"
+                      }`}
                     placeholder="8500"
                     step="0.01"
                   />
@@ -378,11 +380,10 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
                   value={formData.treadDepth}
                   onChange={handleChange}
                   step="0.1"
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.treadDepth
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.treadDepth
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                   placeholder="6.5"
                 />
               </div>
@@ -430,27 +431,25 @@ export const TyreForm = ({ tyre = null, vehicles = [], onSave, onCancel }) => {
                   onClick={() =>
                     setFormData((prev) => ({ ...prev, status: status.id }))
                   }
-                  className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
-                    formData.status === status.id
-                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                  }`}
+                  className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${formData.status === status.id
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                    }`}
                 >
                   <div className={`text-sm font-medium ${status.color} mb-1`}>
                     {status.name}
                   </div>
                   <div
-                    className={`w-3 h-3 rounded-full ${
-                      status.id === "active"
-                        ? "bg-emerald-500"
-                        : status.id === "warning"
+                    className={`w-3 h-3 rounded-full ${status.id === "active"
+                      ? "bg-emerald-500"
+                      : status.id === "warning"
                         ? "bg-amber-500"
                         : status.id === "critical"
-                        ? "bg-red-500"
-                        : status.id === "repair"
-                        ? "bg-blue-500"
-                        : "bg-gray-500"
-                    }`}
+                          ? "bg-red-500"
+                          : status.id === "repair"
+                            ? "bg-blue-500"
+                            : "bg-gray-500"
+                      }`}
                   />
                 </button>
               ))}

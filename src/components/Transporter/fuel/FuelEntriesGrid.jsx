@@ -10,6 +10,8 @@ export const FuelEntriesGrid = ({
   fuelTypes,
   getFuelTypeColor,
   getEfficiencyColor,
+  setViewEntry,
+  viewEntry
 }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {entries.map((entry) => {
@@ -84,7 +86,7 @@ export const FuelEntriesGrid = ({
             <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <ActionButton
-                  onClick={() => handleViewDetails(entry)}
+                  onClick={() => setViewEntry(entry)}
                   icon={Eye}
                   color="blue"
                   title="View Details"

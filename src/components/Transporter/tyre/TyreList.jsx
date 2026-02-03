@@ -18,8 +18,10 @@ import {
   Shield,
   Thermometer,
   Trash2,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 export const TyreList = ({
   tyres,
@@ -43,6 +45,16 @@ export const TyreList = ({
     minTread: "",
     maxTread: "",
   });
+  const [viewTyre, setViewTyre] = useState(null);
+
+  console.log("Tyres:", viewTyre);
+
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filters, sortConfig]);
 
   // Filter and sort tyres
   const filteredAndSortedTyres = useMemo(() => {
@@ -111,6 +123,15 @@ export const TyreList = ({
 
     return result;
   }, [tyres, searchTerm, filters, sortConfig]);
+
+  const totalPages = Math.ceil(
+    filteredAndSortedTyres.length / ITEMS_PER_PAGE
+  );
+
+  const paginatedTyres = filteredAndSortedTyres.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   // Get unique values for filters
   const uniqueVehicles = useMemo(
@@ -233,14 +254,21 @@ export const TyreList = ({
             <input
               type="checkbox"
               checked={
-                filteredAndSortedTyres.length > 0 &&
-                selectedEntries.length === filteredAndSortedTyres.length
+                paginatedTyres.length > 0 &&
+                paginatedTyres.every((t) => selectedEntries.includes(t.id))
               }
               onChange={() => {
-                if (selectedEntries.length === filteredAndSortedTyres.length) {
-                  onSelectEntry([]);
+                const pageIds = paginatedTyres.map((t) => t.id);
+                const allSelected = pageIds.every((id) =>
+                  selectedEntries.includes(id)
+                );
+
+                if (allSelected) {
+                  onSelectEntry(
+                    selectedEntries.filter((id) => !pageIds.includes(id))
+                  );
                 } else {
-                  onSelectEntry(filteredAndSortedTyres.map((t) => t.id));
+                  onSelectEntry([...new Set([...selectedEntries, ...pageIds])]);
                 }
               }}
               className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400"
@@ -262,13 +290,13 @@ export const TyreList = ({
                 Delete Selected
               </button>
             )}
-            <button
+            {/* <button
               onClick={handleExport}
               className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
               Export
-            </button>
+            </button> */}
           </div>
         </div>
 
@@ -409,7 +437,7 @@ export const TyreList = ({
             </p>
           </div>
         ) : (
-          filteredAndSortedTyres.map((tyre) => {
+          paginatedTyres.map((tyre) => {
             const conditionBadge = getConditionBadge(tyre.condition);
             const ConditionIcon = conditionBadge.icon;
             const pressureStatus = getPressureStatus(
@@ -422,11 +450,10 @@ export const TyreList = ({
             return (
               <div
                 key={tyre.id}
-                className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors ${
-                  selectedEntries.includes(tyre.id)
-                    ? "bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500"
-                    : ""
-                }`}
+                className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors ${selectedEntries.includes(tyre.id)
+                  ? "bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500"
+                  : ""
+                  }`}
               >
                 {/* Mobile Layout */}
                 <div className="lg:hidden space-y-4">
@@ -548,7 +575,8 @@ export const TyreList = ({
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => onViewDetails?.(tyre)}
+                        onClick={() => setViewTyre(tyre)}
+
                         className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
                         title="View Details"
                       >
@@ -682,20 +710,11 @@ export const TyreList = ({
                   <div className="col-span-2">
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => onViewDetails?.(tyre)}
+                        onClick={() => setViewTyre(tyre)}
                         className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
                         title="View Details"
                       >
                         <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          navigator.clipboard.writeText(tyre.serialNumber)
-                        }
-                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                        title="Copy Serial Number"
-                      >
-                        <Copy className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => onEdit?.(tyre)}
@@ -703,13 +722,6 @@ export const TyreList = ({
                         title="Edit"
                       >
                         <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => onDelete?.(tyre)}
-                        className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -787,9 +799,162 @@ export const TyreList = ({
           </div>
         </div>
       )}
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            Page {currentPage} of {totalPages}
+          </span>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-2 border rounded-lg disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .slice(
+                Math.max(0, currentPage - 2),
+                Math.min(totalPages, currentPage + 1)
+              )
+              .map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-1 rounded-lg text-sm border ${currentPage === page
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+            <button
+              onClick={() =>
+                setCurrentPage((p) => Math.min(p + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className="p-2 border rounded-lg disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+      {viewTyre && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl shadow-xl">
+
+            {/* ===== Header ===== */}
+            <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                  <Car className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Tyre Details
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    {viewTyre.serialNumber || "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setViewTyre(null)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* ===== Content ===== */}
+            <div className="p-5 space-y-5 text-sm">
+
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
+                <Info label="Brand" value={viewTyre.brand} />
+                <Info label="Model" value={viewTyre.model} />
+                <Info label="Size" value={viewTyre.size} />
+              </div>
+
+              {/* Vehicle & Position */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
+                <Info label="Vehicle" value={viewTyre.vehicle || "Unassigned"} />
+                <Info label="Position" value={viewTyre.position} />
+                <Info label="Status" value={viewTyre.status} />
+              </div>
+
+              {/* Condition & Health */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
+                <Info label="Condition" value={viewTyre.condition} />
+                <Info
+                  label="Tread Depth"
+                  value={`${viewTyre.treadDepth || 0}%`}
+                />
+                <Info
+                  label="Pressure"
+                  value={`${viewTyre.pressure || 0} PSI`}
+                />
+              </div>
+
+              {/* Usage */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
+                <Info
+                  label="Age"
+                  value={`${viewTyre.ageMonths || 0} months`}
+                />
+                <Info
+                  label="Odometer"
+                  value={`${viewTyre.odometerReading?.toLocaleString() || 0} km`}
+                />
+                <Info
+                  label="Purchase Date"
+                  value={formatDate(viewTyre.purchaseDate)}
+                />
+              </div>
+            </div>
+
+            {/* ===== Footer ===== */}
+            <div className="flex justify-end gap-2 px-4 py-3 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
+              <button
+                onClick={() => setViewTyre(null)}
+                className="px-3 py-1.5 border rounded text-sm dark:text-white"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setViewTyre(null);
+                  onEdit?.(viewTyre);
+                }}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+const Info = ({ label, value }) => (
+  <div className="space-y-0.5">
+    <p className="text-xs text-gray-500 dark:text-gray-400">
+      {label}
+    </p>
+    <p className="text-sm font-medium text-gray-900 dark:text-white">
+      {value || "N/A"}
+    </p>
+  </div>
+);
 
 // Helper functions (unchanged from your original)
 const getStatusColor = (status) => {

@@ -322,41 +322,6 @@ export const TyreDashboard = ({ vehicles = [] }) => {
     setShowDeleteModal(true);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (selectedForDelete) {
-      try {
-        // Extract original ID
-        const originalId =
-          selectedForDelete.entryId ||
-          selectedForDelete.id.replace("TYRE-", "");
-
-        // Call delete API
-        await tyreAPI.deleteTyre(originalId);
-
-        // Update local state
-        const updatedEntries = tyreEntries.filter(
-          (entry) => entry.id !== selectedForDelete.id
-        );
-        setTyreEntries(updatedEntries);
-        setFilteredEntries(updatedEntries);
-        calculateTyreStats(updatedEntries);
-
-        // Clear selection
-        setSelectedEntries(
-          selectedEntries.filter((id) => id !== selectedForDelete.id)
-        );
-
-        setSelectedForDelete(null);
-        setShowDeleteModal(false);
-
-        alert("Tyre deleted successfully!");
-      } catch (error) {
-        console.error("Error deleting tyre:", error);
-        alert("Failed to delete tyre. Please try again.");
-      }
-    }
-  };
-
   const handleSaveTyre = async (tyreData) => {
     console.log("tyreData", tyreData);
 
@@ -381,7 +346,8 @@ export const TyreDashboard = ({ vehicles = [] }) => {
         pressure: parseFloat(tyreData.pressure),
         notes: tyreData.notes,
         active: tyreData.active !== undefined ? tyreData.active : true,
-        vehicle: tyreData.vehicleId,
+        vehicleId: tyreData.vehicleId,
+        vehicle: tyreData.vehicleName,
         branchCode: "MAIN",
         branchName: "Main Branch",
         orgId: orgId,
@@ -434,66 +400,6 @@ export const TyreDashboard = ({ vehicles = [] }) => {
     }
   };
 
-  const handleBulkDelete = () => {
-    if (selectedEntries.length === 0) {
-      alert("Please select tyres to delete");
-      return;
-    }
-
-    if (
-      window.confirm(
-        `Are you sure you want to delete ${selectedEntries.length} selected tyres?`
-      )
-    ) {
-      const updatedEntries = tyreEntries.filter(
-        (entry) => !selectedEntries.includes(entry.id)
-      );
-      setTyreEntries(updatedEntries);
-      setFilteredEntries(
-        updatedEntries.filter((entry) => !selectedEntries.includes(entry.id))
-      );
-      calculateTyreStats(updatedEntries);
-      setSelectedEntries([]);
-      alert(`${selectedEntries.length} tyres deleted successfully!`);
-    }
-  };
-
-  const handleExport = () => {
-    if (selectedEntries.length === 0) {
-      alert("Please select tyres to export");
-      return;
-    }
-
-    const entriesToExport =
-      selectedEntries.length > 0
-        ? tyreEntries.filter((entry) => selectedEntries.includes(entry.id))
-        : tyreEntries;
-
-    const csvContent = [
-      "ID,Serial Number,Brand,Model,Size,Position,Status,Vehicle,Purchase Date,Purchase Cost,Odometer,Tread Depth,Recommended Pressure,Pressure,Condition,Notes",
-      ...entriesToExport.map(
-        (entry) =>
-          `"${entry.id}","${entry.serialNumber}","${entry.brand}","${entry.model}","${entry.size}",` +
-          `"${entry.position}","${entry.status}","${entry.vehicle}","${entry.purchaseDate}",` +
-          `"${entry.purchaseCost}","${entry.odometerReading}","${entry.treadDepth}",` +
-          `"${entry.recommendedPressure}","${entry.pressure}","${entry.condition}","${entry.notes}"`
-      ),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `tyres-${new Date().toISOString().split("T")[0]}.csv`
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const handleClearFilters = () => {
     setFilters({
       search: "",
@@ -502,82 +408,6 @@ export const TyreDashboard = ({ vehicles = [] }) => {
       position: "all",
       condition: "all",
     });
-  };
-
-  // Sample data for fallback
-  const sampleData = {
-    vehicles: [
-      {
-        id: "VH-001",
-        vehicleId: "TN10TG8767",
-        registrationNumber: "TN10TG8767",
-        make: "Tata",
-        model: "Ace",
-      },
-      {
-        id: "VH-002",
-        vehicleId: "TN09AB1234",
-        registrationNumber: "TN09AB1234",
-        make: "Ashok Leyland",
-        model: "Captain",
-      },
-    ],
-    tyreEntries: [
-      {
-        id: "TYRE-1000000001",
-        entryId: 1000000001,
-        serialNumber: "MRF775757",
-        brand: "MRF",
-        model: "Zapper",
-        size: "78",
-        position: "front",
-        status: "new",
-        purchaseDate: "2025-01-07",
-        purchaseCost: 5600,
-        odometerReading: 2900,
-        treadDepth: 89,
-        recommendedPressure: 130,
-        pressure: 120,
-        notes: "Test tyre for front",
-        active: true,
-        vehicle: "TN10TG8767",
-        branchCode: "MAA",
-        branchName: "Chennai",
-        condition: "Good",
-        pressureStatus: "Normal",
-        costFormatted: "₹5,600",
-        ageMonths: 0,
-        conditionColor: "text-green-600 bg-green-100",
-        pressureColor: "text-green-600 bg-green-100",
-      },
-      {
-        id: "TYRE-1000000002",
-        entryId: 1000000002,
-        serialNumber: "CEAT887766",
-        brand: "CEAT",
-        model: "Milaze",
-        size: "80",
-        position: "rear",
-        status: "used",
-        purchaseDate: "2024-06-15",
-        purchaseCost: 4800,
-        odometerReading: 12500,
-        treadDepth: 65,
-        recommendedPressure: 135,
-        pressure: 125,
-        notes: "Rear tyre",
-        active: true,
-        vehicle: "TN10TG8767",
-        branchCode: "MAA",
-        branchName: "Chennai",
-        condition: "Fair",
-        pressureStatus: "Low",
-        costFormatted: "₹4,800",
-        ageMonths: 7,
-        conditionColor: "text-yellow-600 bg-yellow-100",
-        pressureColor: "text-orange-600 bg-orange-100",
-      },
-    ],
   };
 
   if (loading && tyreEntries.length === 0) {
@@ -608,17 +438,6 @@ export const TyreDashboard = ({ vehicles = [] }) => {
 
       {/* Stats Cards */}
       <TyreStats stats={stats} loading={loading} />
-
-      {/* Filters */}
-      {/* <TyreFilters
-        filters={filters}
-        setFilters={setFilters}
-        vehicles={vehiclesList}
-        selectedEntries={selectedEntries}
-        onExport={handleExport}
-        onBulkDelete={handleBulkDelete}
-        onClearFilters={handleClearFilters}
-      /> */}
 
       {/* Results count */}
       <div className="mb-4">

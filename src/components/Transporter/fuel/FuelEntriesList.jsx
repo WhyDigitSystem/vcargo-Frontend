@@ -36,6 +36,7 @@ export const FuelEntriesList = ({
     fuelType: "",
     dateRange: { start: "", end: "" },
   });
+  const [viewEntry, setViewEntry] = useState(null);
 
   console.log("entries==>", entries);
 
@@ -170,6 +171,17 @@ export const FuelEntriesList = ({
 
     return num.toLocaleString("en-IN");
   };
+
+  const Info = ({ label, value }) => (
+    <div className="space-y-0.5">
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        {label}
+      </p>
+      <p className="text-sm font-medium text-gray-900 dark:text-white">
+        {value || "N/A"}
+      </p>
+    </div>
+  );
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -446,7 +458,7 @@ export const FuelEntriesList = ({
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-1">
                         <ActionButton
-                          onClick={() => handleViewDetails(entry)}
+                          onClick={() => setViewEntry(entry)}
                           icon={Eye}
                           color="blue"
                           title="View Details"
@@ -470,6 +482,126 @@ export const FuelEntriesList = ({
             )}
           </tbody>
         </table>
+        {viewEntry && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl shadow-xl">
+
+              {/* ===== HEADER ===== */}
+              <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Fuel className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Fuel Entry Details
+                    </h2>
+                    <p className="text-xs text-gray-500">
+                      {viewEntry.vehicle} • {viewEntry.driver}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setViewEntry(null)}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* ===== CONTENT ===== */}
+              <div className="p-5 space-y-5 text-sm">
+
+                {/* Date & Station */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Info label="Date" value={new Date(viewEntry.date).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })} />
+                  <Info label="Time" value={viewEntry.time} />
+                  <Info label="Fuel Station" value={viewEntry.station} />
+                </div>
+
+                {/* Vehicle & Driver */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Info label="Vehicle" value={viewEntry.vehicle} />
+                  <Info label="Driver" value={viewEntry.driver} />
+                  <Info label="Fuel Type" value={viewEntry.fuelType} />
+                </div>
+
+                {/* Fuel & Cost */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Info
+                    label="Quantity"
+                    value={`${formatIndianNumber(viewEntry.quantity)} ${viewEntry.unit}`}
+                  />
+                  <Info
+                    label="Cost per Unit"
+                    value={viewEntry.costPerUnit}
+                  />
+                  <Info
+                    label="Total Cost"
+                    value={`₹${formatIndianNumber(viewEntry.costValue)}`}
+                  />
+                </div>
+
+                {/* Odometer & Efficiency */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Info
+                    label="Odometer Reading"
+                    value={`${formatIndianNumber(viewEntry.odometerReading)} km`}
+                  />
+                  <Info
+                    label="Distance Travelled"
+                    value={viewEntry.distance ? `${formatIndianNumber(viewEntry.distance)} km` : "N/A"}
+                  />
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Efficiency
+                    </p>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getEfficiencyColor(
+                        viewEntry.efficiency
+                      )}`}
+                    >
+                      {viewEntry.efficiency}
+                    </span>
+                  </div>
+
+                </div>
+
+                {/* Receipt */}
+                {viewEntry.receiptNumber && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Info label="Receipt Number" value={viewEntry.receiptNumber} />
+                  </div>
+                )}
+              </div>
+
+              {/* ===== FOOTER ===== */}
+              <div className="flex justify-end gap-2 px-4 py-3 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
+                <button
+                  onClick={() => setViewEntry(null)}
+                  className="px-3 py-1.5 border rounded text-sm dark:text-white"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setViewEntry(null);
+                    handleEdit(viewEntry);
+                  }}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Footer with summary */}

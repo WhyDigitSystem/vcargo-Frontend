@@ -15,7 +15,7 @@ import {
   Download,
   Navigation
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AddressDisplay from "../../QuortsView/AddressDisplay";
 
 export const InvoiceList = ({
@@ -28,11 +28,26 @@ export const InvoiceList = ({
 }) => {
   const [expandedId, setExpandedId] = useState(null);
 
+  const ITEMS_PER_PAGE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [invoices]);
+
+
   const handleSelectAll = () => {
-    if (selectedInvoices.length === invoices.length) {
-      onSelectInvoice([]);
+    const pageIds = paginatedInvoices.map(i => i.id);
+    const allSelected = pageIds.every(id =>
+      selectedInvoices.includes(id)
+    );
+
+    if (allSelected) {
+      onSelectInvoice(
+        selectedInvoices.filter(id => !pageIds.includes(id))
+      );
     } else {
-      onSelectInvoice(invoices.map(i => i.id));
+      onSelectInvoice([...new Set([...selectedInvoices, ...pageIds])]);
     }
   };
 
@@ -110,6 +125,13 @@ export const InvoiceList = ({
     return { source: tripDetails, destination: '' };
   };
 
+  const totalPages = Math.ceil(invoices.length / ITEMS_PER_PAGE);
+
+  const paginatedInvoices = invoices.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* Table Header - FIXED ALIGNMENT */}
@@ -120,7 +142,10 @@ export const InvoiceList = ({
             <div className="w-12 flex-shrink-0">
               <input
                 type="checkbox"
-                checked={invoices.length > 0 && selectedInvoices.length === invoices.length}
+                checked={
+                  paginatedInvoices.length > 0 &&
+                  paginatedInvoices.every(i => selectedInvoices.includes(i.id))
+                }
                 onChange={handleSelectAll}
                 className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
               />
@@ -182,7 +207,7 @@ export const InvoiceList = ({
             </p>
           </div>
         ) : (
-          invoices.map((invoice) => {
+          paginatedInvoices.map((invoice) => {
             const daysUntilDue = getDaysUntilDue(invoice);
             const overdue = isOverdue(invoice);
             const { source, destination } = parseTripDetails(invoice.tripDetails || invoice.trip);
@@ -332,7 +357,7 @@ export const InvoiceList = ({
                     <div className="w-28 flex items-center justify-end gap-1">
                       <button onClick={() => onPreview(invoice)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400">
                         <Eye className="h-4 w-4" />
-                      </button> 
+                      </button>
 
                       <button onClick={() => onEdit(invoice)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 hidden xl:inline-flex dark:text-gray-400">
                         <Edit className="h-4 w-4" />
@@ -539,6 +564,52 @@ export const InvoiceList = ({
           })
         )}
       </div>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            Page {currentPage} of {totalPages}
+          </span>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border rounded-lg disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              ‹
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .slice(
+                Math.max(0, currentPage - 2),
+                Math.min(totalPages, currentPage + 1)
+              )
+              .map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-1 rounded-lg text-sm border ${currentPage === page
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+            <button
+              onClick={() =>
+                setCurrentPage(p => Math.min(p + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border rounded-lg disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

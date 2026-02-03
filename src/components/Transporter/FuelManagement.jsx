@@ -5,6 +5,8 @@ import {
   Plus,
   Thermometer,
   Zap,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
@@ -56,6 +58,13 @@ const FuelManagement = () => {
 
   const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
+
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterVehicle, filterDriver, filterPeriod, searchQuery]);
 
   // Fuel types for UI
   const fuelTypes = [
@@ -160,11 +169,9 @@ const FuelManagement = () => {
           return {
             id: entry.id,
             entryId: entry.id,
-            vehicleId: entry.vehicleId,
-            // vehicle: entry.vehicle,
+            vehicleId: entry.vehicle?.id || "",
             vehicle: entry.vehicle?.vehicleNumber || "",
-            driverId: entry.driverId,
-            // driver: entry.driver,
+            driverId: entry.driver?.id || "",
             driver: entry.driver?.name || "",
             fuelType: (entry.fuelType || "diesel").toLowerCase(),
             quantity,
@@ -666,6 +673,13 @@ const FuelManagement = () => {
     return <LoadingSpinner message="Loading fuel management data..." />;
   }
 
+  const totalPages = Math.ceil(filteredEntries.length / ITEMS_PER_PAGE);
+
+  const paginatedEntries = filteredEntries.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
@@ -712,7 +726,7 @@ const FuelManagement = () => {
                   {fuelEntries.length}
                 </span>
               </button>
-              <button
+              {/* <button
                 onClick={() => setActiveTab("analytics")}
                 className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "analytics"
                   ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
@@ -731,12 +745,12 @@ const FuelManagement = () => {
               >
                 <FileText className="h-4 w-4" />
                 Reports
-              </button>
+              </button> */}
             </div>
 
             {/* View Toggle */}
             <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
-              <button
+              {/* <button
                 onClick={() => setViewMode("grid")}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${viewMode === "grid"
                   ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
@@ -744,7 +758,7 @@ const FuelManagement = () => {
                   }`}
               >
                 Grid
-              </button>
+              </button> */}
               <button
                 onClick={() => setViewMode("list")}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${viewMode === "list"
@@ -799,7 +813,7 @@ const FuelManagement = () => {
               <EmptyState onClearFilters={handleClearFilters} />
             ) : viewMode === "grid" ? (
               <FuelEntriesGrid
-                entries={filteredEntries}
+                entries={paginatedEntries}
                 selectedEntries={selectedEntries}
                 handleSelectEntry={handleSelectEntry}
                 handleViewDetails={handleViewDetails}
@@ -811,7 +825,7 @@ const FuelManagement = () => {
               />
             ) : (
               <FuelEntriesList
-                entries={filteredEntries}
+                entries={paginatedEntries}
                 selectedEntries={selectedEntries}
                 handleSelectEntry={handleSelectEntry}
                 handleViewDetails={handleViewDetails}
@@ -821,6 +835,55 @@ const FuelManagement = () => {
                 getFuelTypeColor={getFuelTypeColor}
                 getEfficiencyColor={getEfficiencyColor}
               />
+            )}
+            {/* Pagination */}
+            {totalPages > 1 && activeTab === "entries" && (
+              <div className="flex items-center justify-between mt-6 px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Page {currentPage} of {totalPages}
+                </span>
+
+                <div className="flex items-center gap-1">
+                  {/* Previous */}
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 border rounded-lg disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+
+                  {/* Page numbers */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .slice(
+                      Math.max(0, currentPage - 2),
+                      Math.min(totalPages, currentPage + 1)
+                    )
+                    .map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-1 rounded-lg text-sm border ${currentPage === page
+                          ? "bg-blue-600 text-white"
+                          : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                  {/* Next */}
+                  <button
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(p + 1, totalPages))
+                    }
+                    disabled={currentPage === totalPages}
+                    className="p-2 border rounded-lg disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             )}
           </>
         )}

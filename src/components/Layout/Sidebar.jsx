@@ -47,26 +47,6 @@ const Sidebar = () => {
       bgColor: "bg-blue-100 dark:bg-blue-900/30",
       completed: false,
     },
-
-    // Core Modules - Priority 1
-    {
-      name: "Trips",
-      href: "/scheduling",
-      icon: Route,
-      roles: ["Transporter", "FleetManager", "Admin"],
-      color: "text-emerald-500",
-      bgColor: "bg-emerald-100 dark:bg-emerald-900/30",
-      completed: false,
-    },
-    {
-      name: "Invoices",
-      href: "/invoice",
-      icon: IndianRupee,
-      roles: ["Transporter", "FleetManager", "Admin"],
-      color: "text-amber-500",
-      bgColor: "bg-amber-100 dark:bg-amber-900/30",
-      completed: false,
-    },
     {
       name: "Vehicles",
       href: "/vehicles",
@@ -86,7 +66,16 @@ const Sidebar = () => {
       bgColor: "bg-cyan-100 dark:bg-cyan-900/30",
       completed: false, // Completed module
     },
-
+    // Core Modules - Priority 1
+    {
+      name: "Trips",
+      href: "/scheduling",
+      icon: Route,
+      roles: ["Transporter", "FleetManager", "Admin"],
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-100 dark:bg-emerald-900/30",
+      completed: false,
+    },
     {
       name: "Fuel",
       href: "/fuel-management",
@@ -116,17 +105,25 @@ const Sidebar = () => {
       bgColor: "bg-orange-100 dark:bg-orange-900/30",
       completed: false,
     },
-
-    // Analytics & Reports
     {
-      name: "Analytics",
-      href: "/analytics",
-      icon: ChartBar,
+      name: "Invoices",
+      href: "/invoice",
+      icon: IndianRupee,
       roles: ["Transporter", "FleetManager", "Admin"],
-      color: "text-indigo-500",
-      bgColor: "bg-indigo-100 dark:bg-indigo-900/30",
+      color: "text-amber-500",
+      bgColor: "bg-amber-100 dark:bg-amber-900/30",
       completed: false,
     },
+    // Analytics & Reports
+    // {
+    //   name: "Analytics",
+    //   href: "/analytics",
+    //   icon: ChartBar,
+    //   roles: ["Transporter", "FleetManager", "Admin"],
+    //   color: "text-indigo-500",
+    //   bgColor: "bg-indigo-100 dark:bg-indigo-900/30",
+    //   completed: false,
+    // },
 
     // Settings (at bottom)
     {

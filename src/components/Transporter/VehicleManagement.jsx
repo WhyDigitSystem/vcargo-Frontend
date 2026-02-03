@@ -365,6 +365,23 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
     }
   }, [vehicle, isOpen]);
 
+  useEffect(() => {
+    if (vehicle && vehicle.driver && drivers.length) {
+      const matchedDriver = drivers.find(
+        (d) => d.name === vehicle.driver
+      );
+
+      if (matchedDriver) {
+        setFormData((prev) => ({
+          ...prev,
+          driverId: matchedDriver.id,
+          driverName: matchedDriver.name,
+          driverPhone: matchedDriver.phone,
+        }));
+      }
+    }
+  }, [vehicle, drivers]);
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -701,6 +718,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
 
   if (!isOpen) return null;
 
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
       <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-6xl my-4">
@@ -776,7 +794,7 @@ const VehicleForm = ({ vehicle, onSave, onCancel, isOpen }) => {
                           formatAndValidateVehicleNumber(e.target.value)
                         )
                       }
-                      placeholder="TN-09-Y-8765"
+                      placeholder="TN09AB1234"
                       maxLength={15}
                       className={`w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                         }`}
@@ -1398,6 +1416,8 @@ const VehicleManagement = () => {
   const ITEMS_PER_PAGE = 10;
   const [currentPage, setCurrentPage] = useState(1);
 
+  console.log("Viewing Vehicle Form for:", viewVehicle);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter]);
@@ -1605,8 +1625,24 @@ const VehicleManagement = () => {
 
   const formatDate = (date) => {
     if (!date) return "N/A";
-    return date.toISOString().split("T")[0]; // YYYY-MM-DD
+
+    const d = new Date(date);
+
+    return d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
+
+  const Info = ({ label, value }) => (
+    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="font-medium text-gray-900 dark:text-white">
+        {value}
+      </p>
+    </div>
+  );
 
   const getDaysRemaining = (nextDate) => {
     if (!nextDate) return null;
@@ -1780,7 +1816,7 @@ const VehicleManagement = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <button className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
               <Download className="h-4 w-4" />
               Export
@@ -1789,7 +1825,7 @@ const VehicleManagement = () => {
               <Upload className="h-4 w-4" />
               Import
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -1911,14 +1947,14 @@ const VehicleManagement = () => {
                       <td className="px-6 py-4">
                         {getDocumentIcons(vehicle.documents)}
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                          Insurance: {vehicle.insuranceExpiry || "N/A"}
+                          Insurance: {formatDate(vehicle.insuranceExpiry) || "N/A"}
                         </div>
                       </td>
 
                       {/* SERVICE */}
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900 dark:text-white">
-                          Last: {vehicle.lastService || "N/A"}
+                          Last: {formatDate(vehicle.lastService) || "N/A"}
                         </div>
 
                         <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -2051,12 +2087,24 @@ const VehicleManagement = () => {
 
       {viewVehicle && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl">
-            {/* Header */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl shadow-xl">
+
+            {/* ===== HEADER ===== */}
             <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
-              <h2 className="text-lg font-semibold dark:text-white">
-                Vehicle Details
-              </h2>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <Car className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {viewVehicle.vehicleNumber}
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    {viewVehicle.type} • {viewVehicle.model || "N/A"}
+                  </p>
+                </div>
+              </div>
+
               <button
                 onClick={() => setViewVehicle(null)}
                 className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
@@ -2065,46 +2113,48 @@ const VehicleManagement = () => {
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-gray-500">Vehicle No</p>
-                <p className="font-medium">{viewVehicle.vehicleNumber}</p>
-              </div>
+            {/* ===== CONTENT ===== */}
+            <div className="p-5 space-y-5 text-sm">
 
-              <div>
-                <p className="text-gray-500">Model</p>
-                <p className="font-medium">{viewVehicle.model}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-500">Status</p>
+              {/* Status */}
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Status:</span>
                 {getStatusBadge(viewVehicle.status)}
               </div>
 
-              <div>
-                <p className="text-gray-500">Driver</p>
-                <p className="font-medium">{viewVehicle.driver || "N/A"}</p>
-              </div>
+              {/* Info Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-              <div>
-                <p className="text-gray-500">Location</p>
-                <p className="font-medium">{viewVehicle.currentLocation}</p>
-              </div>
+                <Info label="Driver" value={viewVehicle.driver || "Not Assigned"} />
+                <Info label="Driver Phone" value={viewVehicle.driverPhone || "N/A"} />
+                <Info label="Current Location" value={viewVehicle.currentLocation || "Unknown"} />
 
-              <div>
-                <p className="text-gray-500">Fuel Efficiency</p>
-                <p className="font-medium">
-                  {viewVehicle.fuelEfficiency || "N/A"}
-                </p>
+                <Info label="Fuel Efficiency" value={viewVehicle.fuelEfficiency || "N/A"} />
+                <Info
+                  label="Insurance Expiry"
+                  value={formatDate(viewVehicle.insuranceExpiry)}
+                />
+                <Info
+                  label="Fitness Expiry"
+                  value={formatDate(viewVehicle.fitnessExpiry)}
+                />
+
+                <Info
+                  label="Next Service"
+                  value={formatDate(viewVehicle.nextService)}
+                />
+                <Info
+                  label="Maintenance Required"
+                  value={viewVehicle.maintenanceRequired ? "Yes" : "No"}
+                />
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="flex justify-end gap-2 px-4 py-3 border-t dark:border-gray-700">
+            {/* ===== FOOTER ===== */}
+            <div className="flex justify-end gap-2 px-4 py-3 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
               <button
                 onClick={() => setViewVehicle(null)}
-                className="px-3 py-1.5 border rounded text-sm"
+                className="px-3 py-1.5 border rounded text-sm dark:text-white"
               >
                 Close
               </button>
@@ -2113,7 +2163,7 @@ const VehicleManagement = () => {
                   setViewVehicle(null);
                   handleEdit(viewVehicle);
                 }}
-                className="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm"
+                className="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700"
               >
                 Edit
               </button>

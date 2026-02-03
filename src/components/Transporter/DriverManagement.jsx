@@ -2035,7 +2035,7 @@ const DriverManagement = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <button className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
               <Download className="h-4 w-4" />
               Export
@@ -2044,7 +2044,7 @@ const DriverManagement = () => {
               <Upload className="h-4 w-4" />
               Import
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -2325,133 +2325,164 @@ const DriverManagement = () => {
 
       {/* Driver Details Modal */}
       {viewDriver && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl max-h-[85vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
-              <h2 className="text-lg font-semibold dark:text-white">
-                Driver Details
-              </h2>
-              <button
-                onClick={() => setViewDriver(null)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl shadow-xl">
 
-            {/* Content */}
-            <div className="p-4 space-y-4">
-              {/* GRID INFO */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                {/* Column 1 */}
-                <div className="space-y-2">
-                  <Info label="Name" value={viewDriver.name} />
-                  <Info label="Phone" value={formatPhone(viewDriver.phone)} />
-                  <Info label="Email" value={viewDriver.email} />
-                  <Info label="Blood Group" value={viewDriver.bloodGroup} />
-                </div>
+      {/* ================= HEADER ================= */}
+      <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          Driver Details
+        </h2>
+        <button
+          onClick={() => setViewDriver(null)}
+          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
 
-                {/* Column 2 */}
-                <div className="space-y-2">
-                  <Info
-                    label="Status"
-                    value={getStatusBadge(viewDriver.status)}
-                    isNode
-                  />
-                  <Info label="Experience" value={viewDriver.experience} />
-                  <Info label="Salary" value={viewDriver.salary} />
-                  <Info
-                    label="Joined"
-                    value={formatDate(viewDriver.joinedDate)}
-                  />
-                </div>
+      {/* ================= CONTENT ================= */}
+      <div className="p-4 space-y-6">
 
-                {/* Column 3 */}
-                <div className="space-y-2">
-                  <Info label="License No" value={viewDriver.licenseNumber} />
-                  <Info
-                    label="Expiry"
-                    value={formatDate(viewDriver.licenseExpiry)}
-                  />
-                  <Info label="Aadhar" value={viewDriver.aadharNumber} />
-                  <Info
-                    label="Vehicle"
-                    value={viewDriver.assignedVehicle || "Not Assigned"}
-                  />
-                </div>
-              </div>
+        {/* Avatar + Name */}
+        <div className="flex items-center gap-4 pb-4 border-b dark:border-gray-700">
+          <div className="h-14 w-14 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+            <User className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+          </div>
 
-              {/* Address + Emergency */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <Info label="Address" value={viewDriver.address} />
-                <Info
-                  label="Emergency Contact"
-                  value={formatPhone(viewDriver.emergencyContact)}
-                />
-              </div>
-
-              {/* Documents */}
-              <div>
-                <label className="text-xs font-medium text-gray-500">
-                  Documents
-                </label>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {viewDriver.documents?.length ? (
-                    viewDriver.documents.map((doc, i) => (
-                      <span
-                        key={i}
-                        className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30"
-                      >
-                        {doc}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-400 text-xs">No documents</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Performance */}
-              <div className="flex items-center justify-between text-sm">
-                <div
-                  className={`inline-flex items-center gap-2 px-3 py-1 rounded ${getPerformanceBadge(
-                    viewDriver.performance
-                  )}`}
-                >
-                  <Award className="h-4 w-4" />
-                  {viewDriver.performance || "N/A"}
-                </div>
-
-                {viewDriver.lastTrip && (
-                  <span className="text-xs text-gray-500">
-                    Last trip: {formatDate(viewDriver.lastTrip)}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end gap-2 px-4 py-3 border-t dark:border-gray-700">
-              <button
-                onClick={() => setViewDriver(null)}
-                className="px-3 py-1.5 border rounded text-sm dark:text-white"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  setViewDriver(null);
-                  handleEdit(viewDriver);
-                }}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm"
-              >
-                Edit
-              </button>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {viewDriver.name}
+            </h3>
+            <div className="flex items-center gap-2 mt-1">
+              {getStatusBadge(viewDriver.status)}
+              <span className="text-xs text-gray-500">
+                • {viewDriver.assignedVehicle || "Not Assigned"}
+              </span>
             </div>
           </div>
         </div>
-      )}
+
+        {/* ================= PERSONAL INFO ================= */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Personal Information
+          </h4>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="space-y-2">
+              <Info label="Name" value={viewDriver.name} />
+              <Info label="Phone" value={formatPhone(viewDriver.phone)} />
+              <Info label="Email" value={viewDriver.email || "N/A"} />
+              <Info label="Blood Group" value={viewDriver.bloodGroup || "N/A"} />
+            </div>
+
+            <div className="space-y-2">
+              <Info
+                label="Status"
+                value={getStatusBadge(viewDriver.status)}
+                isNode
+              />
+              <Info label="Experience" value={viewDriver.experience || "N/A"} />
+              <Info label="Salary" value={viewDriver.salary || "N/A"} />
+              <Info label="Joined" value={formatDate(viewDriver.joinedDate)} />
+            </div>
+
+            <div className="space-y-2">
+              <Info label="License No" value={viewDriver.licenseNumber} />
+              <Info
+                label="License Expiry"
+                value={formatDate(viewDriver.licenseExpiry)}
+              />
+              <Info label="Aadhar" value={viewDriver.aadharNumber || "N/A"} />
+              <Info
+                label="Vehicle"
+                value={viewDriver.assignedVehicle || "Not Assigned"}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ================= CONTACT INFO ================= */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Contact Details
+          </h4>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <Info label="Address" value={viewDriver.address || "N/A"} />
+            <Info
+              label="Emergency Contact"
+              value={formatPhone(viewDriver.emergencyContact) || "N/A"}
+            />
+          </div>
+        </div>
+
+        {/* ================= DOCUMENTS ================= */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Documents
+          </h4>
+
+          <div className="flex flex-wrap gap-2">
+            {viewDriver.documents?.length ? (
+              viewDriver.documents.map((doc, i) => (
+                <span
+                  key={i}
+                  className="px-2 py-1 text-xs rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-900/30"
+                >
+                  {doc}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs text-gray-400">
+                No documents uploaded
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* ================= PERFORMANCE ================= */}
+        <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
+          <div
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded ${getPerformanceBadge(
+              viewDriver.performance
+            )}`}
+          >
+            <Award className="h-4 w-4" />
+            {viewDriver.performance || "N/A"}
+          </div>
+
+          {viewDriver.lastTrip && (
+            <span className="text-xs text-gray-500">
+              Last trip: {formatDate(viewDriver.lastTrip)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* ================= FOOTER ================= */}
+      <div className="flex justify-end gap-2 px-4 py-3 border-t dark:border-gray-700">
+        <button
+          onClick={() => setViewDriver(null)}
+          className="px-3 py-1.5 border rounded text-sm dark:text-white"
+        >
+          Close
+        </button>
+        <button
+          onClick={() => {
+            setViewDriver(null);
+            handleEdit(viewDriver);
+          }}
+          className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+        >
+          Edit
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
