@@ -74,7 +74,7 @@ export const TripList = ({
         // Check if consent is PENDING
         if (consentInfo.consent === "PENDING") {
           setShowConsentModal(true);
-        } else if (consentInfo.consent === "GRANTED") {
+        } else if (consentInfo.consent === "ALLOWED") {
           // If consent is already granted, proceed directly
           await handleStartTrip(tripId);
         } else {
@@ -124,10 +124,16 @@ export const TripList = ({
       setLoadingTripId(tripId);
       setLoadingAction(status === "START" ? "start" : "complete");
 
+      // Include both required parameters from the API spec
       const response = await apiClient.put(
         `/api/trip/trip/${tripId}/status`,
         null,
-        { params: { status } },
+        {
+          params: {
+            status,
+            forceProceed: true, // Added missing required parameter
+          },
+        },
       );
 
       if (response?.status) {
@@ -154,7 +160,6 @@ export const TripList = ({
       setLoadingAction(null);
     }
   };
-
   // Handle complete trip
   const handleCompleteTrip = async (tripId) => {
     const success = await updateTripStatus(tripId, "END");
