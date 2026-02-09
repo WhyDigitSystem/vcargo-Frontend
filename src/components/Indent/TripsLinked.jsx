@@ -30,9 +30,6 @@ const TripLinked = ({
         try {
             setLoading(true);
             const res = await tripAPI.getAllTrips({
-                count: 100,
-                page: 1,
-                search: "",
                 orgId
             });
 

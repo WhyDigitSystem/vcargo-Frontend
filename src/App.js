@@ -263,6 +263,10 @@ const AppContent = () => {
                             path="/transporter/settings"
                             element={<SettingsScreen />}
                           />
+                            <Route
+                            path="/settings/users"
+                            element={<UserManagement />}
+                          />
                         </>
                       )}
 

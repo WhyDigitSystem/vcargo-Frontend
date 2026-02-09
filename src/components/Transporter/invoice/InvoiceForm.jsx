@@ -7,12 +7,12 @@ import {
   Plus,
   Save,
   Trash2,
-  User,
+  Truck,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { tripAPI } from "../../../api/TtripAPI";
 import { useSelector } from "react-redux";
+import { tripAPI } from "../../../api/TtripAPI";
 
 export const InvoiceForm = ({
   invoice = null,
@@ -94,13 +94,18 @@ export const InvoiceForm = ({
 
   useEffect(() => {
     calculateTotals();
-  }, [formData.items, formData.taxRate, formData.discount, formData.amountPaid]);
+  }, [
+    formData.items,
+    formData.taxRate,
+    formData.discount,
+    formData.amountPaid,
+  ]);
 
   const calculateTotals = () => {
     const subtotal = formData.items.reduce(
       (sum, item) =>
         sum + (parseFloat(item.rate) || 0) * (parseInt(item.quantity) || 0),
-      0
+      0,
     );
 
     const taxAmount = (subtotal * (parseFloat(formData.taxRate) || 0)) / 100;
@@ -124,24 +129,25 @@ export const InvoiceForm = ({
   const fetchTrips = async () => {
     try {
       setLoading(true);
+      setError(null);
 
-      const response = await tripAPI.getAllTrips({
-        count: 10,
-        page: 1,
-        orgId,
-      });
+      const response = await tripAPI.getAllTrips(orgId);
 
-      const apiTrips = response?.paramObjectsMap?.trip?.data || [];
+      const apiTrips = response?.paramObjectsMap?.trip ?? [];
 
       const mappedTrips = apiTrips.map((trip) => ({
         id: trip.id,
         tripNumber: `TRIP-${trip.id}`,
+
         customerId: trip.customer,
         customerName: trip.customer,
-        vehicleId: trip.vehicleId,
-        vehicleName: trip.vehicle,
-        driverId: trip.driverId,
-        driverName: trip.driver,
+
+        vehicleId: trip.vehicle?.id ?? null,
+        vehicleName: trip.vehicle?.vehicleNumber ?? "—",
+
+        driverId: trip.driver?.id ?? null,
+        driverName: trip.driver?.name ?? "—",
+
         source: trip.source,
         destination: trip.destination,
         distance: trip.distance,
@@ -151,43 +157,47 @@ export const InvoiceForm = ({
 
       const uniqueCustomers = Array.from(
         new Map(
-          apiTrips.map(t => [
-            t.customer,
-            { id: t.customer, name: t.customer }
-          ])
-        ).values()
+          apiTrips.map((trip) => [
+            trip.customer,
+            {
+              id: trip.customer,
+              name: trip.customer,
+            },
+          ]),
+        ).values(),
       );
 
       const uniqueVehicles = Array.from(
         new Map(
-          apiTrips.map(t => [
-            t.vehicleId,
-            { id: t.vehicleId, name: t.vehicle }
-          ])
-        ).values()
+          apiTrips
+            .filter((trip) => trip.vehicle)
+            .map((trip) => [
+              trip.vehicle.id,
+              {
+                id: trip.vehicle.id,
+                name: trip.vehicle.vehicleNumber,
+              },
+            ]),
+        ).values(),
       );
 
       setTripsDetails(mappedTrips);
       setTripCustomers(uniqueCustomers);
       setTripVehicles(uniqueVehicles);
-
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error("Fetch trips failed:", error);
       setError("Failed to load trips");
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredTrips = tripsDetails.filter(trip => {
+  const filteredTrips = tripsDetails.filter((trip) => {
     if (formData.customerId && trip.customerId !== formData.customerId) {
       return false;
     }
 
-    if (
-      formData.vehicleId &&
-      trip.vehicleId !== Number(formData.vehicleId)
-    ) {
+    if (formData.vehicleId && trip.vehicleId !== Number(formData.vehicleId)) {
       return false;
     }
 
@@ -196,7 +206,7 @@ export const InvoiceForm = ({
 
   const handleTripSelect = (tripId) => {
     const selectedTrip = tripsDetails.find(
-      (trip) => trip.id === parseInt(tripId)
+      (trip) => trip.id === parseInt(tripId),
     );
 
     if (selectedTrip) {
@@ -251,7 +261,7 @@ export const InvoiceForm = ({
     if (!validateForm()) return;
 
     const selectedTrip = tripsDetails.find(
-      trip => trip.id === Number(formData.tripId)
+      (trip) => trip.id === Number(formData.tripId),
     );
 
     if (!selectedTrip) {
@@ -271,11 +281,11 @@ export const InvoiceForm = ({
       totalAmount: Number(formData.totalAmount),
       amountPaid: Number(formData.amountPaid),
       balanceDue: Number(formData.balanceDue),
-      items: formData.items.map(item => ({
+      items: formData.items.map((item) => ({
         ...item,
         quantity: Number(item.quantity),
         rate: Number(item.rate),
-        amount: Number(item.amount)
+        amount: Number(item.amount),
       })),
     });
   };
@@ -284,7 +294,7 @@ export const InvoiceForm = ({
     const { name, value } = e.target;
 
     if (name === "customerId") {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         customerId: value,
         vehicleId: "",
@@ -295,7 +305,7 @@ export const InvoiceForm = ({
     }
 
     if (name === "vehicleId") {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         vehicleId: Number(value),
         tripId: "",
@@ -304,7 +314,7 @@ export const InvoiceForm = ({
       return;
     }
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -377,34 +387,32 @@ export const InvoiceForm = ({
   ];
 
   const selectedCustomer = tripCustomers.find(
-    (c) => c.id === formData.customerId
+    (c) => c.id === formData.customerId,
   );
   const selectedVehicle = vehicles.find((v) => v.id === formData.vehicleId);
-  const selectedTrip = tripsDetails.find(trip => trip.id === formData.tripId);
+  const selectedTrip = tripsDetails.find((trip) => trip.id === formData.tripId);
 
   return (
-    <div className="relative w-full max-w-6xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden" >
+    <div className="relative w-full max-w-6xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
       {/* Header */}
-      < div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-4 pl-6" >
-        <div className="flex items-center justify-between" >
-          <div className="flex items-center gap-3" >
-            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl" >
+      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-4 pl-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
               <FileText className="h-6 w-6 text-white" />
             </div>
-            < div >
-              <h2 className="text-lg font-bold text-white" >
+            <div>
+              <h2 className="text-lg font-bold text-white">
                 {invoice ? "Edit Invoice" : "Create New Invoice"}
               </h2>
-              < p className="text-blue-100 text-xs" >
-                {
-                  invoice
-                    ? "Update invoice details"
-                    : "Create a new invoice for transport services"
-                }
+              <p className="text-blue-100 text-xs">
+                {invoice
+                  ? "Update invoice details"
+                  : "Create a new invoice for transport services"}
               </p>
             </div>
           </div>
-          < button
+          <button
             onClick={onCancel}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
@@ -414,277 +422,235 @@ export const InvoiceForm = ({
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="p-6" >
-        <div className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-2" >
+      <form onSubmit={handleSubmit} className="p-6">
+        <div className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
           {/* Customer & Vehicle Details */}
-          < div className="grid grid-cols-1 lg:grid-cols-2 gap-6" >
-            {/* Customer Details */}
-            < div className="space-y-4" >
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2" >
-                <User className="h-5 w-5" />
-                Customer Details
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* LEFT: Trip Selection */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Truck className="h-5 w-5 text-blue-600" />
+                Select Trip
               </h3>
 
-              < div >
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
-                  Customer *
-                </label>
-                < select
-                  name="customerId"
-                  value={formData.customerId}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.customerId
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-700"
-                    }`
-                  }
+              <div>
+                <label className="block text-sm font-medium mb-2">Trip *</label>
+
+                <select
+                  value={formData.tripId}
+                  onChange={(e) => handleTripSelect(e.target.value)}
+                  disabled={loading}
+                  className={`w-full px-4 py-3 rounded-xl border bg-white dark:bg-gray-800
+          focus:ring-2 focus:ring-blue-500 focus:outline-none
+          ${errors.tripDetails ? "border-red-500" : "border-gray-300 dark:border-gray-700"}
+        `}
                 >
-                  <option value="" className="text-gray-500 dark:text-gray-400" >
-                    Select Customer
+                  <option value="">
+                    {loading ? "Loading trips..." : "Choose a trip"}
                   </option>
-                  {tripCustomers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}
+
+                  {filteredTrips.map((trip) => (
+                    <option key={trip.id} value={trip.id}>
+                      {trip.tripNumber} • {trip.source.split(",")[0]} →{" "}
+                      {trip.destination.split(",")[0]} • {trip.distance} km
                     </option>
                   ))}
                 </select>
-                {
-                  errors.customerId && (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400" >
-                      {errors.customerId}
-                    </p>
-                  )
-                }
+
+                {errors.tripDetails && (
+                  <p className="mt-2 text-sm text-red-500">
+                    {errors.tripDetails}
+                  </p>
+                )}
               </div>
+
+              {/* Trip Summary Card */}
+              {selectedTrip && (
+                <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-5 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                      {selectedTrip.tripNumber}
+                    </span>
+                    <span className="text-xs px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                      {selectedTrip.status}
+                    </span>
+                  </div>
+
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    {selectedTrip.source.split(",")[0]} →{" "}
+                    {selectedTrip.destination.split(",")[0]}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-400">
+                    <div>
+                      <span className="block text-xs">Distance</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {selectedTrip.distance} km
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="block text-xs">Driver</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {selectedTrip.driverName}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="block text-xs">Revenue</span>
+                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                        ₹{selectedTrip.revenue?.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Vehicle & Trip Details */}
-            <div className="space-y-4" >
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2" >
-                <Car className="h-5 w-5" />
-                Transport Details
+            {/* RIGHT: Auto-filled Transport Info */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Car className="h-5 w-5 text-indigo-600" />
+                Transport Info
               </h3>
 
-              < div >
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
-                  Vehicle *
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Vehicle
                 </label>
                 <select
                   name="vehicleId"
                   value={formData.vehicleId}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.vehicleId
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-700"
-                    }`}
+                  disabled={!selectedTrip}
+                  className="w-full px-4 py-3 rounded-xl border bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 disabled:opacity-60"
                 >
-                  <option value="">Select Vehicle</option>
-
-                  {tripVehicles
-                    .filter(v =>
-                      !formData.customerId ||
-                      tripsDetails.some(
-                        t =>
-                          t.customerId === formData.customerId &&
-                          t.vehicleId === v.id
-                      )
-                    )
-                    .map(v => (
-                      <option key={v.id} value={v.id}>
-                        {v.name}
-                      </option>
-                    ))}
+                  <option value="">Auto-selected from trip</option>
+                  {tripVehicles.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              < div >
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
-                  Select Trip *
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Customer
                 </label>
-                < div className="flex gap-2" >
-                  <select
-                    name="tripId"
-                    value={formData.tripId}
-                    onChange={(e) => handleTripSelect(e.target.value)}
-                    className={`flex-1 px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.tripDetails
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                      }`}
-                    disabled={loading}
-                  >
-                    <option value="" className="text-gray-500 dark:text-gray-400" >
-                      {loading ? "Loading trips..." : "Select a trip"}
+                <select
+                  name="customerId"
+                  value={formData.customerId}
+                  onChange={handleChange}
+                  disabled={!selectedTrip}
+                  className="w-full px-4 py-3 rounded-xl border bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 disabled:opacity-60"
+                >
+                  <option value="">Auto-selected from trip</option>
+                  {tripCustomers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
                     </option>
-                    {
-                      filteredTrips.map((trip) => (
-                        <option
-                          key={trip.id}
-                          value={trip.id}
-                          className="text-gray-900 dark:text-gray-100"
-                        >
-                          {trip.tripNumber}: {trip.source.split(",")[0]} → {trip.destination.split(",")[0]}
-                        </option>
-                      ))
-                    }
-                  </select>
-                </div>
-                {
-                  errors.tripDetails && (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400" >
-                      {errors.tripDetails}
-                    </p>
-                  )
-                }
+                  ))}
+                </select>
               </div>
-
-              {/* Trip Details Display */}
-              {
-                selectedTrip && (
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800" >
-                    <div className="space-y-2" >
-                      <div className="flex items-center justify-between" >
-                        <span className="text-sm text-blue-700 dark:text-blue-300 font-medium" >
-                          Trip Details:
-                        </span>
-                        < span className="text-sm font-medium text-blue-800 dark:text-blue-200" >
-                          {selectedTrip.tripNumber}
-                        </span>
-                      </div>
-                      < div className="flex items-center justify-between" >
-                        <span className="text-sm text-gray-600 dark:text-gray-400" >
-                          Route:
-                        </span>
-                        < span className="text-sm font-medium text-gray-900 dark:text-white" >
-                          {selectedTrip.source.split(",")[0]} → {selectedTrip.destination.split(",")[0]}
-                        </span>
-                      </div>
-                      < div className="flex items-center justify-between" >
-                        <span className="text-sm text-gray-600 dark:text-gray-400" >
-                          Distance:
-                        </span>
-                        < span className="text-sm font-medium text-gray-900 dark:text-white" >
-                          {selectedTrip.distance} km
-                        </span>
-                      </div>
-                      < div className="flex items-center justify-between" >
-                        <span className="text-sm text-gray-600 dark:text-gray-400" >
-                          Driver:
-                        </span>
-                        < span className="text-sm font-medium text-gray-900 dark:text-white" >
-                          {selectedTrip.driverName}
-                        </span>
-                      </div>
-                      < div className="flex items-center justify-between" >
-                        <span className="text-sm text-gray-600 dark:text-gray-400" >
-                          Revenue:
-                        </span>
-                        < span className="text-sm font-medium text-emerald-600 dark:text-emerald-400" >
-                          ₹{selectedTrip.revenue?.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              }
             </div>
           </div>
 
           {/* Invoice Details */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6" >
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
-                <span className="flex items-center gap-2" >
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <span className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   Issue Date *
                 </span>
               </label>
-              < input
+              <input
                 type="date"
                 name="issueDate"
                 value={formData.issueDate}
                 onChange={handleChange}
-                className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.issueDate
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-gray-700"
-                  }`}
+                className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.issueDate
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                }`}
               />
             </div>
 
-            < div >
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
-                <span className="flex items-center gap-2" >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <span className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   Due Date *
                 </span>
               </label>
-              < input
+              <input
                 type="date"
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
-                className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.dueDate
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-gray-700"
-                  }`}
+                className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.dueDate
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                }`}
               />
             </div>
 
-            < div >
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Status
               </label>
-              < select
+              <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
                 className="w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {
-                  statusOptions.map((status) => (
-                    <option
-                      key={status.id}
-                      value={status.id}
-                      className="text-gray-900 dark:text-gray-100"
-                    >
-                      {status.name}
-                    </option>
-                  ))
-                }
+                {statusOptions.map((status) => (
+                  <option
+                    key={status.id}
+                    value={status.id}
+                    className="text-gray-900 dark:text-gray-100"
+                  >
+                    {status.name}
+                  </option>
+                ))}
               </select>
             </div>
 
-            < div >
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Payment Method
               </label>
-              < select
+              <select
                 name="paymentMethod"
                 value={formData.paymentMethod}
                 onChange={handleChange}
                 className="w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {
-                  paymentMethods.map((method) => (
-                    <option
-                      key={method.id}
-                      value={method.id}
-                      className="text-gray-900 dark:text-gray-100"
-                    >
-                      {method.name}
-                    </option>
-                  ))
-                }
+                {paymentMethods.map((method) => (
+                  <option
+                    key={method.id}
+                    value={method.id}
+                    className="text-gray-900 dark:text-gray-100"
+                  >
+                    {method.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
           {/* Items Table */}
           <div>
-            <div className="flex items-center justify-between mb-4" >
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white" >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Items & Services
               </h3>
-              < button
+              <button
                 type="button"
                 onClick={addItem}
                 className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
@@ -694,167 +660,162 @@ export const InvoiceForm = ({
               </button>
             </div>
 
-            < div className="overflow-x-auto" >
-              <table className="w-full" >
+            <div className="overflow-x-auto">
+              <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700" >
-                    <th className="py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300" >
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">
                       Description *
                     </th>
-                    < th className="py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300" >
+                    <th className="py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
                       Quantity
                     </th>
-                    < th className="py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300" >
+                    <th className="py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
                       Unit
                     </th>
-                    < th className="py-3 text-right text-sm font-medium text-gray-700 dark:text-gray-300" >
+                    <th className="py-3 text-right text-sm font-medium text-gray-700 dark:text-gray-300">
                       Rate(₹) *
                     </th>
-                    < th className="py-3 text-right text-sm font-medium text-gray-700 dark:text-gray-300" >
+                    <th className="py-3 text-right text-sm font-medium text-gray-700 dark:text-gray-300">
                       Amount(₹)
                     </th>
-                    < th className="py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300" >
+                    <th className="py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
                       Action
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {
-                    formData.items.map((item, index) => (
-                      <tr
-                        key={item.id}
-                        className="border-b border-gray-200 dark:border-gray-700"
-                      >
-                        <td className="py-3" >
+                  {formData.items.map((item, index) => (
+                    <tr
+                      key={item.id}
+                      className="border-b border-gray-200 dark:border-gray-700"
+                    >
+                      <td className="py-3">
+                        <input
+                          type="text"
+                          value={item.description}
+                          onChange={(e) =>
+                            handleItemChange(
+                              index,
+                              "description",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors[`item_${index}_description`]
+                              ? "border-red-500"
+                              : "border-gray-300 dark:border-gray-700"
+                          }`}
+                          placeholder="Description of service"
+                        />
+                        {errors[`item_${index}_description`] && (
+                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                            {errors[`item_${index}_description`]}
+                          </p>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        <div className="flex justify-center">
                           <input
-                            type="text"
-                            value={item.description}
+                            type="number"
+                            value={item.quantity}
                             onChange={(e) =>
                               handleItemChange(
                                 index,
-                                "description",
-                                e.target.value
+                                "quantity",
+                                e.target.value,
                               )
                             }
-                            className={`w-full px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors[`item_${index}_description`]
-                              ? "border-red-500"
-                              : "border-gray-300 dark:border-gray-700"
-                              }`}
-                            placeholder="Description of service"
+                            min="1"
+                            className="w-20 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                           />
-                          {
-                            errors[`item_${index}_description`] && (
-                              <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                                {errors[`item_${index}_description`]}
-                              </p>
-                            )
-                          }
-                        </td>
-                        < td className="py-3" >
-                          <div className="flex justify-center" >
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex justify-center">
+                          <select
+                            value={item.unit}
+                            onChange={(e) =>
+                              handleItemChange(index, "unit", e.target.value)
+                            }
+                            className="w-24 px-2 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            {unitOptions.map((unit) => (
+                              <option key={unit} value={unit}>
+                                {unit}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex justify-end">
+                          <div className="relative">
+                            <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-500 dark:text-gray-400" />
                             <input
                               type="number"
-                              value={item.quantity}
+                              value={item.rate}
                               onChange={(e) =>
-                                handleItemChange(
-                                  index,
-                                  "quantity",
-                                  e.target.value
-                                )
+                                handleItemChange(index, "rate", e.target.value)
                               }
-                              min="1"
-                              className="w-20 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-                            />
-                          </div>
-                        </td>
-                        < td className="py-3" >
-                          <div className="flex justify-center" >
-                            <select
-                              value={item.unit}
-                              onChange={(e) =>
-                                handleItemChange(index, "unit", e.target.value)
-                              }
-                              className="w-24 px-2 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                              {
-                                unitOptions.map((unit) => (
-                                  <option key={unit} value={unit} >
-                                    {unit}
-                                  </option>
-                                ))
-                              }
-                            </select>
-                          </div>
-                        </td>
-                        < td className="py-3" >
-                          <div className="flex justify-end" >
-                            <div className="relative" >
-                              <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-500 dark:text-gray-400" />
-                              <input
-                                type="number"
-                                value={item.rate}
-                                onChange={(e) =>
-                                  handleItemChange(index, "rate", e.target.value)
-                                }
-                                step="0.01"
-                                className={`w-32 pl-8 pr-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors[`item_${index}_rate`]
+                              step="0.01"
+                              className={`w-32 pl-8 pr-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                errors[`item_${index}_rate`]
                                   ? "border-red-500"
                                   : "border-gray-300 dark:border-gray-700"
-                                  }`}
-                                placeholder="0.00"
-                              />
-                            </div>
+                              }`}
+                              placeholder="0.00"
+                            />
                           </div>
-                          {
-                            errors[`item_${index}_rate`] && (
-                              <p className="mt-1 text-xs text-red-600 dark:text-red-400" >
-                                {errors[`item_${index}_rate`]}
-                              </p>
-                            )
-                          }
-                        </td>
-                        < td className="py-3" >
-                          <div className="flex justify-end" >
-                            <span className="text-lg font-medium text-gray-900 dark:text-white" >
-                              ₹{item.amount.toLocaleString()}
-                            </span>
-                          </div>
-                        </td>
-                        < td className="py-3" >
-                          <div className="flex justify-center" >
-                            <button
-                              type="button"
-                              onClick={() => removeItem(index)}
-                              className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                              disabled={formData.items.length === 1}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                        </div>
+                        {errors[`item_${index}_rate`] && (
+                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                            {errors[`item_${index}_rate`]}
+                          </p>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        <div className="flex justify-end">
+                          <span className="text-lg font-medium text-gray-900 dark:text-white">
+                            ₹{item.amount.toLocaleString()}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => removeItem(index)}
+                            className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                            disabled={formData.items.length === 1}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
 
           {/* Totals Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" >
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Tax & Discount */}
-            < div className="space-y-4" >
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-white" >
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Tax & Discount
               </h4>
 
-              < div >
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
-                  <span className="flex items-center gap-2" >
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <span className="flex items-center gap-2">
                     <Percent className="h-4 w-4" />
                     Tax Rate(%)
                   </span>
                 </label>
-                < input
+                <input
                   type="number"
                   name="taxRate"
                   value={formData.taxRate}
@@ -865,14 +826,14 @@ export const InvoiceForm = ({
                 />
               </div>
 
-              < div >
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
-                  <span className="flex items-center gap-2" >
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <span className="flex items-center gap-2">
                     <IndianRupee className="h-4 w-4" />
                     Discount(₹)
                   </span>
                 </label>
-                < input
+                <input
                   type="number"
                   name="discount"
                   value={formData.discount}
@@ -885,16 +846,16 @@ export const InvoiceForm = ({
             </div>
 
             {/* Payment Details */}
-            <div className="space-y-4" >
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-white" >
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Payment Details
               </h4>
 
-              < div >
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Amount Paid(₹)
                 </label>
-                < div className="relative" >
+                <div className="relative">
                   <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
                   <input
                     type="number"
@@ -909,87 +870,86 @@ export const InvoiceForm = ({
                 </div>
               </div>
 
-              {
-                formData.status === "paid" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
-                      Payment Date
-                    </label>
-                    < input
-                      type="date"
-                      name="paymentDate"
-                      value={formData.paymentDate}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                )
-              }
+              {formData.status === "paid" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Payment Date
+                  </label>
+                  <input
+                    type="date"
+                    name="paymentDate"
+                    value={formData.paymentDate}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Summary */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6" >
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4" >
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Summary
               </h4>
 
-              < div className="space-y-3" >
-                <div className="flex items-center justify-between" >
-                  <span className="text-gray-600 dark:text-gray-400" >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">
                     Subtotal:
                   </span>
-                  < span className="font-medium text-gray-900 dark:text-white" >
+                  <span className="font-medium text-gray-900 dark:text-white">
                     ₹{(formData.subtotal ?? 0).toLocaleString()}
                   </span>
                 </div>
 
-                < div className="flex items-center justify-between" >
-                  <span className="text-gray-600 dark:text-gray-400" >
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">
                     Tax({formData.taxRate} %):
                   </span>
-                  < span className="font-medium text-gray-900 dark:text-white" >
+                  <span className="font-medium text-gray-900 dark:text-white">
                     ₹{(formData.taxAmount ?? 0).toLocaleString()}
                   </span>
                 </div>
 
-                < div className="flex items-center justify-between" >
-                  <span className="text-gray-600 dark:text-gray-400" >
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">
                     Discount:
                   </span>
-                  < span className="font-medium text-red-600 dark:text-red-400" >
+                  <span className="font-medium text-red-600 dark:text-red-400">
                     -₹{(formData.discount ?? 0).toLocaleString()}
                   </span>
                 </div>
 
-                < div className="pt-3 border-t border-gray-200 dark:border-gray-700" >
-                  <div className="flex items-center justify-between mb-2" >
-                    <span className="text-lg font-semibold text-gray-900 dark:text-white" >
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-lg font-semibold text-gray-900 dark:text-white">
                       Total:
                     </span>
-                    < span className="text-2xl font-bold text-gray-900 dark:text-white" >
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">
                       ₹{(formData.totalAmount ?? 0).toLocaleString()}
                     </span>
                   </div>
 
-                  < div className="flex items-center justify-between" >
-                    <span className="text-gray-600 dark:text-gray-400" >
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">
                       Amount Paid:
                     </span>
-                    < span className="font-medium text-emerald-600 dark:text-emerald-400" >
-                      {/* ₹{formData.amountPaid.toLocaleString()} */}
-                      ₹{(formData.amountPaid ?? 0).toLocaleString()}
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                      {/* ₹{formData.amountPaid.toLocaleString()} */}₹
+                      {(formData.amountPaid ?? 0).toLocaleString()}
                     </span>
                   </div>
 
-                  < div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-700" >
-                    <span className="text-lg font-semibold text-gray-900 dark:text-white" >
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <span className="text-lg font-semibold text-gray-900 dark:text-white">
                       Balance Due:
                     </span>
-                    < span
-                      className={`text-xl font-bold ${formData.balanceDue > 0
-                        ? "text-amber-600 dark:text-amber-400"
-                        : "text-emerald-600 dark:text-emerald-400"
-                        }`}
+                    <span
+                      className={`text-xl font-bold ${
+                        formData.balanceDue > 0
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-emerald-600 dark:text-emerald-400"
+                      }`}
                     >
                       ₹{(formData.balanceDue ?? 0).toLocaleString()}
                     </span>
@@ -1001,10 +961,10 @@ export const InvoiceForm = ({
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Notes
             </label>
-            < textarea
+            <textarea
               name="notes"
               value={formData.notes}
               onChange={handleChange}
@@ -1016,7 +976,7 @@ export const InvoiceForm = ({
         </div>
 
         {/* Form Actions */}
-        <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700" >
+        <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
             onClick={onCancel}
@@ -1024,7 +984,7 @@ export const InvoiceForm = ({
           >
             Cancel
           </button>
-          < button
+          <button
             type="submit"
             className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity font-medium"
           >

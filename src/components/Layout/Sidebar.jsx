@@ -2,7 +2,6 @@ import { clsx } from "clsx";
 import {
   Bell,
   Car,
-  ChartBar,
   FileText,
   Fuel,
   FuelIcon,
@@ -284,11 +283,24 @@ const Sidebar = () => {
 
         {/* Footer */}
         {sidebarOpen && (
-          <div className="px-2 py-1 border-t border-gray-100 dark:border-gray-800">
-            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-              v2.0
-            </div>
-          </div>
+      <div className="px-2 py-1 border-t border-gray-100 dark:border-gray-800">
+  <div className="flex justify-center">
+    <div className="group relative">
+      <div className="px-2 py-0.5 text-xs font-medium rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30 animate-fade-up animate-duration-500 animate-delay-100 cursor-help">
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 animate-pulse"></span>
+          Beta v2.0
+        </span>
+      </div>
+      
+      {/* Tooltip on hover */}
+      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+        New features in development
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+      </div>
+    </div>
+  </div>
+</div>
         )}
       </nav>
     </aside>

@@ -74,9 +74,6 @@ const TripListView = ({ setIsListView, setEditId }) => {
       setLoading(true);
 
       const response = await tripAPI.getAllTrips({
-        page,
-        count,
-        search: filters.search.trim(),
         orgId
       });
 
