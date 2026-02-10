@@ -139,8 +139,15 @@ export const InvoiceForm = ({
         id: trip.id,
         tripNumber: `TRIP-${trip.id}`,
 
-        customerId: trip.customer,
-        customerName: trip.customer,
+        customerId:
+          typeof trip.customer === "object"
+            ? trip.customer.id
+            : trip.customer,
+
+        customerName:
+          typeof trip.customer === "object"
+            ? trip.customer.customerName
+            : trip.customer || "",
 
         vehicleId: trip.vehicle?.id ?? null,
         vehicleName: trip.vehicle?.vehicleNumber ?? "—",
@@ -160,8 +167,15 @@ export const InvoiceForm = ({
           apiTrips.map((trip) => [
             trip.customer,
             {
-              id: trip.customer,
-              name: trip.customer,
+              id:
+                typeof trip.customer === "object"
+                  ? trip.customer.id
+                  : trip.customer,
+
+              name:
+                typeof trip.customer === "object"
+                  ? trip.customer.customerName
+                  : trip.customer,
             },
           ]),
         ).values(),
@@ -571,11 +585,10 @@ export const InvoiceForm = ({
                 name="issueDate"
                 value={formData.issueDate}
                 onChange={handleChange}
-                className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.issueDate
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-700"
-                }`}
+                className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.issueDate
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-700"
+                  }`}
               />
             </div>
 
@@ -591,11 +604,10 @@ export const InvoiceForm = ({
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
-                className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.dueDate
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-700"
-                }`}
+                className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.dueDate
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-700"
+                  }`}
               />
             </div>
 
@@ -701,11 +713,10 @@ export const InvoiceForm = ({
                               e.target.value,
                             )
                           }
-                          className={`w-full px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors[`item_${index}_description`]
-                              ? "border-red-500"
-                              : "border-gray-300 dark:border-gray-700"
-                          }`}
+                          className={`w-full px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors[`item_${index}_description`]
+                            ? "border-red-500"
+                            : "border-gray-300 dark:border-gray-700"
+                            }`}
                           placeholder="Description of service"
                         />
                         {errors[`item_${index}_description`] && (
@@ -759,11 +770,10 @@ export const InvoiceForm = ({
                                 handleItemChange(index, "rate", e.target.value)
                               }
                               step="0.01"
-                              className={`w-32 pl-8 pr-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                errors[`item_${index}_rate`]
-                                  ? "border-red-500"
-                                  : "border-gray-300 dark:border-gray-700"
-                              }`}
+                              className={`w-32 pl-8 pr-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors[`item_${index}_rate`]
+                                ? "border-red-500"
+                                : "border-gray-300 dark:border-gray-700"
+                                }`}
                               placeholder="0.00"
                             />
                           </div>
@@ -945,11 +955,10 @@ export const InvoiceForm = ({
                       Balance Due:
                     </span>
                     <span
-                      className={`text-xl font-bold ${
-                        formData.balanceDue > 0
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-emerald-600 dark:text-emerald-400"
-                      }`}
+                      className={`text-xl font-bold ${formData.balanceDue > 0
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-emerald-600 dark:text-emerald-400"
+                        }`}
                     >
                       ₹{(formData.balanceDue ?? 0).toLocaleString()}
                     </span>

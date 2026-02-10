@@ -8,10 +8,8 @@ const CustomerListView = ({ setIsListView, onEdit, onAddCustomer }) => {
   const [allCustomers, setAllCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [page, setPage] = useState(1);
-  const [count] = useState(5);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const ITEMS_PER_PAGE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
 
   // FILTER UI
   const [showFilter, setShowFilter] = useState(false);
@@ -32,7 +30,6 @@ const CustomerListView = ({ setIsListView, onEdit, onAddCustomer }) => {
     }
 
     const timeout = setTimeout(() => {
-      setPage(1);
       getAllCustomers();
     }, 500);
 
@@ -43,50 +40,32 @@ const CustomerListView = ({ setIsListView, onEdit, onAddCustomer }) => {
         clearTimeout(searchTimeout);
       }
     };
-  }, [filters.search, page]);
+  }, [filters.search]);
 
   useEffect(() => {
     applyFilters();
-  }, [filters.status, filters.active, allCustomers]);
+  }, [filters, allCustomers]);
+
+  useEffect(() => {
+    getAllCustomers();
+  }, []);
 
   const getAllCustomers = async () => {
     try {
       setLoading(true);
 
-      const response = await customerAPI.getAllCustomersList({
-        page,
-        count,
-        orgId,
-        search: filters.search.trim()
-      });
+      const response = await customerAPI.getAllCustomersList({ orgId });
 
-      console.log('API Response:', response);
+      const data = response?.paramObjectsMap?.customerVO || [];
 
-      // Updated data extraction based on your API structure
-      const data = response?.paramObjectsMap?.customerVO?.data || [];
-      const total = response?.paramObjectsMap?.customerVO?.totalCount || 0;
-
-      console.log('Extracted data:', data);
-      console.log('Total count:', total);
-
-      if (data && Array.isArray(data)) {
-        setAllCustomers(data);
-        setCustomerList(data);
-        setTotalCount(total);
-
-        const calculatedTotalPages = Math.ceil(total / count);
-        setTotalPages(calculatedTotalPages > 0 ? calculatedTotalPages : 1);
-      } else {
-        setAllCustomers([]);
-        setCustomerList([]);
-        setTotalPages(1);
-      }
+      setAllCustomers(data);
+      setCustomerList(data);
+      setCurrentPage(1);
 
     } catch (error) {
       console.error("Error fetching customers:", error);
       setAllCustomers([]);
       setCustomerList([]);
-      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -95,23 +74,22 @@ const CustomerListView = ({ setIsListView, onEdit, onAddCustomer }) => {
   const applyFilters = () => {
     let filtered = [...allCustomers];
 
-    if (filters.status) {
-      filtered = filtered.filter(customer =>
-        customer.active?.toLowerCase() === filters.status.toLowerCase()
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      filtered = filtered.filter(c =>
+        c.customerName?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q) ||
+        c.phoneNumber?.includes(q) ||
+        c.gstNumber?.toLowerCase().includes(q)
       );
     }
 
-    if (filters.active && filters.active !== "All") {
-      filtered = filtered.filter(customer =>
-        customer.active?.toLowerCase() === filters.active.toLowerCase()
-      );
+    if (filters.status) {
+      filtered = filtered.filter(c => c.active === filters.status);
     }
 
     setCustomerList(filtered);
-    setTotalCount(filtered.length);
-    const calculatedTotalPages = Math.ceil(filtered.length / count);
-    setTotalPages(calculatedTotalPages > 0 ? calculatedTotalPages : 1);
-    setPage(1);
+    setCurrentPage(1);
   };
 
   const handleEdit = (customer) => {
@@ -129,34 +107,21 @@ const CustomerListView = ({ setIsListView, onEdit, onAddCustomer }) => {
     }
   };
 
-  const handleNextPage = () => {
-    if (page < totalPages) {
-      setPage(prev => prev + 1);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (page > 1) {
-      setPage(prev => prev - 1);
-    }
-  };
-
   const clearFilters = () => {
     setFilters({
       search: "",
       status: "",
       active: "",
     });
-    setPage(1);
   };
 
-  const getVisibleCustomers = () => {
-    const startIndex = (page - 1) * count;
-    const endIndex = startIndex + count;
-    return customerList.slice(startIndex, endIndex);
-  };
+  const totalPages = Math.ceil(customerList.length / ITEMS_PER_PAGE);
 
-  const visibleCustomers = getVisibleCustomers();
+  const visibleCustomers = customerList.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
 
   return (
     <div className="max-w-full mx-auto mt-5 bg-white dark:bg-gray-900 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -319,7 +284,9 @@ const CustomerListView = ({ setIsListView, onEdit, onAddCustomer }) => {
                   key={item.id}
                   className="border-t border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-800/60 transition-all"
                 >
-                  <td className="px-5 py-4">{(page - 1) * count + idx + 1}</td>
+                  <td className="px-5 py-4">
+                    {(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}
+                  </td>
                   <td className="px-5 py-4 font-medium text-gray-900 dark:text-white">
                     {item.customerCode || "-"}
                   </td>
@@ -363,60 +330,51 @@ const CustomerListView = ({ setIsListView, onEdit, onAddCustomer }) => {
       </div>
 
       {/* Pagination */}
-      {!loading && visibleCustomers.length > 0 && (
-        <div className="flex justify-between items-center mt-6 text-sm text-gray-500 dark:text-gray-400">
-          <span>
-            Showing {((page - 1) * count) + 1} to {Math.min(page * count, customerList.length)} of {customerList.length} entries
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6">
+
+          <span className="text-sm text-gray-500">
+            Page {currentPage} of {totalPages}
           </span>
 
-          <div className="flex gap-2">
-            <button
-              onClick={handlePrevPage}
-              disabled={page === 1}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              Previous
-            </button>
-
-            <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                // Show pages around current page
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (page <= 3) {
-                  pageNum = i + 1;
-                } else if (page >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = page - 2 + i;
-                }
-
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`px-3 py-1 min-w-[2.5rem] border rounded-lg transition ${page === pageNum
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="flex gap-1">
 
             <button
-              onClick={handleNextPage}
-              disabled={page === totalPages}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border rounded disabled:opacity-50"
             >
-              Next
+              ‹
             </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .slice(
+                Math.max(0, currentPage - 2),
+                Math.min(totalPages, currentPage + 1)
+              )
+              .map(p => (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  className={`px-3 py-1 border rounded ${currentPage === p ? "bg-blue-600 text-white" : ""
+                    }`}
+                >
+                  {p}
+                </button>
+              ))}
+
+            <button
+              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              ›
+            </button>
+
           </div>
         </div>
       )}
+
     </div>
   );
 };

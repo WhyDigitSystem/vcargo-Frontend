@@ -14,6 +14,7 @@ import { toast } from "../../../utils/toast";
 
 export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
   const [loadingTripId, setLoadingTripId] = useState(null);
+  const [loadingAction, setLoadingAction] = useState(null);
 
   const activeTrips = trips.filter((t) => t.status === "STARTED");
 
@@ -28,64 +29,42 @@ export const TripTimeline = ({ trips, onStatusChange, onRefresh }) => {
   const updateTripStatus = async (tripId, status) => {
     try {
       setLoadingTripId(tripId);
+      setLoadingAction(status === "START" ? "start" : "complete");
 
       const response = await apiClient.put(
         `/api/trip/trip/${tripId}/status`,
-        null, // No request body
+        null,
         {
-          params: { status },
+          params: {
+            status,           // START or END
+            forceProceed: true
+          }
         }
       );
 
-      console.log("Trip status update response:", response);
-
       if (response?.status) {
-        const successMessage =
+        toast.success(
           response?.paramObjectsMap?.message ||
           (status === "START"
             ? "Trip started successfully"
-            : "Trip completed successfully");
+            : "Trip completed successfully")
+        );
 
-        toast.success(successMessage, {
-          position: "top-right",
-          autoClose: 3000,
-        });
-
-        // Call parent callback to update status
-        if (onStatusChange) {
-          onStatusChange(
-            tripId,
-            status === "END" ? "completed" : "in_progress"
-          );
-        }
-
-        // Refresh trip list
-        if (onRefresh) {
-          onRefresh();
-        }
+        await onRefresh?.();     // refresh list
 
         return true;
       } else {
-        const errorMessage =
-          response?.paramObjectsMap?.message || "Failed to update trip status";
-        throw new Error(errorMessage);
+        throw new Error("Status update failed");
       }
     } catch (error) {
-      console.error(`Error updating trip status to ${status}:`, error);
-
-      const errorMsg =
-        error.response?.paramObjectsMap?.message ||
-        error.message ||
-        `Failed to ${status === "END" ? "complete" : "start"} trip`;
-
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 4000,
-      });
-
+      toast.error(
+        error?.response?.paramObjectsMap?.message ||
+        "Failed to update trip"
+      );
       return false;
     } finally {
       setLoadingTripId(null);
+      setLoadingAction(null);
     }
   };
 

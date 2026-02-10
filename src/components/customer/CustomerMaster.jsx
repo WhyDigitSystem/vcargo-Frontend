@@ -13,6 +13,7 @@ const CustomerMaster = ({ editingCustomerId, onBackToList }) => {
   const userName = JSON.parse(localStorage.getItem("user"))?.name || "";
   const [fieldErrors, setFieldErrors] = useState({});
   const [customerTypeOptions, setCustomerTypeOptions] = useState([]);
+  const [salesPersonOptions, setSalesPersonOptions] = useState([]);
   const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
 
@@ -49,6 +50,7 @@ const CustomerMaster = ({ editingCustomerId, onBackToList }) => {
 
   useEffect(() => {
     getListDescription();
+    getSalesPersonList();
 
     if (editingCustomerId) {
       handleEditCustomer(editingCustomerId);
@@ -66,6 +68,18 @@ const CustomerMaster = ({ editingCustomerId, onBackToList }) => {
       setCustomerTypeOptions(data);
     } catch (error) {
       console.error("Error fetching customer types:", error);
+    }
+  };
+
+  const getSalesPersonList = async () => {
+    try {
+      const listDescription = 'Sales Person'
+      const response = await listOfValuesAPI.getListDescription({ orgId, listDescription })
+
+      const data = response.paramObjectsMap?.listOfValuesVO || [];
+      setSalesPersonOptions(data);
+    } catch (error) {
+      console.error("Error fetching sales persons:", error);
     }
   };
 
@@ -163,6 +177,7 @@ const CustomerMaster = ({ editingCustomerId, onBackToList }) => {
           customerCode: customerData.customerCode || "",
           customerName: customerData.customerName || "",
           customerType: customerData.customerType || "",
+          salesPerson: customerData.salesPerson || "",
           email: customerData.email || "",
           pan: customerData.panNumber || "",
           gstNumber: customerData.gstNumber || "",
@@ -483,10 +498,11 @@ const CustomerMaster = ({ editingCustomerId, onBackToList }) => {
               className="w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="">Select Sales Person</option>
-              <option value="Ravi">Ravi</option>
-              <option value="Pradeep">Pradeep</option>
-              <option value="John">John</option>
-              <option value="Ashwin">Ashwin</option>
+              {salesPersonOptions.map((option) => (
+                <option key={option.valuedescription} value={option.valuedescription}>
+                  {option.valuedescription}
+                </option>
+              ))}
             </select>
           </div>
 

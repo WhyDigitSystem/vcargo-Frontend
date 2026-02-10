@@ -58,23 +58,37 @@ export const InvoiceDashboard = () => {
     const vehicleSet = new Set();
 
     const listViewInvoices = apiInvoices.map(inv => {
-      if (inv.customer) customerSet.add(inv.customer);
-      if (inv.vehicleNumber) vehicleSet.add(inv.vehicleNumber);
+      const customer = inv.customer ?? "";
+      const vehicleNumber = inv.vehicleNumber ?? "";
+
+      if (customer) customerSet.add(customer);
+      if (vehicleNumber) vehicleSet.add(vehicleNumber);
 
       return {
         id: inv.id,
-        customerId: inv.customer,
-        customerName: inv.customer,
-        vehicleId: inv.vehicleId,
-        vehicleNumber: inv.vehicleNumber,
-        driverId: inv.driverId,
-        driverName: inv.driverName,
-        driverNumber: inv.driverNumber,
-        tripId: inv.tripId,
-        tripDetails: inv.tripDetails,
-        issueDate: inv.issueDate,
-        dueDate: inv.dueDate,
-        status: inv.status,
+
+        customerId: inv.customerId ?? "",
+        customerName: inv.customer ?? "",
+
+        email: inv.email ?? "",
+        phoneNo: inv.phoneNo ?? "",
+
+        customerAddress: buildCustomerAddress(inv),
+
+        vehicleId: inv.vehicleId ?? "",
+        vehicleNumber,
+
+        driverId: inv.driverId ?? "",
+        driverName: inv.driverName ?? "",
+        driverNumber: inv.driverNumber ?? "",
+
+        tripId: inv.tripId ?? "",
+        tripDetails: inv.tripDetails ?? "",
+
+        issueDate: inv.issueDate ?? "",
+        dueDate: inv.dueDate ?? "",
+        status: inv.status ?? "draft",
+
         subtotal: Number(inv.subtotal) || 0,
         taxRate: Number(inv.taxRate) || 0,
         taxAmount: Number(inv.taxAmount) || 0,
@@ -82,27 +96,45 @@ export const InvoiceDashboard = () => {
         totalAmount: Number(inv.totalAmount) || 0,
         amountPaid: Number(inv.amountPaid) || 0,
         balanceDue: Number(inv.balanceDue) || 0,
+
         paymentMethod: inv.paymentMethod || "",
         paymentDate: inv.paymentDate || "",
-        items: inv.items || [],
-        notes: inv.notes || ""
+
+        items: Array.isArray(inv.items) ? inv.items : [],
+        notes: inv.notes || "",
       };
     });
 
-    const extractedCustomers = Array.from(customerSet).map(customer => ({
-      id: customer, // Using customer name as ID since no separate ID provided
-      name: customer
-    }));
+    const extractedCustomers = Array.from(customerSet)
+      .filter(Boolean)
+      .map(customer => ({
+        id: customer,
+        name: customer
+      }));
 
-    const extractedVehicles = Array.from(vehicleSet).map(vehicle => ({
-      id: vehicle, // Using vehicle number as ID since no separate ID provided
-      registrationNumber: vehicle
-    }));
+    const extractedVehicles = Array.from(vehicleSet)
+      .filter(Boolean)
+      .map(vehicle => ({
+        id: vehicle,
+        registrationNumber: vehicle
+      }));
 
     setInvoices(listViewInvoices);
 
     // Return or set the extracted data for use in filters
     return { extractedCustomers, extractedVehicles };
+  };
+
+  const buildCustomerAddress = (inv) => {
+    return [
+      inv.primaryAddress,
+      inv.additionalAddress,
+      inv.city,
+      inv.state,
+      inv.pincode && inv.pincode !== 0 ? inv.pincode : null
+    ]
+      .filter(Boolean)
+      .join(", ");
   };
 
   const handleSaveInvoice = async (invoiceData) => {

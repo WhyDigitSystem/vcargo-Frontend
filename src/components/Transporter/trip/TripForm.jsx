@@ -18,18 +18,19 @@ import { useSelector } from "react-redux";
 import driverAPI from "../../../api/TdriverAPI";
 import vehicleAPI from "../../../api/TvehicleAPI";
 import { useGoogleMaps } from "../../../hooks/useGoogleMaps";
+import { customerAPI } from "../../../api/customerAPI";
 
-export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
+export const TripForm = ({ trip = null, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    customer: "",
+    // customer: "",
     vehicleId: "",
     driverId: "",
     source: "",
-    sourceLat: "",
-    sourceLng: "",
+    sourceLat: null,
+    sourceLng: null,
     destination: "",
-    destinationLat: "",
-    destinationLng: "",
+    destinationLat: null,
+    destinationLng: null,
     distance: "",
     estimatedDuration: "",
     startDate: new Date().toISOString().split("T")[0],
@@ -53,10 +54,11 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
   });
 
   const [errors, setErrors] = useState({});
-  const [newWaypoint, setNewWaypoint] = useState("");
+  const [newWaypoint, setNewWaypoint] = useState(null);
   const [newDocument, setNewDocument] = useState({ name: "", type: "pdf" });
   const [drivers, setDrivers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+  const [customers, setCustomers] = useState([]);
 
   const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
@@ -125,18 +127,21 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
   useEffect(() => {
     if (trip) {
       setFormData({
-        customer: trip.customer || "",
+        customer:
+          typeof trip.customer === "object"
+            ? trip.customer.id
+            : trip.customer ?? "",
         vehicleId: trip.vehicleId || "",
         driverId: trip.driverId || "",
         source: trip.source || "",
         destination: trip.destination || "",
 
         source: trip.source || "",
-        sourceLat: trip.sourceLat || "",
-        sourceLng: trip.sourceLng || "",
+        sourceLat: trip.sourceLat ?? null,
+        sourceLng: trip.sourceLng ?? null,
         destination: trip.destination || "",
-        destinationLat: trip.destinationLat || "",
-        destinationLng: trip.destinationLng || "",
+        destinationLat: trip.destinationLat ?? null,
+        destinationLng: trip.destinationLng ?? null,
         distance: trip.distance || "",
         estimatedDuration: trip.estimatedDuration || "",
         startDate: trip.startDate || new Date().toISOString().split("T")[0],
@@ -164,6 +169,7 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
   useEffect(() => {
     loadDrivers();
     loadVehicles();
+    loadCustomers();
   }, []);
 
   const loadDrivers = async () => {
@@ -191,6 +197,18 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
       setVehicles(activeVehicles);
     } catch (error) {
       console.error("Error loading vehicles:", error);
+    }
+  };
+
+  const loadCustomers = async () => {
+    try {
+      const response = await customerAPI.getAllCustomersList({ orgId });
+
+      const activeCustomers = response?.paramObjectsMap?.customerVO || [];
+
+      setCustomers(activeCustomers);
+    } catch (error) {
+      console.error("Error loading customers:", error);
     }
   };
 
@@ -234,7 +252,7 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
       tollCharges: parseFloat(formData.tollCharges) || 0,
       otherExpenses: parseFloat(formData.otherExpenses) || 0,
       customerName:
-        customers.find((c) => c.id === formData.customer)?.name || "",
+        customers.find((c) => c.id === formData.customer)?.customerName || "",
       vehicleName:
         vehicles.find((v) => v.id === formData.vehicleId)?.registrationNumber ||
         "",
@@ -296,15 +314,21 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
   };
 
   const addWaypoint = () => {
-    const value = newWaypoint.trim();
-    if (!value) return;
+    if (!newWaypoint?.address) return;
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      waypoints: [...prev.waypoints, { location: value }],
+      waypoints: [
+        ...prev.waypoints,
+        {
+          location: newWaypoint.address,
+          lat: newWaypoint.lat,
+          lng: newWaypoint.lng
+        }
+      ]
     }));
 
-    setNewWaypoint(""); // reset input
+    setNewWaypoint("");
   };
 
   const removeWaypoint = (index) => {
@@ -532,26 +556,26 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
                 {/* -------- Customer -------- */}
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Customer Details
+                    <Car className="h-5 w-5" />
+                    Customer
                   </h3>
 
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Customer *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="customer"
                     value={formData.customer}
                     onChange={handleChange}
-                    placeholder="Enter Customer"
-                    className={`w-full px-4 py-3 rounded-xl
-          bg-white dark:bg-gray-800
-          text-gray-900 dark:text-gray-100
-          border focus:outline-none focus:ring-2 focus:ring-blue-500
-          ${errors.customer ? "border-red-500" : "border-gray-300 dark:border-gray-700"}
-        `}
-                  />
+                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select Customer</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.customerName}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* -------- Vehicle -------- */}
@@ -621,10 +645,9 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
                       setFormData((prev) => ({ ...prev, tripType: type.id }))
                     }
                     className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center dark:text-gray-300 transition-all
-                      ${
-                        formData.tripType === type.id
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
+                      ${formData.tripType === type.id
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                        : "border-gray-200 dark:border-gray-700 hover:border-gray-400"
                       }
                     `}
                   >
@@ -660,11 +683,10 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
                       sourceLng: val.lng,
                     }))
                   }
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.source
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.source
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                 />
               </div>
 
@@ -684,11 +706,10 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
                       destinationLng: val.lng,
                     }))
                   }
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.destination
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.destination
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                 />
               </div>
 
@@ -703,11 +724,10 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
                   onChange={handleChange}
                   step="0.1"
                   min="0"
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.distance
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.distance
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                   placeholder="150"
                 />
               </div>
@@ -731,7 +751,7 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
 
               <div className="mb-3 space-y-3">
                 <LocationAutocomplete
-                  value={newWaypoint}
+                  value={newWaypoint?.address || ""}
                   placeholder="Search waypoint..."
                   onChange={setNewWaypoint}
                 />
@@ -781,11 +801,10 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
                   name="startDate"
                   value={formData.startDate}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.startDate
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.startDate
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                 />
               </div>
 
@@ -798,11 +817,10 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
                   name="startTime"
                   value={formData.startTime}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.startTime
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.startTime
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                 />
               </div>
 
@@ -815,11 +833,10 @@ export const TripForm = ({ trip = null, customers = [], onSave, onCancel }) => {
                   name="estimatedDuration"
                   value={formData.estimatedDuration}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.estimatedDuration
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-700"
-                  }`}
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.estimatedDuration
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-700"
+                    }`}
                   placeholder="e.g., 3 hours, 4 hours 30 mins"
                 />
               </div>

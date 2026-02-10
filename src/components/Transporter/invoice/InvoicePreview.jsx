@@ -9,13 +9,16 @@ import {
   Printer,
   User,
   X,
+  CheckCircle,
+  Copy,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { companyProfileAPI } from "../../../api/companyProfileAPI";
-import AddressDisplay from "../../QuortsView/AddressDisplay";
 
 export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
   const { user } = useSelector((state) => state.auth);
@@ -249,6 +252,89 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
   // Get primary bank details
   const primaryBank = getPrimaryBankDetails();
 
+  const InlineAddressDisplay = ({ label, address }) => {
+    const [expanded, setExpanded] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    if (!address) return null;
+
+    const handleCopy = () => {
+      navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    };
+
+    const iconColor =
+      label.toLowerCase() === "from"
+        ? "text-green-500"
+        : "text-red-500";
+
+    return (
+      <div className="w-full">
+        {/* Compact Row */}
+        <div className="flex items-center gap-2">
+          <MapPin className={`h-4 w-4 shrink-0 ${iconColor}`} />
+
+          <div className="flex-1 min-w-0">
+            <div
+              className="text-sm text-gray-900 truncate"
+              title={address}
+            >
+              {address}
+            </div>
+          </div>
+
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="p-1 rounded hover:bg-gray-100 transition"
+          >
+            {expanded ? (
+              <ChevronUp className="h-4 w-4 text-gray-400" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-gray-400" />
+            )}
+          </button>
+        </div>
+
+        {/* Expanded */}
+        {expanded && (
+          <div className="mt-2 ml-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-xs text-gray-500 mb-1">{label}</p>
+
+            <p className="text-sm text-gray-900 break-words">
+              {address}
+            </p>
+
+            <div className="flex items-center gap-3 mt-2 text-xs">
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1 text-blue-600 hover:underline"
+              >
+                {copied ? (
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+                {copied ? "Copied" : "Copy"}
+              </button>
+
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  address
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-red-500 hover:underline"
+              >
+                Open in Maps
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div ref={pdfRef} className="relative w-full max-w-5xl bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100">
       {/* Header with gradient */}
@@ -355,20 +441,25 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
             </div>
             <div className="space-y-3">
               <div>
-                <h4 className="font-bold text-gray-900 text-lg mb-1">{invoice.customerName}</h4>
+                <h4 className="font-bold text-gray-900 text-lg mb-1">
+                  {invoice.customer || invoice.customerName}
+                </h4>
                 <div className="space-y-1 text-sm text-gray-600">
                   <p className="flex items-center gap-2">
                     <Mail className="h-3 w-3" />
-                    {invoice.customerEmail}
+                    {invoice.email || "—"}
                   </p>
                   <p className="flex items-center gap-2">
                     <Phone className="h-3 w-3" />
-                    {invoice.customerPhone}
+                    {invoice.phoneNo}
                   </p>
                 </div>
               </div>
-              <div className="pt-3 border-t border-gray-100">
-                <p className="text-gray-700 text-sm leading-relaxed">{invoice.customerAddress}</p>
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-700 flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 text-gray-500 flex-shrink-0" />
+                <p className="text-gray-700 text-sm leading-relaxed">
+                  {invoice.customerAddress}
+                </p>
               </div>
             </div>
           </div>
@@ -410,8 +501,9 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
                   Trip Details
                 </p>
 
-                {from && <AddressDisplay label="From" address={from} />}
-                {to && <AddressDisplay label="To" address={to} />}
+                <InlineAddressDisplay label="From" address={from} />
+                <InlineAddressDisplay label="To" address={to} />
+
               </div>
             </div>
           </div>

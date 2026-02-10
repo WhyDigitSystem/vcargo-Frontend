@@ -50,8 +50,16 @@ export const TripDashboard = () => {
       const mappedTrips = apiTrips.map((trip) => ({
         id: trip.id,
         tripNumber: `TRIP-${trip.id}`,
-        customerId: trip.customer,
-        customerName: trip.customer,
+        customerId:
+          typeof trip.customer === "object"
+            ? trip.customer.id
+            : trip.customer,
+
+        customerName:
+          typeof trip.customer === "object"
+            ? trip.customer.customerName
+            : trip.customerName || "",
+
         vehicleId:
           typeof trip.vehicle === "object" ? trip.vehicle.id : trip.vehicleId,
         vehicleName:
@@ -149,13 +157,13 @@ export const TripDashboard = () => {
         branchName: "Main Branch",
         createdBy: userId.toString(),
         user: parseInt(userId, 10) || 0,
-        customer: tripData.customer,
+        customer: Number(tripData.customer),
         source: tripData.source || "",
-        sourceLat: (tripData.sourceLat || "").toString(), // Convert to string
-        sourceLng: (tripData.sourceLng || "").toString(),
+        sourceLat: tripData.sourceLat ? String(tripData.sourceLat) : null,
+        sourceLng: tripData.sourceLng ? String(tripData.sourceLng) : null,
         destination: tripData.destination || "",
-        destinationLat: (tripData.destinationLat || "").toString(), // Convert to string
-        destinationLng: (tripData.destinationLng || "").toString(),
+        destinationLat: tripData.destinationLat ? String(tripData.destinationLat) : null,
+        destinationLng: tripData.destinationLng ? String(tripData.destinationLng) : null,
         vehicle: tripData.vehicleId,
         driver: tripData.driverId,
         tripType: tripData.tripType || "",
@@ -228,41 +236,47 @@ export const TripDashboard = () => {
 
         const tripForEdit = {
           id: apiTrip.id,
-          tripNumber: `TRIP-${apiTrip.id}`,
-          customer: apiTrip.customer,
+
+          customer: apiTrip.customerId || "",   // ✅ USE customerId
+
           customerName: apiTrip.customer,
+
           vehicleId: apiTrip.vehicleId,
-          vehicleName: apiTrip.vehicle,
           driverId: apiTrip.driverId,
-          driverName: apiTrip.driver,
+
           source: apiTrip.source,
+          sourceLat: apiTrip.sourceLat,
+          sourceLng: apiTrip.sourceLng,
+
           destination: apiTrip.destination,
+          destinationLat: apiTrip.destinationLat,
+          destinationLng: apiTrip.destinationLng,
+
           distance: apiTrip.distance,
           estimatedDuration: apiTrip.estimatedDuration,
+
           startDate: apiTrip.startDate,
           startTime: apiTrip.startTime?.slice(0, 5),
           endDate: apiTrip.endDate,
           endTime: apiTrip.endTime?.slice(0, 5),
+
           status: apiTrip.status,
           tripType: apiTrip.tripType,
+
           goodsType: apiTrip.goodsType,
           goodsWeight: apiTrip.goodsWeight,
           goodsValue: apiTrip.goodsValue,
+
           tripCost: apiTrip.tripCost,
           revenue: apiTrip.revenue,
           profit: apiTrip.profit,
           fuelCost: apiTrip.fuelCost,
           tollCharges: apiTrip.tollCharges,
           otherExpenses: apiTrip.otherExpenses,
-          notes: apiTrip.notes,
-          waypoints: apiTrip.waypoints || [],
-          active: apiTrip.active,
 
-          waypoints:
-            apiTrip.waypoints?.map((wp) => ({
-              location: wp.location,
-              sequenceNo: wp.sequenceNo,
-            })) || [],
+          notes: apiTrip.notes,
+
+          waypoints: apiTrip.waypoints || [],
         };
 
         setEditingTrip(tripForEdit);
@@ -473,13 +487,13 @@ export const TripDashboard = () => {
         drivers={filterDrivers}
         customers={filterCustomers}
         selectedTrips={selectedTrips}
-        // onBulkAction={(action) => {
-        //   if (action === "export") {
-        //     console.log("Exporting:", selectedTrips);
-        //   } else if (action === "start") {
-        //     selectedTrips.forEach((id) => handleStartTrip(id));
-        //   }
-        // }}
+      // onBulkAction={(action) => {
+      //   if (action === "export") {
+      //     console.log("Exporting:", selectedTrips);
+      //   } else if (action === "start") {
+      //     selectedTrips.forEach((id) => handleStartTrip(id));
+      //   }
+      // }}
       />
 
       {/* Two Column Layout */}

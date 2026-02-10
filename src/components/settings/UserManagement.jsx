@@ -38,7 +38,7 @@ const useUserManagement = () => {
       const payload = {
         branchCode: params.branchCode || "",
         count: params.count !== undefined ? params.count : 5,
-        page: params.page !== undefined ? params.page : 1,
+        page: params.page !== undefined ? params.page : 2,
         search: params.search || "",
       };
 

@@ -6,4 +6,10 @@ export const dashboardAPI = {
       params: { orgId },
     });
   },
+
+  getVehicleStatus: async ({ orgId }) => {
+    return await apiClient.get("/api/dashboard/getAllDashBoardVehicleDetails", {
+      params: { orgId },
+    });
+  },
 };

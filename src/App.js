@@ -236,6 +236,7 @@ const AppContent = () => {
                             path="/drivers"
                             element={<DriverManagement />}
                           />
+                          <Route path="/customers" element={<Customer />} />
                           <Route path="/payments" element={<PaymentSetup />} />
                           <Route path="/routes" element={<RoutesAndZones />} />
                           <Route
@@ -266,6 +267,10 @@ const AppContent = () => {
                             <Route
                             path="/settings/users"
                             element={<UserManagement />}
+                          />
+                          <Route
+                            path="/listOfValues"
+                            element={<ListOfValues />}
                           />
                         </>
                       )}
