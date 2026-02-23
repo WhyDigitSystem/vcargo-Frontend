@@ -19,6 +19,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import driverAPI from "../../api/TdriverAPI";
 import vehicleAPI from "../../api/TvehicleAPI";
+import vehicleSampleUpload from "../../assets/sampleTvehicleExcel.xlsx"
 
 const Car = ({ className }) => (
   <svg
@@ -1409,9 +1410,12 @@ const VehicleManagement = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [notification, setNotification] = useState(null);
   const [viewVehicle, setViewVehicle] = useState(null);
-  const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [excelFile, setExcelFile] = useState(null);
+
   const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
+  const userId = user.usersId;
 
   const ITEMS_PER_PAGE = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -1428,10 +1432,9 @@ const VehicleManagement = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Load vehicles on component mount and when filters/page changes
   useEffect(() => {
     loadVehicles();
-  }, []); // Reload when page changes
+  }, []);
 
   const loadVehicles = async () => {
     setLoading(true);
@@ -1457,7 +1460,6 @@ const VehicleManagement = () => {
     }
   };
 
-  // Filter vehicles based on search and status - for display only
   const filteredVehicles = vehicles.filter((vehicle) => {
     const matchesSearch =
       vehicle.vehicleNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1508,8 +1510,6 @@ const VehicleManagement = () => {
     }
   };
 
-  // Update your table to show currentFilteredItems instead of filteredVehicles
-
   const handleDeleteVehicle = async (id) => {
     try {
       await vehicleAPI.deleteVehicle(id);
@@ -1537,7 +1537,45 @@ const VehicleManagement = () => {
     setEditingVehicle(null);
   };
 
-  // Calculate stats from ALL vehicles (not just filtered)
+  const handleExcelChange = (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
+      showNotification("error", "Please upload a valid Excel file");
+      return;
+    }
+
+    setExcelFile(file);
+  };
+
+  const handleExcelUpload = async () => {
+    if (!excelFile) {
+      showNotification("error", "Please select Excel file");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", excelFile);
+      formData.append("orgId", orgId);
+      formData.append("createdBy", userId);
+
+      await vehicleAPI.uploadVehcileExcel(formData);
+
+      showNotification("success", "Excel uploaded successfully");
+
+      setShowImportModal(false);
+      setExcelFile(null);
+
+      await loadVehicles();
+    } catch (error) {
+      console.error(error);
+      showNotification("error", "Excel upload failed");
+    }
+  };
+
   const stats = {
     total: vehicles.length, // Use total count from backend
     active: vehicles.filter((v) => v.status === "active").length,
@@ -1816,16 +1854,15 @@ const VehicleManagement = () => {
             </div>
           </div>
 
-          {/* <div className="flex items-center gap-3">
-            <button className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-              <Download className="h-4 w-4" />
-              Export
-            </button>
-            <button className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
               <Upload className="h-4 w-4" />
               Import
             </button>
-          </div> */}
+          </div>
         </div>
       </div>
 
@@ -2168,6 +2205,101 @@ const VehicleManagement = () => {
                 Edit
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Upload Files
+              </h3>
+
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setExcelFile(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-8 text-center space-y-4">
+
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Choose a file to upload
+              </p>
+
+              {/* Upload Button */}
+              <label className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg cursor-pointer transition">
+
+                <Upload className="h-4 w-4" />
+
+                Upload File
+
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleExcelChange}
+                  className="hidden"
+                />
+              </label>
+
+              {/* Selected File */}
+              {excelFile && (
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {excelFile.name}
+                </p>
+              )}
+
+              {/* Sample File BELOW Upload */}
+              <button
+                onClick={() => {
+                  const link = document.createElement("a");
+                  link.href = vehicleSampleUpload;
+                  link.download = "Vehicle_Sample_Upload.xlsx";
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="flex items-center justify-center gap-2 mx-auto mt-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-sm"
+              >
+                <Download className="h-4 w-4" />
+                Sample File
+              </button>
+
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-between items-center px-6 py-4 border-t dark:border-gray-700">
+
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setExcelFile(null);
+                }}
+                className="text-indigo-600 dark:text-indigo-400 text-sm hover:underline"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleExcelUpload}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm"
+              >
+                Submit
+              </button>
+
+            </div>
+
           </div>
         </div>
       )}

@@ -2,6 +2,19 @@ import apiClient from "./apiClient";
 
 const driverAPI = {
   // Get all drivers from real API
+
+  uploadDriverExcel: async (formData) => {
+    return await apiClient.post(
+      "/api/transaction/tDriverExcelUpload",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+  },
+
   getDrivers: async (orgId) => {
     try {
       const response = await apiClient.get(

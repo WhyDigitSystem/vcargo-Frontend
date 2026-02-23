@@ -2,6 +2,19 @@ import apiClient from "./apiClient";
 
 const vehicleAPI = {
   // Get all vehicles from real API
+
+  uploadVehcileExcel: async (formData) => {
+    return await apiClient.post(
+      "/api/transaction/tVehicleExcelUpload",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+  },
+
   getVehicles: async (orgId) => {
     try {
       const response = await apiClient.get(

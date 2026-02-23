@@ -24,6 +24,7 @@ import { Briefcase, File, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import driverAPI from "../../api/TdriverAPI";
+import driverSampleUpload from "../../assets/sampleTdriverUploadExcel.xlsx"
 
 // Import the driverAPI
 
@@ -1592,10 +1593,12 @@ const DriverManagement = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [viewDriver, setViewDriver] = useState(null);
   const [notification, setNotification] = useState({ type: "", message: "" });
-  const userId = JSON.parse(localStorage.getItem("user"))?.usersId || "";
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [excelFile, setExcelFile] = useState(null);
 
   const { user } = useSelector((state) => state.auth);
   const orgId = user.orgId;
+  const userId = user.usersId;
 
   const ITEMS_PER_PAGE = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -1702,6 +1705,45 @@ const DriverManagement = () => {
   const handleFormCancel = () => {
     setShowForm(false);
     setEditingDriver(null);
+  };
+
+  const handleExcelChange = (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
+      showNotification("error", "Please upload a valid Excel file");
+      return;
+    }
+
+    setExcelFile(file);
+  };
+
+  const handleExcelUpload = async () => {
+    if (!excelFile) {
+      showNotification("error", "Please select Excel file");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", excelFile);
+      formData.append("orgId", orgId);
+      formData.append("createdBy", userId);
+
+      await driverAPI.uploadDriverExcel(formData);
+
+      showNotification("success", "Excel uploaded successfully");
+
+      setShowImportModal(false);
+      setExcelFile(null);
+
+      await loadDrivers();
+    } catch (error) {
+      console.error(error);
+      showNotification("error", "Excel upload failed");
+    }
   };
 
   // Filter drivers based on search and status
@@ -2035,16 +2077,15 @@ const DriverManagement = () => {
             </div>
           </div>
 
-          {/* <div className="flex items-center gap-3">
-            <button className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-              <Download className="h-4 w-4" />
-              Export
-            </button>
-            <button className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
               <Upload className="h-4 w-4" />
               Import
             </button>
-          </div> */}
+          </div>
         </div>
       </div>
 
@@ -2325,163 +2366,258 @@ const DriverManagement = () => {
 
       {/* Driver Details Modal */}
       {viewDriver && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-    <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl shadow-xl">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl shadow-xl">
 
-      {/* ================= HEADER ================= */}
-      <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Driver Details
-        </h2>
-        <button
-          onClick={() => setViewDriver(null)}
-          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* ================= CONTENT ================= */}
-      <div className="p-4 space-y-6">
-
-        {/* Avatar + Name */}
-        <div className="flex items-center gap-4 pb-4 border-b dark:border-gray-700">
-          <div className="h-14 w-14 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-            <User className="h-7 w-7 text-blue-600 dark:text-blue-400" />
-          </div>
-
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {viewDriver.name}
-            </h3>
-            <div className="flex items-center gap-2 mt-1">
-              {getStatusBadge(viewDriver.status)}
-              <span className="text-xs text-gray-500">
-                • {viewDriver.assignedVehicle || "Not Assigned"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* ================= PERSONAL INFO ================= */}
-        <div>
-          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Personal Information
-          </h4>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="space-y-2">
-              <Info label="Name" value={viewDriver.name} />
-              <Info label="Phone" value={formatPhone(viewDriver.phone)} />
-              <Info label="Email" value={viewDriver.email || "N/A"} />
-              <Info label="Blood Group" value={viewDriver.bloodGroup || "N/A"} />
+            {/* ================= HEADER ================= */}
+            <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Driver Details
+              </h2>
+              <button
+                onClick={() => setViewDriver(null)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            <div className="space-y-2">
-              <Info
-                label="Status"
-                value={getStatusBadge(viewDriver.status)}
-                isNode
-              />
-              <Info label="Experience" value={viewDriver.experience || "N/A"} />
-              <Info label="Salary" value={viewDriver.salary || "N/A"} />
-              <Info label="Joined" value={formatDate(viewDriver.joinedDate)} />
-            </div>
+            {/* ================= CONTENT ================= */}
+            <div className="p-4 space-y-6">
 
-            <div className="space-y-2">
-              <Info label="License No" value={viewDriver.licenseNumber} />
-              <Info
-                label="License Expiry"
-                value={formatDate(viewDriver.licenseExpiry)}
-              />
-              <Info label="Aadhar" value={viewDriver.aadharNumber || "N/A"} />
-              <Info
-                label="Vehicle"
-                value={viewDriver.assignedVehicle || "Not Assigned"}
-              />
-            </div>
-          </div>
-        </div>
+              {/* Avatar + Name */}
+              <div className="flex items-center gap-4 pb-4 border-b dark:border-gray-700">
+                <div className="h-14 w-14 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <User className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+                </div>
 
-        {/* ================= CONTACT INFO ================= */}
-        <div>
-          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Contact Details
-          </h4>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {viewDriver.name}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    {getStatusBadge(viewDriver.status)}
+                    <span className="text-xs text-gray-500">
+                      • {viewDriver.assignedVehicle || "Not Assigned"}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <Info label="Address" value={viewDriver.address || "N/A"} />
-            <Info
-              label="Emergency Contact"
-              value={formatPhone(viewDriver.emergencyContact) || "N/A"}
-            />
-          </div>
-        </div>
+              {/* ================= PERSONAL INFO ================= */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Personal Information
+                </h4>
 
-        {/* ================= DOCUMENTS ================= */}
-        <div>
-          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Documents
-          </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="space-y-2">
+                    <Info label="Name" value={viewDriver.name} />
+                    <Info label="Phone" value={formatPhone(viewDriver.phone)} />
+                    <Info label="Email" value={viewDriver.email || "N/A"} />
+                    <Info label="Blood Group" value={viewDriver.bloodGroup || "N/A"} />
+                  </div>
 
-          <div className="flex flex-wrap gap-2">
-            {viewDriver.documents?.length ? (
-              viewDriver.documents.map((doc, i) => (
-                <span
-                  key={i}
-                  className="px-2 py-1 text-xs rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-900/30"
+                  <div className="space-y-2">
+                    <Info
+                      label="Status"
+                      value={getStatusBadge(viewDriver.status)}
+                      isNode
+                    />
+                    <Info label="Experience" value={viewDriver.experience || "N/A"} />
+                    <Info label="Salary" value={viewDriver.salary || "N/A"} />
+                    <Info label="Joined" value={formatDate(viewDriver.joinedDate)} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Info label="License No" value={viewDriver.licenseNumber} />
+                    <Info
+                      label="License Expiry"
+                      value={formatDate(viewDriver.licenseExpiry)}
+                    />
+                    <Info label="Aadhar" value={viewDriver.aadharNumber || "N/A"} />
+                    <Info
+                      label="Vehicle"
+                      value={viewDriver.assignedVehicle || "Not Assigned"}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ================= CONTACT INFO ================= */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Contact Details
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <Info label="Address" value={viewDriver.address || "N/A"} />
+                  <Info
+                    label="Emergency Contact"
+                    value={formatPhone(viewDriver.emergencyContact) || "N/A"}
+                  />
+                </div>
+              </div>
+
+              {/* ================= DOCUMENTS ================= */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Documents
+                </h4>
+
+                <div className="flex flex-wrap gap-2">
+                  {viewDriver.documents?.length ? (
+                    viewDriver.documents.map((doc, i) => (
+                      <span
+                        key={i}
+                        className="px-2 py-1 text-xs rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-900/30"
+                      >
+                        {doc}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-gray-400">
+                      No documents uploaded
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* ================= PERFORMANCE ================= */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
+                <div
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded ${getPerformanceBadge(
+                    viewDriver.performance
+                  )}`}
                 >
-                  {doc}
-                </span>
-              ))
-            ) : (
-              <span className="text-xs text-gray-400">
-                No documents uploaded
-              </span>
-            )}
+                  <Award className="h-4 w-4" />
+                  {viewDriver.performance || "N/A"}
+                </div>
+
+                {viewDriver.lastTrip && (
+                  <span className="text-xs text-gray-500">
+                    Last trip: {formatDate(viewDriver.lastTrip)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* ================= FOOTER ================= */}
+            <div className="flex justify-end gap-2 px-4 py-3 border-t dark:border-gray-700">
+              <button
+                onClick={() => setViewDriver(null)}
+                className="px-3 py-1.5 border rounded text-sm dark:text-white"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setViewDriver(null);
+                  handleEdit(viewDriver);
+                }}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+              >
+                Edit
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* ================= PERFORMANCE ================= */}
-        <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
-          <div
-            className={`inline-flex items-center gap-2 px-3 py-1 rounded ${getPerformanceBadge(
-              viewDriver.performance
-            )}`}
-          >
-            <Award className="h-4 w-4" />
-            {viewDriver.performance || "N/A"}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Upload Files
+              </h3>
+
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setExcelFile(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-8 text-center space-y-4">
+
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Choose a file to upload
+              </p>
+
+              {/* Upload Button */}
+              <label className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg cursor-pointer transition">
+
+                <Upload className="h-4 w-4" />
+
+                Upload File
+
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleExcelChange}
+                  className="hidden"
+                />
+              </label>
+
+              {/* Selected File */}
+              {excelFile && (
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {excelFile.name}
+                </p>
+              )}
+
+              {/* Sample File BELOW Upload */}
+              <button
+                onClick={() => {
+                  const link = document.createElement("a");
+                  link.href = driverSampleUpload;
+                  link.download = "Driver_Sample_Upload.xlsx";
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="flex items-center justify-center gap-2 mx-auto mt-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-sm"
+              >
+                <Download className="h-4 w-4" />
+                Sample File
+              </button>
+
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-between items-center px-6 py-4 border-t dark:border-gray-700">
+
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setExcelFile(null);
+                }}
+                className="text-indigo-600 dark:text-indigo-400 text-sm hover:underline"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleExcelUpload}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm"
+              >
+                Submit
+              </button>
+
+            </div>
+
           </div>
-
-          {viewDriver.lastTrip && (
-            <span className="text-xs text-gray-500">
-              Last trip: {formatDate(viewDriver.lastTrip)}
-            </span>
-          )}
         </div>
-      </div>
-
-      {/* ================= FOOTER ================= */}
-      <div className="flex justify-end gap-2 px-4 py-3 border-t dark:border-gray-700">
-        <button
-          onClick={() => setViewDriver(null)}
-          className="px-3 py-1.5 border rounded text-sm dark:text-white"
-        >
-          Close
-        </button>
-        <button
-          onClick={() => {
-            setViewDriver(null);
-            handleEdit(viewDriver);
-          }}
-          className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-        >
-          Edit
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
     </div>
   );
