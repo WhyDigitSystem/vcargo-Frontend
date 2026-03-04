@@ -17,8 +17,13 @@ export const customerAPI = {
     });
   },
 
-  getCustomerName: async ({orgId}) => {
+  getCustomerName: async ({ orgId }) => {
     return await apiClient.get("/api/master/getCustomerNameByOrgId", {
       params: { orgId }
-    })}
+    })
+  },
+
+  getNextCustomerCode: async () => {
+    return await apiClient.get("/api/master/getNextCustomerCode");
+  }
 };

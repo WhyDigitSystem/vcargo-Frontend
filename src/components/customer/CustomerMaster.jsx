@@ -56,8 +56,23 @@ const CustomerMaster = ({ editingCustomerId, onBackToList }) => {
       handleEditCustomer(editingCustomerId);
     } else {
       resetForm();
+      getNextCustomerCode();
     }
   }, [editingCustomerId]);
+
+  const getNextCustomerCode = async () => {
+    try {
+      const response = await customerAPI.getNextCustomerCode();
+      const code = response?.paramObjectsMap?.customerCode || "";
+
+      setFormData(prev => ({
+        ...prev,
+        customerCode: code
+      }));
+    } catch (error) {
+      console.error("Error fetching customer code:", error);
+    }
+  };
 
   const getListDescription = async () => {
     try {
@@ -390,7 +405,7 @@ const CustomerMaster = ({ editingCustomerId, onBackToList }) => {
               value={formData.customerCode}
               placeholder="Enter Customer Code"
               onChange={handleChange}
-              disabled={loading}
+              disabled
             />
           </div>
 

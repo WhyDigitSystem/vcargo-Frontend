@@ -23,87 +23,34 @@ const useUserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingId, setLoadingId] = useState(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    count: 10,
-    totalPages: 0,
-    totalCount: 0,
-    currentPage: 1,
-  });
 
-  // Fetch users from API
-  const fetchUsers = async (params = {}) => {
+  const fetchUsers = async () => {
     setLoading(true);
     try {
-      const payload = {
-        branchCode: params.branchCode || "",
-        count: params.count !== undefined ? params.count : 5,
-        page: params.page !== undefined ? params.page : 2,
-        search: params.search || "",
-      };
-
-      console.log("🔄 API CALL - Payload:", payload);
-
-      const response = await settingsAPI.getUser(payload);
-
-      console.log("📦 API RESPONSE:", response);
+      const response = await settingsAPI.getUser();
 
       if (response.status && response.paramObjectsMap?.userVO) {
-        const userData = response.paramObjectsMap.userVO.data;
-        console.log("📊 User Data Received:", {
-          usersCount: userData.users?.length,
-          totalPages: userData.totalPages,
-          totalCount: userData.totalCount,
-          currentPage: userData.currentPage,
-        });
-
-        setUsers(userData || []);
-        setPagination({
-          page: userData.currentPage || 1,
-          count: payload.count,
-          totalPages: userData.totalPages || 0,
-          totalCount: userData.totalCount || 0,
-          currentPage: userData.currentPage || 1,
-        });
-      } else {
-        console.warn("⚠️ Unexpected API response structure:", response.data);
+        setUsers(response.paramObjectsMap.userVO);
       }
     } catch (error) {
-      console.error("❌ API ERROR:", error);
-      console.error("Error details:", error.response?.data || error.message);
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Update user status using approval API
-  const updateUserStatus = async (
-    userId,
-    action,
-    userName,
-    actionBy = "admin"
-  ) => {
+  const updateUserStatus = async (userId, action, userName) => {
     setLoadingId(userId);
-    try {
-      console.log("🔄 Updating user status:", {
-        userId,
-        action,
-        userName,
-        actionBy,
-      });
 
-      // Call the approval API
+    try {
       const response = await settingsAPI.createApprovalUserList({
         action: action.toUpperCase(),
-        actionBy: actionBy,
+        actionBy: "admin",
         id: userId,
         userName: userName,
       });
 
-      console.log("✅ Approval API Response:", response);
-
       if (response.status) {
-        // Success - update local state
         setUsers((prev) =>
           prev.map((user) =>
             user.userId === userId
@@ -111,32 +58,13 @@ const useUserManagement = () => {
               : user
           )
         );
-
-        // Show success message (you can replace with toast notification)
-        alert(
-          `User ${userName} has been ${action.toLowerCase()} successfully!`
-        );
-      } else {
-        throw new Error(
-          response.paramObjectsMap?.message || "Failed to update user status"
-        );
       }
-    } catch (error) {
-      console.error("❌ Error updating user status:", error);
-
-      // Show error message
-      alert(`Failed to ${action.toLowerCase()} user: ${error.message}`);
-
-      // Refresh data to ensure consistency
-      fetchUsers({ page: pagination.currentPage });
     } finally {
       setLoadingId(null);
     }
   };
 
-  // Map API response to frontend format
   const mapApiUserToFrontend = (apiUser) => ({
-    id: apiUser.userId,
     userId: apiUser.userId,
     name: apiUser.userName || apiUser.email,
     email: apiUser.email,
@@ -144,10 +72,6 @@ const useUserManagement = () => {
     type: apiUser.type,
     industry: apiUser.organizationName,
     status: apiUser.status,
-    active: apiUser.active,
-    createdBy: apiUser.createdBy,
-    createdOn: apiUser.createdOn,
-    orgId: apiUser.orgId,
   });
 
   useEffect(() => {
@@ -159,8 +83,6 @@ const useUserManagement = () => {
     loading,
     loadingId,
     updateUserStatus,
-    fetchUsers,
-    pagination,
   };
 };
 
@@ -169,14 +91,14 @@ const UserManagement = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10;
 
   const {
     users,
     loading,
     loadingId,
     updateUserStatus,
-    fetchUsers,
-    pagination,
   } = useUserManagement();
 
   // Debounce search input
@@ -186,15 +108,6 @@ const UserManagement = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, [search]);
-
-  // Fetch users when search changes
-  useEffect(() => {
-    fetchUsers({
-      search: debouncedSearch,
-      page: 1,
-      count: 5,
-    });
-  }, [debouncedSearch]);
 
   const statusConfig = {
     PENDING: {
@@ -218,42 +131,44 @@ const UserManagement = () => {
   };
 
   // Client-side filtering for status and type
+  // Client-side filtering
   const filteredUsers = users.filter((user) => {
     const matchesStatus =
       statusFilter === "all" || user.status === statusFilter;
-    const matchesType = typeFilter === "all" || user.type === typeFilter;
+    const matchesType =
+      typeFilter === "all" || user.type === typeFilter;
+
     return matchesStatus && matchesType;
   });
 
+  // Pagination
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+
   // KPI Calculations
-  const totalUsers = pagination.totalCount || users.length;
+  const totalUsers = filteredUsers.length || users.length;
   const pendingUsers = users.filter((u) => u.status === "PENDING").length;
   const approvedUsers = users.filter((u) => u.status === "APPROVED").length;
   const rejectedUsers = users.filter((u) => u.status === "REJECTED").length;
 
   const handleRefresh = () => {
-    fetchUsers({
-      page: pagination.currentPage,
-      count: 5,
-      search: debouncedSearch,
-    });
+    window.location.reload();
   };
 
-  const handlePageChange = (newPage) => {
-    console.log("📄 Changing to page:", newPage);
-    if (newPage >= 1 && newPage <= pagination.totalPages) {
-      fetchUsers({
-        page: newPage,
-        count: 5,
-        search: debouncedSearch,
-      });
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
     }
   };
 
-  const handleFirstPage = () => handlePageChange(1);
-  const handleLastPage = () => handlePageChange(pagination.totalPages);
-  const handlePrevPage = () => handlePageChange(pagination.currentPage - 1);
-  const handleNextPage = () => handlePageChange(pagination.currentPage + 1);
+  const handleFirstPage = () => setCurrentPage(1);
+  const handleLastPage = () => setCurrentPage(totalPages);
+  const handlePrevPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
+  const handleNextPage = () => setCurrentPage((p) => Math.min(p + 1, totalPages));
 
   // Handle approve action
   const handleApprove = (userId, userName) => {
@@ -272,8 +187,8 @@ const UserManagement = () => {
   // Generate page numbers for pagination
   const generatePageNumbers = () => {
     const pages = [];
-    const current = pagination.currentPage;
-    const total = pagination.totalPages;
+    const current = currentPage;
+    const total = totalPages;
 
     if (total <= 7) {
       for (let i = 1; i <= total; i++) {
@@ -462,10 +377,10 @@ const UserManagement = () => {
           ) : (
             <>
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                Page {pagination.currentPage} of {pagination.totalPages} •
+                Page {currentPage} of {totalPages} •
                 Showing {filteredUsers.length} users
               </div>
-              {filteredUsers.map((user) => {
+              {currentUsers.map((user) => {
                 const statusInfo =
                   statusConfig[user.status] || statusConfig.PENDING;
                 const StatusIcon = statusInfo.icon;
@@ -553,10 +468,10 @@ const UserManagement = () => {
 
                             {(user.status === "APPROVED" ||
                               user.status === "REJECTED") && (
-                              <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                                <MoreVertical className="h-4 w-4 text-gray-400" />
-                              </button>
-                            )}
+                                <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                                  <MoreVertical className="h-4 w-4 text-gray-400" />
+                                </button>
+                              )}
                           </>
                         )}
                       </div>
@@ -569,21 +484,18 @@ const UserManagement = () => {
         </div>
 
         {/* Pagination */}
-        {pagination.totalPages > 1 && (
+        {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {(pagination.currentPage - 1) * pagination.count + 1} to{" "}
-              {Math.min(
-                pagination.currentPage * pagination.count,
-                pagination.totalCount
-              )}{" "}
-              of {pagination.totalCount} entries
+              Showing {indexOfFirstUser + 1} to{" "}
+              {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
+              {filteredUsers.length}
             </div>
 
             <div className="flex items-center gap-1">
               <button
                 onClick={handleFirstPage}
-                disabled={pagination.currentPage === 1}
+                disabled={currentPage === 1}
                 className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-200 dark:border-gray-700"
                 title="First Page"
               >
@@ -592,7 +504,7 @@ const UserManagement = () => {
 
               <button
                 onClick={handlePrevPage}
-                disabled={pagination.currentPage === 1}
+                disabled={currentPage === 1}
                 className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-200 dark:border-gray-700"
                 title="Previous Page"
               >
@@ -606,13 +518,11 @@ const UserManagement = () => {
                     typeof page === "number" ? handlePageChange(page) : null
                   }
                   disabled={page === "..."}
-                  className={`min-w-[2.5rem] px-3 py-2 text-sm rounded border ${
-                    page === pagination.currentPage
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  } ${
-                    page === "..." ? "cursor-default hover:bg-transparent" : ""
-                  }`}
+                  className={`min-w-[2.5rem] px-3 py-2 text-sm rounded border ${page === currentPage
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    } ${page === "..." ? "cursor-default hover:bg-transparent" : ""
+                    }`}
                 >
                   {page}
                 </button>
@@ -620,7 +530,7 @@ const UserManagement = () => {
 
               <button
                 onClick={handleNextPage}
-                disabled={pagination.currentPage === pagination.totalPages}
+                disabled={currentPage === totalPages}
                 className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-200 dark:border-gray-700"
                 title="Next Page"
               >
@@ -629,7 +539,7 @@ const UserManagement = () => {
 
               <button
                 onClick={handleLastPage}
-                disabled={pagination.currentPage === pagination.totalPages}
+                disabled={currentPage === totalPages}
                 className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-200 dark:border-gray-700"
                 title="Last Page"
               >
