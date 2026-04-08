@@ -26,6 +26,7 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
   const pdfRef = useRef();
   const [companyProfile, setCompanyProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -79,7 +80,6 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
     if (!companyProfile?.companyAddresses || companyProfile.companyAddresses.length === 0) {
       return null;
     }
-    // First try to find primary address, otherwise use first address
     return companyProfile.companyAddresses.find(addr => addr.primary) || companyProfile.companyAddresses[0];
   };
 
@@ -94,14 +94,12 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
   };
 
   const getPrimaryBankDetails = () => {
-    // Check if bank details exist in the API response structure
     if (companyProfile?.companyBankDetailsResponseDTO?.length > 0) {
       return companyProfile.companyBankDetailsResponseDTO.find(
         (bank) => bank.primary
       ) || companyProfile.companyBankDetailsResponseDTO[0];
     }
 
-    // Fallback to main company profile bank details if separate bank details not available
     if (companyProfile?.bankName) {
       return {
         bankName: companyProfile.bankName,
@@ -117,7 +115,6 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
 
   const renderTermsAndConditions = () => {
     if (!companyProfile?.termsAndConditions) {
-      // Return default terms
       return (
         <>
           <li className="flex items-start gap-2">
@@ -147,11 +144,9 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
   const handleDownloadPDF = async () => {
     const element = pdfRef.current;
 
-    // Save original styles
     const originalPadding = element.style.padding;
     const originalBoxSizing = element.style.boxSizing;
 
-    // Hide action buttons
     const actionButtons = element.querySelector(".action-buttons-container");
     const headerButtons = element.querySelector(".header-action-buttons");
 
@@ -161,8 +156,7 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
     if (actionButtons) actionButtons.style.display = "none";
     if (headerButtons) headerButtons.style.display = "none";
 
-    // ✅ ADD PADDING ONLY FOR PDF
-    element.style.padding = "8px"; // p-2
+    element.style.padding = "8px";
     element.style.boxSizing = "border-box";
 
     try {
@@ -203,7 +197,6 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
       pdf.save(`Invoice_${invoice.invoiceNumber || invoice.id}.pdf`);
     } finally {
       element.classList.remove("pdf-mode");
-      // 🔁 RESTORE STYLES
       element.style.padding = originalPadding;
       element.style.boxSizing = originalBoxSizing;
 
@@ -212,10 +205,172 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
     }
   };
 
+  const generatePDFBlob = async () => {
+    const element = pdfRef.current;
+
+    const originalPadding = element.style.padding;
+    const originalBoxSizing = element.style.boxSizing;
+
+    const actionButtons = element.querySelector(".action-buttons-container");
+    const headerButtons = element.querySelector(".header-action-buttons");
+
+    const originalActionDisplay = actionButtons?.style.display || "";
+    const originalHeaderDisplay = headerButtons?.style.display || "";
+
+    if (actionButtons) actionButtons.style.display = "none";
+    if (headerButtons) headerButtons.style.display = "none";
+
+    element.style.padding = "8px";
+    element.style.boxSizing = "border-box";
+
+    try {
+      element.classList.add("pdf-mode");
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        ignoreElements: (el) =>
+          el.classList?.contains("ignore-in-pdf") ||
+          el.classList?.contains("action-buttons-container") ||
+          el.classList?.contains("header-action-buttons"),
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      return pdf.output('blob');
+    } finally {
+      element.classList.remove("pdf-mode");
+      element.style.padding = originalPadding;
+      element.style.boxSizing = originalBoxSizing;
+
+      if (actionButtons) actionButtons.style.display = originalActionDisplay;
+      if (headerButtons) headerButtons.style.display = originalHeaderDisplay;
+    }
+  };
+
+  const handleSendWhatsApp = async () => {
+    const customerPhone = invoice.phoneNo || invoice.customerPhone || invoice.mobileNo;
+    
+    if (!customerPhone) {
+      alert("❌ Customer phone number is not available. Please add a phone number to send WhatsApp message.");
+      return;
+    }
+
+    setSendingWhatsApp(true);
+
+    try {
+      // Clean the phone number
+      let cleanPhone = customerPhone.toString().replace(/\D/g, '');
+      
+      // Ensure it has country code (assuming Indian numbers)
+      if (cleanPhone.length === 10) {
+        cleanPhone = `91${cleanPhone}`;
+      } else if (cleanPhone.length === 12 && cleanPhone.startsWith('91')) {
+        cleanPhone = cleanPhone;
+      } else if (cleanPhone.length === 13 && cleanPhone.startsWith('+91')) {
+        cleanPhone = cleanPhone.substring(1);
+      } else if (!cleanPhone.startsWith('91') && cleanPhone.length > 10) {
+        cleanPhone = `91${cleanPhone.slice(-10)}`;
+      }
+
+      // Generate PDF blob
+      const pdfBlob = await generatePDFBlob();
+      
+      // Create a temporary URL for the PDF
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      
+      // Create WhatsApp message
+      const message = `📄 *INVOICE #${invoice.invoiceNumber || invoice.id }*\n\n` +
+                     `Dear *${invoice.customer || invoice.customerName}*,\n\n` +
+                     `Thank you for choosing ${companyProfile?.companyName || organizationName}. Please find your invoice details below:\n\n` +
+                     `━━━━━━━━━━━━━━━━━━━━\n` +
+                     `📊 *Invoice Summary*\n` +
+                     `━━━━━━━━━━━━━━━━━━━━\n` +
+                     `💰 Total Amount: *₹${invoice.totalAmount?.toLocaleString("en-IN")}*\n` +
+                     `📅 Due Date: *${formatDate(invoice.dueDate)}*\n` +
+                     `📌 Status: *${invoice.status.toUpperCase()}*\n` +
+                     `━━━━━━━━━━━━━━━━━━━━\n\n` +
+                     `For any queries, please contact us at ${companyProfile?.phoneNo || "+91 98765 43210"}.\n\n` +
+                     `Best Regards,\n` +
+                     `*${companyProfile?.companyName || organizationName}*`;
+      
+      const encodedMessage = encodeURIComponent(message);
+      
+      // Check if running on mobile or desktop
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      // Create download link for PDF
+      const downloadLink = document.createElement('a');
+      downloadLink.href = pdfUrl;
+      downloadLink.download = `Invoice_${invoice.invoiceNumber || invoice.id}.pdf`;
+      
+      if (isMobile) {
+        // For mobile - download PDF first then open WhatsApp
+        downloadLink.click();
+        
+        // Wait a bit then open WhatsApp
+        setTimeout(() => {
+          const whatsappUrl = `whatsapp://send?phone=${cleanPhone}&text=${encodedMessage}`;
+          window.location.href = whatsappUrl;
+          
+          // Show instruction alert
+          setTimeout(() => {
+            alert(`✅ PDF downloaded!\n\n📱 Please attach the PDF file (Invoice_${invoice.invoiceNumber || invoice.id}.pdf) to your WhatsApp message.\n\n📍 Customer: ${customerPhone}\n💬 WhatsApp will open automatically.`);
+          }, 500);
+        }, 1000);
+      } else {
+        // For desktop - download PDF and open WhatsApp Web
+        downloadLink.click();
+        
+        // Open WhatsApp Web
+        const whatsappUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMessage}`;
+        
+        setTimeout(() => {
+          window.open(whatsappUrl, '_blank');
+          
+          // Show instruction alert
+          setTimeout(() => {
+            alert(`✅ PDF downloaded!\n\n💻 Please attach the PDF file (Invoice_${invoice.invoiceNumber}.pdf) to your WhatsApp Web message.\n\n📍 Customer: ${customerPhone}`);
+          }, 500);
+        }, 1500);
+      }
+      
+      // Clean up
+      setTimeout(() => {
+        URL.revokeObjectURL(pdfUrl);
+      }, 5000);
+      
+    } catch (error) {
+      console.error("Error sending WhatsApp:", error);
+      alert("❌ Failed to generate invoice. Please try again.");
+    } finally {
+      setSendingWhatsApp(false);
+    }
+  };
+
   const formatTripDetails = (tripDetails = "") => {
     if (!tripDetails) return "N/A";
-
-    // Normalize different separators to arrow
     return tripDetails
       .replace(/\s+to\s+/i, " → ")
       .replace(/\s*->\s*/g, " → ")
@@ -249,7 +404,6 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
     );
   }
 
-  // Get primary bank details
   const primaryBank = getPrimaryBankDetails();
 
   const InlineAddressDisplay = ({ label, address }) => {
@@ -264,26 +418,17 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
       setTimeout(() => setCopied(false), 1200);
     };
 
-    const iconColor =
-      label.toLowerCase() === "from"
-        ? "text-green-500"
-        : "text-red-500";
+    const iconColor = label.toLowerCase() === "from" ? "text-green-500" : "text-red-500";
 
     return (
       <div className="w-full">
-        {/* Compact Row */}
         <div className="flex items-center gap-2">
           <MapPin className={`h-4 w-4 shrink-0 ${iconColor}`} />
-
           <div className="flex-1 min-w-0">
-            <div
-              className="text-sm text-gray-900 truncate"
-              title={address}
-            >
+            <div className="text-sm text-gray-900 truncate" title={address}>
               {address}
             </div>
           </div>
-
           <button
             onClick={() => setExpanded(!expanded)}
             className="p-1 rounded hover:bg-gray-100 transition"
@@ -296,15 +441,10 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
           </button>
         </div>
 
-        {/* Expanded */}
         {expanded && (
           <div className="mt-2 ml-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
             <p className="text-xs text-gray-500 mb-1">{label}</p>
-
-            <p className="text-sm text-gray-900 break-words">
-              {address}
-            </p>
-
+            <p className="text-sm text-gray-900 break-words">{address}</p>
             <div className="flex items-center gap-3 mt-2 text-xs">
               <button
                 onClick={handleCopy}
@@ -317,11 +457,8 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
                 )}
                 {copied ? "Copied" : "Copy"}
               </button>
-
               <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                  address
-                )}`}
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-red-500 hover:underline"
@@ -451,11 +588,11 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
                   </p>
                   <p className="flex items-center gap-2">
                     <Phone className="h-3 w-3" />
-                    {invoice.phoneNo}
+                    {invoice.phoneNo || invoice.customerPhone || "—"}
                   </p>
                 </div>
               </div>
-              <div className="pt-3 border-t border-gray-100 dark:border-gray-700 flex items-start gap-2">
+              <div className="pt-3 border-t border-gray-100 flex items-start gap-2">
                 <MapPin className="h-4 w-4 mt-0.5 text-gray-500 flex-shrink-0" />
                 <p className="text-gray-700 text-sm leading-relaxed">
                   {invoice.customerAddress}
@@ -480,30 +617,22 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
                 </p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                  Driver
-                </p>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Driver</p>
                 <p className="font-semibold text-gray-900 text-sm bg-gray-50 px-3 py-2 rounded-lg border">
                   {invoice.driverName || ""}
                 </p>
               </div>
 
               <div className="space-y-1">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                  Driver No.
-                </p>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Driver No.</p>
                 <p className="font-semibold text-gray-900 text-sm bg-gray-50 px-3 py-2 rounded-lg border">
                   {invoice.driverNumber || ""}
                 </p>
               </div>
               <div className="col-span-2 space-y-3 invoice-trip-details">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                  Trip Details
-                </p>
-
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Trip Details</p>
                 <InlineAddressDisplay label="From" address={from} />
                 <InlineAddressDisplay label="To" address={to} />
-
               </div>
             </div>
           </div>
@@ -617,9 +746,7 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
             <div className="bg-gradient-to-b from-gray-50 to-white rounded-xl border border-gray-200 p-3">
               <div className="space-y-0">
                 <div className="flex items-center gap-4">
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                    Payment Method
-                  </p> -
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Payment Method</p> -
                   <p className="text-sm font-semibold text-gray-900 capitalize">
                     {invoice.paymentMethod?.replace("_", " ")}
                   </p>
@@ -728,13 +855,23 @@ export const InvoicePreview = ({ invoice, onClose, onPrint }) => {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                /* Send email logic */
-              }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-all duration-200 font-semibold shadow-sm hover:shadow ignore-in-pdf"
+              onClick={handleSendWhatsApp}
+              disabled={sendingWhatsApp}
+              className="send-whatsapp-btn flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-all duration-200 font-semibold shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed ignore-in-pdf"
             >
-              <Mail className="h-4 w-4" />
-              Send Invoice
+              {sendingWhatsApp ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Preparing...
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                  </svg>
+                  Send WhatsApp
+                </>
+              )}
             </button>
             <button
               onClick={handleDownloadPDF}
