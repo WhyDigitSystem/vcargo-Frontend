@@ -20,7 +20,7 @@ const ListOfValuesListView = ({ setIsListView, setEditId }) => {
     });
 
     const { user } = useSelector((state) => state.auth);
-    const orgId = user.orgId;
+    const orgid = user.orgId;
 
     useEffect(() => {
         getAllLists();
@@ -47,7 +47,7 @@ const ListOfValuesListView = ({ setIsListView, setEditId }) => {
         try {
             setLoading(true);
 
-            const response = await listOfValuesAPI.getAllListOfValues({ orgId });
+            const response = await listOfValuesAPI.getAllListOfValues({ orgid });
 
             const data = response?.paramObjectsMap?.listOfValuesVO || [];
 

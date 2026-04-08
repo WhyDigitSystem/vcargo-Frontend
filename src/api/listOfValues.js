@@ -6,9 +6,9 @@ export const listOfValuesAPI = {
     return await apiClient.put("/api/master/updateCreateListOfValues", payload);
   },
 
-  getAllListOfValues: async ({ orgId }) => {
+  getAllListOfValues: async ({ orgid }) => {
     return await apiClient.get("/api/master/getListOfValuesByOrgId", {
-      params: { orgId }
+      params: { orgid }
     });
   },
 
