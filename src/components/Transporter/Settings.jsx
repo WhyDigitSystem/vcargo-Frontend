@@ -1,29 +1,19 @@
-import React, { useState, useEffect } from 'react';
 import {
-  Settings,
-  Save,
   Bell,
-  Shield,
-  CreditCard,
-  Palette,
-  Globe,
-  Download,
-  Upload,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Plus,
   Building,
-  FileText,
-  Users,
-  Truck,
-  Calendar,
-  BarChart3,
-  ChevronDown
-} from 'lucide-react';
-import { companyProfileAPI } from '../../api/companyProfileAPI';
-import { useSelector } from 'react-redux';
-import { toast } from '../../utils/toast';
+  CheckCircle,
+  CreditCard,
+  Plus,
+  Save,
+  Settings,
+  Shield,
+  Trash2,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { companyProfileAPI } from "../../api/companyProfileAPI";
+import { toast } from "../../utils/toast";
 
 const initialSettings = {
   profile: {
@@ -38,12 +28,8 @@ const initialSettings = {
     establishedYear: "",
     termsAndConditions: "",
 
-    billingAddresses: [
-      { id: Date.now(), address: "", isPrimary: true }
-    ],
-    shippingAddresses: [
-      { id: Date.now() + 1, address: "", isPrimary: true }
-    ],
+    billingAddresses: [{ id: Date.now(), address: "", isPrimary: true }],
+    shippingAddresses: [{ id: Date.now() + 1, address: "", isPrimary: true }],
 
     bankDetails: [
       {
@@ -53,8 +39,8 @@ const initialSettings = {
         bankName: "",
         ifscCode: "",
         branch: "",
-        isPrimary: true
-      }
+        isPrimary: true,
+      },
     ],
 
     logoPreview: null,
@@ -89,14 +75,14 @@ const initialSettings = {
     lateFeePercentage: 1.5,
     autoGenerateInvoices: true,
     sendPaymentReminders: true,
-  }
+  },
 };
 
 // Main Settings Component
 const SettingsScreen = () => {
   const [settings, setSettings] = useState(initialSettings);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState('profile');
+  const [activeSection, setActiveSection] = useState("profile");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -130,42 +116,39 @@ const SettingsScreen = () => {
       establishedYear: apiProfile.establishedYear || "",
       termsAndConditions: apiProfile.termsAndConditions || "",
 
-      billingAddresses:
-        apiProfile.companyAddresses?.map((addr) => ({
-          id: addr.id,
-          address: addr.billingAddress || "",
-          isPrimary: !!addr.primary,
-        })) || [{ id: Date.now(), address: "", isPrimary: true }],
+      billingAddresses: apiProfile.companyAddresses?.map((addr) => ({
+        id: addr.id,
+        address: addr.billingAddress || "",
+        isPrimary: !!addr.primary,
+      })) || [{ id: Date.now(), address: "", isPrimary: true }],
 
-      shippingAddresses:
-        apiProfile.companyAddresses?.map((addr) => ({
-          id: addr.id,
-          address: addr.shippingAddress || "",
-          isPrimary: !!addr.primary,
-        })) || [{ id: Date.now() + 1, address: "", isPrimary: true }],
+      shippingAddresses: apiProfile.companyAddresses?.map((addr) => ({
+        id: addr.id,
+        address: addr.shippingAddress || "",
+        isPrimary: !!addr.primary,
+      })) || [{ id: Date.now() + 1, address: "", isPrimary: true }],
 
-      bankDetails:
-        apiProfile.companyBankDetailsResponseDTO?.map((bank) => ({
-          id: bank.id,
-          accountName: bank.accountHolderName || "",
-          accountNumber: bank.accountNumber || "",
-          bankName: bank.bankName || "",
-          ifscCode: bank.ifscCode || "",
-          branch: bank.branch || "",
-          branchCode: bank.branchCode || "",
-          isPrimary: !!bank.primary,
-        })) || [
-          {
-            id: Date.now(),
-            accountName: "",
-            accountNumber: "",
-            bankName: "",
-            ifscCode: "",
-            branch: "",
-            branchCode: "",
-            isPrimary: true,
-          },
-        ],
+      bankDetails: apiProfile.companyBankDetailsResponseDTO?.map((bank) => ({
+        id: bank.id,
+        accountName: bank.accountHolderName || "",
+        accountNumber: bank.accountNumber || "",
+        bankName: bank.bankName || "",
+        ifscCode: bank.ifscCode || "",
+        branch: bank.branch || "",
+        branchCode: bank.branchCode || "",
+        isPrimary: !!bank.primary,
+      })) || [
+        {
+          id: Date.now(),
+          accountName: "",
+          accountNumber: "",
+          bankName: "",
+          ifscCode: "",
+          branch: "",
+          branchCode: "",
+          isPrimary: true,
+        },
+      ],
 
       logoPreview,
       logoFile: null,
@@ -178,16 +161,15 @@ const SettingsScreen = () => {
       const res = await companyProfileAPI.getAllCompanyProfile({
         count: 10,
         page: 1,
-        orgId
+        orgId,
       });
 
-      const profileData =
-        res?.paramObjectsMap?.companyProfile?.data?.[0];
+      const profileData = res?.paramObjectsMap?.companyProfile?.data?.[0];
 
       if (profileData) {
-        setSettings(prev => ({
+        setSettings((prev) => ({
           ...prev,
-          profile: mapApiProfileToUI(profileData)
+          profile: mapApiProfileToUI(profileData),
         }));
       }
     } catch (err) {
@@ -201,9 +183,13 @@ const SettingsScreen = () => {
     setSaving(true);
 
     try {
-      const primaryBank = settings.profile.bankDetails.find(b => b.isPrimary);
-      const primaryBilling = settings.profile.billingAddresses.find(a => a.isPrimary);
-      const primaryShipping = settings.profile.shippingAddresses.find(a => a.isPrimary);
+      const primaryBank = settings.profile.bankDetails.find((b) => b.isPrimary);
+      const primaryBilling = settings.profile.billingAddresses.find(
+        (a) => a.isPrimary,
+      );
+      const primaryShipping = settings.profile.shippingAddresses.find(
+        (a) => a.isPrimary,
+      );
 
       if (!primaryBank || !primaryBilling || !primaryShipping) {
         toast.error("Please select primary bank, billing & shipping address");
@@ -233,7 +219,7 @@ const SettingsScreen = () => {
             shippingAddress:
               settings.profile.shippingAddresses[index]?.address || "",
             primary: bill.isPrimary === true,
-          })
+          }),
         ),
 
         // ✅ BANK ARRAY WITH PRIMARY
@@ -251,7 +237,7 @@ const SettingsScreen = () => {
       const formData = new FormData();
       formData.append(
         "companyProfileDTO",
-        new Blob([JSON.stringify(payload)], { type: "application/json" })
+        new Blob([JSON.stringify(payload)], { type: "application/json" }),
       );
 
       if (settings.profile.logoFile) {
@@ -271,43 +257,43 @@ const SettingsScreen = () => {
   };
 
   const handleChange = (section, field, value) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       [section]: {
         ...prev[section],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
   const handleToggle = (section, field) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       [section]: {
         ...prev[section],
-        [field]: !prev[section][field]
-      }
+        [field]: !prev[section][field],
+      },
     }));
   };
 
   const addAddress = (type) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       profile: {
         ...prev.profile,
         [type]: [
           ...prev.profile[type],
-          { id: Date.now(), address: "", isPrimary: false }
-        ]
-      }
+          { id: Date.now(), address: "", isPrimary: false },
+        ],
+      },
     }));
   };
 
   const removeAddress = (type, id) => {
-    setSettings(prev => {
-      const updated = prev.profile[type].filter(a => a.id !== id);
+    setSettings((prev) => {
+      const updated = prev.profile[type].filter((a) => a.id !== id);
 
-      if (!updated.some(a => a.isPrimary) && updated.length > 0) {
+      if (!updated.some((a) => a.isPrimary) && updated.length > 0) {
         updated[0].isPrimary = true;
       }
 
@@ -315,8 +301,8 @@ const SettingsScreen = () => {
         ...prev,
         profile: {
           ...prev.profile,
-          [type]: updated
-        }
+          [type]: updated,
+        },
       };
     });
   };
@@ -327,27 +313,27 @@ const SettingsScreen = () => {
       profile: {
         ...prev.profile,
         [type]: prev.profile[type].map((item) =>
-          item.id === id ? { ...item, address: value } : item
+          item.id === id ? { ...item, address: value } : item,
         ),
       },
     }));
   };
 
   const setPrimaryAddress = (type, id) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       profile: {
         ...prev.profile,
-        [type]: prev.profile[type].map(addr => ({
+        [type]: prev.profile[type].map((addr) => ({
           ...addr,
-          isPrimary: addr.id === id
-        }))
-      }
+          isPrimary: addr.id === id,
+        })),
+      },
     }));
   };
 
   const addBank = () => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       profile: {
         ...prev.profile,
@@ -360,45 +346,45 @@ const SettingsScreen = () => {
             bankName: "",
             ifscCode: "",
             branch: "",
-            isPrimary: false
-          }
-        ]
-      }
+            isPrimary: false,
+          },
+        ],
+      },
     }));
   };
 
   const removeBank = (id) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       profile: {
         ...prev.profile,
-        bankDetails: prev.profile.bankDetails.filter(b => b.id !== id)
-      }
+        bankDetails: prev.profile.bankDetails.filter((b) => b.id !== id),
+      },
     }));
   };
 
   const updateBank = (id, field, value) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       profile: {
         ...prev.profile,
-        bankDetails: prev.profile.bankDetails.map(b =>
-          b.id === id ? { ...b, [field]: value } : b
-        )
-      }
+        bankDetails: prev.profile.bankDetails.map((b) =>
+          b.id === id ? { ...b, [field]: value } : b,
+        ),
+      },
     }));
   };
 
   const setPrimaryBank = (id) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       profile: {
         ...prev.profile,
-        bankDetails: prev.profile.bankDetails.map(bank => ({
+        bankDetails: prev.profile.bankDetails.map((bank) => ({
           ...bank,
-          isPrimary: bank.id === id
-        }))
-      }
+          isPrimary: bank.id === id,
+        })),
+      },
     }));
   };
 
@@ -419,7 +405,7 @@ const SettingsScreen = () => {
       ...prev,
       profile: {
         ...prev.profile,
-        logoFile: file,          // ✅ store file
+        logoFile: file, // ✅ store file
         logoPreview: URL.createObjectURL(file), // ✅ preview only
       },
     }));
@@ -430,7 +416,9 @@ const SettingsScreen = () => {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <Settings className="h-12 w-12 text-blue-600 animate-pulse mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading settings...</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            Loading settings...
+          </p>
         </div>
       </div>
     );
@@ -455,11 +443,14 @@ const SettingsScreen = () => {
 
           {/* Save Status */}
           {saveStatus && (
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${saveStatus.type === 'success'
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-              }`}>
-              {saveStatus.type === 'success' ? (
+            <div
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                saveStatus.type === "success"
+                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                  : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+              }`}
+            >
+              {saveStatus.type === "success" ? (
                 <CheckCircle className="h-4 w-4" />
               ) : (
                 <XCircle className="h-4 w-4" />
@@ -474,33 +465,40 @@ const SettingsScreen = () => {
         {/* Sidebar Navigation */}
         <div className="xl:col-span-1 space-y-3">
           {[
-            { id: 'profile', name: 'Company Profile', icon: Building },
-            { id: 'notifications', name: 'Notifications', icon: Bell },
-            { id: 'security', name: 'Security', icon: Shield },
-            { id: 'billing', name: 'Billing & Payments', icon: CreditCard },
-            { id: 'appearance', name: 'Appearance', icon: Palette },
-            { id: 'integrations', name: 'Integrations', icon: Globe }
+            { id: "profile", name: "Company Profile", icon: Building },
+            // { id: 'notifications', name: 'Notifications', icon: Bell },
+            // { id: 'security', name: 'Security', icon: Shield },
+            // { id: 'billing', name: 'Billing & Payments', icon: CreditCard },
+            // { id: 'appearance', name: 'Appearance', icon: Palette },
+            // { id: 'integrations', name: 'Integrations', icon: Globe }
           ].map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center gap-3 p-4 rounded-xl text-left transition-colors ${activeSection === item.id
-                  ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                  }`}
+                className={`w-full flex items-center gap-3 p-4 rounded-xl text-left transition-colors ${
+                  activeSection === item.id
+                    ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                }`}
               >
-                <div className={`p-2 rounded-lg ${activeSection === item.id
-                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                  }`}>
+                <div
+                  className={`p-2 rounded-lg ${
+                    activeSection === item.id
+                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  }`}
+                >
                   <Icon className="h-4 w-4" />
                 </div>
-                <span className={`font-medium ${activeSection === item.id
-                  ? 'text-blue-700 dark:text-blue-300'
-                  : 'text-gray-700 dark:text-gray-300'
-                  }`}>
+                <span
+                  className={`font-medium ${
+                    activeSection === item.id
+                      ? "text-blue-700 dark:text-blue-300"
+                      : "text-gray-700 dark:text-gray-300"
+                  }`}
+                >
                   {item.name}
                 </span>
               </button>
@@ -511,7 +509,7 @@ const SettingsScreen = () => {
         {/* Main Content */}
         <div className="xl:col-span-3 space-y-6">
           {/* Company Profile */}
-          {activeSection === 'profile' && (
+          {activeSection === "profile" && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-3">
@@ -582,7 +580,9 @@ const SettingsScreen = () => {
                       type="text"
                       value={organizationName}
                       disabled
-                      onChange={(e) => handleChange('profile', 'companyName', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("profile", "companyName", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Enter company name"
                     />
@@ -595,7 +595,9 @@ const SettingsScreen = () => {
                     <input
                       type="text"
                       value={settings.profile.ownerName}
-                      onChange={(e) => handleChange('profile', 'ownerName', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("profile", "ownerName", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Enter owner name"
                     />
@@ -608,7 +610,9 @@ const SettingsScreen = () => {
                     <input
                       type="email"
                       value={settings.profile.email}
-                      onChange={(e) => handleChange('profile', 'email', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("profile", "email", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="company@example.com"
                     />
@@ -621,7 +625,9 @@ const SettingsScreen = () => {
                     <input
                       type="tel"
                       value={settings.profile.phone}
-                      onChange={(e) => handleChange('profile', 'phone', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("profile", "phone", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="+91 9876543210"
                     />
@@ -634,7 +640,9 @@ const SettingsScreen = () => {
                     <input
                       type="text"
                       value={settings.profile.gstNumber}
-                      onChange={(e) => handleChange('profile', 'gstNumber', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("profile", "gstNumber", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="27ABCDE1234F1Z5"
                     />
@@ -647,7 +655,9 @@ const SettingsScreen = () => {
                     <input
                       type="text"
                       value={settings.profile.panNumber}
-                      onChange={(e) => handleChange('profile', 'panNumber', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("profile", "panNumber", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="ABCDE1234F"
                     />
@@ -690,10 +700,11 @@ const SettingsScreen = () => {
                                   setPrimaryAddress("billingAddresses", item.id)
                                 }
                                 disabled={item.isPrimary}
-                                className={`px-3 py-1 text-xs font-semibold rounded-full transition ${item.isPrimary
-                                  ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300"
-                                  : "text-blue-600 hover:bg-blue-50 hover:text-black dark:border-blue-400 dark:text-blue-400"
-                                  }`}
+                                className={`px-3 py-1 text-xs font-semibold rounded-full transition ${
+                                  item.isPrimary
+                                    ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300"
+                                    : "text-blue-600 hover:bg-blue-50 hover:text-black dark:border-blue-400 dark:text-blue-400"
+                                }`}
                               >
                                 {item.isPrimary ? "Primary" : "Set as Primary"}
                               </button>
@@ -716,7 +727,11 @@ const SettingsScreen = () => {
                             rows="3"
                             value={item.address}
                             onChange={(e) =>
-                              updateAddress("billingAddresses", item.id, e.target.value)
+                              updateAddress(
+                                "billingAddresses",
+                                item.id,
+                                e.target.value,
+                              )
                             }
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                             placeholder="Enter billing address"
@@ -757,18 +772,23 @@ const SettingsScreen = () => {
                                 type="button"
                                 onClick={() =>
                                   !item.isPrimary &&
-                                  setPrimaryAddress("shippingAddresses", item.id)
+                                  setPrimaryAddress(
+                                    "shippingAddresses",
+                                    item.id,
+                                  )
                                 }
                                 disabled={item.isPrimary}
-                                className={`px-3 py-1 text-xs font-semibold rounded-full transition ${item.isPrimary
-                                  ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300"
-                                  : "text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400"
-                                  }`}
+                                className={`px-3 py-1 text-xs font-semibold rounded-full transition ${
+                                  item.isPrimary
+                                    ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300"
+                                    : "text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400"
+                                }`}
                               >
                                 {item.isPrimary ? "Primary" : "Set as Primary"}
                               </button>
 
-                              {settings.profile.shippingAddresses.length > 1 && (
+                              {settings.profile.shippingAddresses.length >
+                                1 && (
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -786,7 +806,11 @@ const SettingsScreen = () => {
                             rows="3"
                             value={item.address}
                             onChange={(e) =>
-                              updateAddress("shippingAddresses", item.id, e.target.value)
+                              updateAddress(
+                                "shippingAddresses",
+                                item.id,
+                                e.target.value,
+                              )
                             }
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                             placeholder="Enter shipping address"
@@ -795,7 +819,6 @@ const SettingsScreen = () => {
                       ))}
                     </div>
                   </div>
-
                 </div>
 
                 <div>
@@ -829,14 +852,19 @@ const SettingsScreen = () => {
                             {/* Primary Button */}
                             <button
                               type="button"
-                              onClick={() => !bank.isPrimary && setPrimaryBank(bank.id)}
+                              onClick={() =>
+                                !bank.isPrimary && setPrimaryBank(bank.id)
+                              }
                               disabled={bank.isPrimary}
-                              className={`px-3 py-1 text-xs font-semibold rounded-full transition${bank.isPrimary
-                                ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300 cursor-default"
-                                : "border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/20"
-                                }`}
+                              className={`px-3 py-1 text-xs font-semibold rounded-full transition${
+                                bank.isPrimary
+                                  ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300 cursor-default"
+                                  : "border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                              }`}
                             >
-                              {bank.isPrimary ? "Primary Account" : "Set as Primary"}
+                              {bank.isPrimary
+                                ? "Primary Account"
+                                : "Set as Primary"}
                             </button>
 
                             {/* Remove Button */}
@@ -862,7 +890,11 @@ const SettingsScreen = () => {
                               placeholder="Account Holder Name"
                               value={bank.accountName}
                               onChange={(e) =>
-                                updateBank(bank.id, "accountName", e.target.value)
+                                updateBank(
+                                  bank.id,
+                                  "accountName",
+                                  e.target.value,
+                                )
                               }
                               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                             />
@@ -876,7 +908,11 @@ const SettingsScreen = () => {
                               placeholder="Account Number"
                               value={bank.accountNumber}
                               onChange={(e) =>
-                                updateBank(bank.id, "accountNumber", e.target.value)
+                                updateBank(
+                                  bank.id,
+                                  "accountNumber",
+                                  e.target.value,
+                                )
                               }
                               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                             />
@@ -935,7 +971,13 @@ const SettingsScreen = () => {
                   </label>
                   <textarea
                     value={settings.profile.termsAndConditions}
-                    onChange={(e) => handleChange('profile', 'termsAndConditions', e.target.value)}
+                    onChange={(e) =>
+                      handleChange(
+                        "profile",
+                        "termsAndConditions",
+                        e.target.value,
+                      )
+                    }
                     rows="3"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     placeholder="Enter Terms & Conditions"
@@ -950,7 +992,9 @@ const SettingsScreen = () => {
                     <input
                       type="url"
                       value={settings.profile.website}
-                      onChange={(e) => handleChange('profile', 'website', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("profile", "website", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="www.example.com"
                     />
@@ -963,7 +1007,13 @@ const SettingsScreen = () => {
                     <input
                       type="number"
                       value={settings.profile.establishedYear}
-                      onChange={(e) => handleChange('profile', 'establishedYear', e.target.value)}
+                      onChange={(e) =>
+                        handleChange(
+                          "profile",
+                          "establishedYear",
+                          e.target.value,
+                        )
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="2015"
                       min="1900"
@@ -993,7 +1043,7 @@ const SettingsScreen = () => {
           )}
 
           {/* Notifications */}
-          {activeSection === 'notifications' && (
+          {activeSection === "notifications" && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-3">
@@ -1013,25 +1063,50 @@ const SettingsScreen = () => {
                   </h3>
                   <div className="space-y-4">
                     {[
-                      { key: 'emailNotifications', label: 'Email Notifications', description: 'Receive notifications via email' },
-                      { key: 'smsNotifications', label: 'SMS Notifications', description: 'Receive notifications via SMS' },
-                      { key: 'pushNotifications', label: 'Push Notifications', description: 'Receive browser push notifications' }
+                      {
+                        key: "emailNotifications",
+                        label: "Email Notifications",
+                        description: "Receive notifications via email",
+                      },
+                      {
+                        key: "smsNotifications",
+                        label: "SMS Notifications",
+                        description: "Receive notifications via SMS",
+                      },
+                      {
+                        key: "pushNotifications",
+                        label: "Push Notifications",
+                        description: "Receive browser push notifications",
+                      },
                     ].map((item) => (
-                      <div key={item.key} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div
+                        key={item.key}
+                        className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+                      >
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-white">{item.label}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{item.description}</p>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {item.label}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {item.description}
+                          </p>
                         </div>
                         <button
-                          onClick={() => handleToggle('notifications', item.key)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.notifications[item.key]
-                            ? 'bg-blue-600'
-                            : 'bg-gray-200 dark:bg-gray-700'
-                            }`}
+                          onClick={() =>
+                            handleToggle("notifications", item.key)
+                          }
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            settings.notifications[item.key]
+                              ? "bg-blue-600"
+                              : "bg-gray-200 dark:bg-gray-700"
+                          }`}
                         >
                           <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.notifications[item.key] ? 'translate-x-6' : 'translate-x-1'
-                              }`}
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              settings.notifications[item.key]
+                                ? "translate-x-6"
+                                : "translate-x-1"
+                            }`}
                           />
                         </button>
                       </div>
@@ -1046,27 +1121,60 @@ const SettingsScreen = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                      { key: 'tripUpdates', label: 'Trip Updates', description: 'Trip status changes and updates' },
-                      { key: 'maintenanceAlerts', label: 'Maintenance Alerts', description: 'Vehicle maintenance reminders' },
-                      { key: 'documentExpiry', label: 'Document Expiry', description: 'Document expiry notifications' },
-                      { key: 'paymentReminders', label: 'Payment Reminders', description: 'Payment due reminders' },
-                      { key: 'lowBalanceAlerts', label: 'Low Balance Alerts', description: 'Wallet balance alerts' }
+                      {
+                        key: "tripUpdates",
+                        label: "Trip Updates",
+                        description: "Trip status changes and updates",
+                      },
+                      {
+                        key: "maintenanceAlerts",
+                        label: "Maintenance Alerts",
+                        description: "Vehicle maintenance reminders",
+                      },
+                      {
+                        key: "documentExpiry",
+                        label: "Document Expiry",
+                        description: "Document expiry notifications",
+                      },
+                      {
+                        key: "paymentReminders",
+                        label: "Payment Reminders",
+                        description: "Payment due reminders",
+                      },
+                      {
+                        key: "lowBalanceAlerts",
+                        label: "Low Balance Alerts",
+                        description: "Wallet balance alerts",
+                      },
                     ].map((item) => (
-                      <div key={item.key} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div
+                        key={item.key}
+                        className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+                      >
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-white">{item.label}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{item.description}</p>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {item.label}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {item.description}
+                          </p>
                         </div>
                         <button
-                          onClick={() => handleToggle('notifications', item.key)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.notifications[item.key]
-                            ? 'bg-blue-600'
-                            : 'bg-gray-200 dark:bg-gray-700'
-                            }`}
+                          onClick={() =>
+                            handleToggle("notifications", item.key)
+                          }
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            settings.notifications[item.key]
+                              ? "bg-blue-600"
+                              : "bg-gray-200 dark:bg-gray-700"
+                          }`}
                         >
                           <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.notifications[item.key] ? 'translate-x-6' : 'translate-x-1'
-                              }`}
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              settings.notifications[item.key]
+                                ? "translate-x-6"
+                                : "translate-x-1"
+                            }`}
                           />
                         </button>
                       </div>
@@ -1088,14 +1196,14 @@ const SettingsScreen = () => {
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : 'Save Notifications'}
+                  {saving ? "Saving..." : "Save Notifications"}
                 </button>
               </div>
             </div>
           )}
 
           {/* Security */}
-          {activeSection === 'security' && (
+          {activeSection === "security" && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-3">
@@ -1111,21 +1219,27 @@ const SettingsScreen = () => {
                 {/* Two-Factor Authentication */}
                 <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Two-Factor Authentication</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      Two-Factor Authentication
+                    </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Add an extra layer of security to your account
                     </p>
                   </div>
                   <button
-                    onClick={() => handleToggle('security', 'twoFactorAuth')}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.security.twoFactorAuth
-                      ? 'bg-blue-600'
-                      : 'bg-gray-200 dark:bg-gray-700'
-                      }`}
+                    onClick={() => handleToggle("security", "twoFactorAuth")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.security.twoFactorAuth
+                        ? "bg-blue-600"
+                        : "bg-gray-200 dark:bg-gray-700"
+                    }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.security.twoFactorAuth ? 'translate-x-6' : 'translate-x-1'
-                        }`}
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.security.twoFactorAuth
+                          ? "translate-x-6"
+                          : "translate-x-1"
+                      }`}
                     />
                   </button>
                 </div>
@@ -1138,7 +1252,13 @@ const SettingsScreen = () => {
                     </label>
                     <select
                       value={settings.security.sessionTimeout}
-                      onChange={(e) => handleChange('security', 'sessionTimeout', parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleChange(
+                          "security",
+                          "sessionTimeout",
+                          parseInt(e.target.value),
+                        )
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     >
                       <option value={15}>15 minutes</option>
@@ -1154,7 +1274,13 @@ const SettingsScreen = () => {
                     </label>
                     <select
                       value={settings.security.passwordExpiry}
-                      onChange={(e) => handleChange('security', 'passwordExpiry', parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleChange(
+                          "security",
+                          "passwordExpiry",
+                          parseInt(e.target.value),
+                        )
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     >
                       <option value={30}>30 days</option>
@@ -1168,24 +1294,44 @@ const SettingsScreen = () => {
                 {/* Security Features */}
                 <div className="space-y-4">
                   {[
-                    { key: 'loginAlerts', label: 'Login Alerts', description: 'Get notified of new sign-ins' },
-                    { key: 'autoLogout', label: 'Auto Logout', description: 'Automatically log out after session timeout' }
+                    {
+                      key: "loginAlerts",
+                      label: "Login Alerts",
+                      description: "Get notified of new sign-ins",
+                    },
+                    {
+                      key: "autoLogout",
+                      label: "Auto Logout",
+                      description:
+                        "Automatically log out after session timeout",
+                    },
                   ].map((item) => (
-                    <div key={item.key} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div
+                      key={item.key}
+                      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+                    >
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{item.label}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{item.description}</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {item.label}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {item.description}
+                        </p>
                       </div>
                       <button
-                        onClick={() => handleToggle('security', item.key)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.security[item.key]
-                          ? 'bg-blue-600'
-                          : 'bg-gray-200 dark:bg-gray-700'
-                          }`}
+                        onClick={() => handleToggle("security", item.key)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          settings.security[item.key]
+                            ? "bg-blue-600"
+                            : "bg-gray-200 dark:bg-gray-700"
+                        }`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.security[item.key] ? 'translate-x-6' : 'translate-x-1'
-                            }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            settings.security[item.key]
+                              ? "translate-x-6"
+                              : "translate-x-1"
+                          }`}
                         />
                       </button>
                     </div>
@@ -1206,15 +1352,17 @@ const SettingsScreen = () => {
                           onChange={(e) => {
                             const newIps = [...settings.security.ipWhitelist];
                             newIps[index] = e.target.value;
-                            handleChange('security', 'ipWhitelist', newIps);
+                            handleChange("security", "ipWhitelist", newIps);
                           }}
                           className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                           placeholder="192.168.1.1"
                         />
                         <button
                           onClick={() => {
-                            const newIps = settings.security.ipWhitelist.filter((_, i) => i !== index);
-                            handleChange('security', 'ipWhitelist', newIps);
+                            const newIps = settings.security.ipWhitelist.filter(
+                              (_, i) => i !== index,
+                            );
+                            handleChange("security", "ipWhitelist", newIps);
                           }}
                           className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                         >
@@ -1224,8 +1372,8 @@ const SettingsScreen = () => {
                     ))}
                     <button
                       onClick={() => {
-                        const newIps = [...settings.security.ipWhitelist, ''];
-                        handleChange('security', 'ipWhitelist', newIps);
+                        const newIps = [...settings.security.ipWhitelist, ""];
+                        handleChange("security", "ipWhitelist", newIps);
                       }}
                       className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
                     >
@@ -1249,14 +1397,14 @@ const SettingsScreen = () => {
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : 'Save Security'}
+                  {saving ? "Saving..." : "Save Security"}
                 </button>
               </div>
             </div>
           )}
 
           {/* Billing & Payments */}
-          {activeSection === 'billing' && (
+          {activeSection === "billing" && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-3">
@@ -1276,7 +1424,9 @@ const SettingsScreen = () => {
                     </label>
                     <select
                       value={settings.billing.currency}
-                      onChange={(e) => handleChange('billing', 'currency', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("billing", "currency", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     >
                       <option value="INR">Indian Rupee (₹)</option>
@@ -1293,7 +1443,13 @@ const SettingsScreen = () => {
                     <input
                       type="number"
                       value={settings.billing.taxRate}
-                      onChange={(e) => handleChange('billing', 'taxRate', parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        handleChange(
+                          "billing",
+                          "taxRate",
+                          parseFloat(e.target.value),
+                        )
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       min="0"
                       max="100"
@@ -1308,7 +1464,9 @@ const SettingsScreen = () => {
                     <input
                       type="text"
                       value={settings.billing.invoicePrefix}
-                      onChange={(e) => handleChange('billing', 'invoicePrefix', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("billing", "invoicePrefix", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="RTS"
                     />
@@ -1320,7 +1478,9 @@ const SettingsScreen = () => {
                     </label>
                     <select
                       value={settings.billing.paymentTerms}
-                      onChange={(e) => handleChange('billing', 'paymentTerms', e.target.value)}
+                      onChange={(e) =>
+                        handleChange("billing", "paymentTerms", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     >
                       <option value="7 days">7 days</option>
@@ -1337,7 +1497,13 @@ const SettingsScreen = () => {
                     <input
                       type="number"
                       value={settings.billing.lateFeePercentage}
-                      onChange={(e) => handleChange('billing', 'lateFeePercentage', parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        handleChange(
+                          "billing",
+                          "lateFeePercentage",
+                          parseFloat(e.target.value),
+                        )
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       min="0"
                       max="50"
@@ -1349,24 +1515,44 @@ const SettingsScreen = () => {
                 {/* Billing Features */}
                 <div className="space-y-4">
                   {[
-                    { key: 'autoGenerateInvoices', label: 'Auto-generate Invoices', description: 'Automatically generate invoices for completed trips' },
-                    { key: 'sendPaymentReminders', label: 'Send Payment Reminders', description: 'Automatically send payment reminder emails' }
+                    {
+                      key: "autoGenerateInvoices",
+                      label: "Auto-generate Invoices",
+                      description:
+                        "Automatically generate invoices for completed trips",
+                    },
+                    {
+                      key: "sendPaymentReminders",
+                      label: "Send Payment Reminders",
+                      description: "Automatically send payment reminder emails",
+                    },
                   ].map((item) => (
-                    <div key={item.key} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div
+                      key={item.key}
+                      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+                    >
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{item.label}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{item.description}</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {item.label}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {item.description}
+                        </p>
                       </div>
                       <button
-                        onClick={() => handleToggle('billing', item.key)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.billing[item.key]
-                          ? 'bg-blue-600'
-                          : 'bg-gray-200 dark:bg-gray-700'
-                          }`}
+                        onClick={() => handleToggle("billing", item.key)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          settings.billing[item.key]
+                            ? "bg-blue-600"
+                            : "bg-gray-200 dark:bg-gray-700"
+                        }`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.billing[item.key] ? 'translate-x-6' : 'translate-x-1'
-                            }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            settings.billing[item.key]
+                              ? "translate-x-6"
+                              : "translate-x-1"
+                          }`}
                         />
                       </button>
                     </div>
@@ -1387,7 +1573,7 @@ const SettingsScreen = () => {
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : 'Save Billing'}
+                  {saving ? "Saving..." : "Save Billing"}
                 </button>
               </div>
             </div>

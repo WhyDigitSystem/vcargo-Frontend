@@ -1,7 +1,7 @@
-import { IndianRupee, Truck } from "lucide-react";
-import { dashboardAPI } from "../../../api/dashboardAPI";
+import { Truck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { dashboardAPI } from "../../../api/dashboardAPI";
 
 const DashboardHighlights = () => {
   const { user } = useSelector((state) => state.auth);
@@ -44,10 +44,8 @@ const DashboardHighlights = () => {
 
   return (
     <div className="space-y-6">
-
       {/* Vehicle Utilization */}
       <div className="relative overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur hover:shadow-lg transition">
-
         <div className="absolute left-0 top-0 h-full w-1 bg-blue-500" />
 
         <div className="p-5">
@@ -94,7 +92,7 @@ const DashboardHighlights = () => {
       </div>
 
       {/* Revenue Snapshot (still static for now) */}
-      <div className="relative overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur hover:shadow-lg transition">
+      {/* <div className="relative overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur hover:shadow-lg transition">
 
         <div className="absolute left-0 top-0 h-full w-1 bg-emerald-500" />
 
@@ -141,8 +139,7 @@ const DashboardHighlights = () => {
 
           </div>
         </div>
-      </div>
-
+      </div> */}
     </div>
   );
 };

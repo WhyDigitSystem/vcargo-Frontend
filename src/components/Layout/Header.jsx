@@ -4,7 +4,6 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
-  Globe,
   LogOut,
   Menu,
   Moon,
@@ -163,10 +162,10 @@ const Header = () => {
                   <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[120px]">
                     {user?.organizationName || "Organization"}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  {/* <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                     <Globe className="h-3 w-3" />
                     {user?.branch || "Head Office"}
-                  </div>
+                  </div> */}
                 </div>
                 <ChevronDown
                   className={`h-4 w-4 text-gray-400 transition-transform ${

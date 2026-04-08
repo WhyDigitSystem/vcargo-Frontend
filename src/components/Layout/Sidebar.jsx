@@ -1,6 +1,7 @@
 import { clsx } from "clsx";
 import {
   Bell,
+  Building,
   Car,
   FileText,
   Fuel,
@@ -11,7 +12,6 @@ import {
   Route,
   Settings2,
   User,
-  Building,
   Wrench,
 } from "lucide-react";
 import { useEffect } from "react";
@@ -48,6 +48,15 @@ const Sidebar = () => {
       completed: false,
     },
     {
+      name: "Drivers",
+      href: "/drivers",
+      icon: User,
+      roles: ["Transporter", "FleetManager", "Admin"],
+      color: "text-cyan-500",
+      bgColor: "bg-cyan-100 dark:bg-cyan-900/30",
+      completed: false, // Completed module
+    },
+    {
       name: "Vehicles",
       href: "/vehicles",
       icon: Car,
@@ -57,15 +66,7 @@ const Sidebar = () => {
       completed: false, // Completed module
     },
     // Core Modules - Priority 2
-    {
-      name: "Drivers",
-      href: "/drivers",
-      icon: User,
-      roles: ["Transporter", "FleetManager", "Admin"],
-      color: "text-cyan-500",
-      bgColor: "bg-cyan-100 dark:bg-cyan-900/30",
-      completed: false, // Completed module
-    },
+
     {
       name: "Customers",
       href: "/customers",
